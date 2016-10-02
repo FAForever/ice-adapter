@@ -27,4 +27,12 @@
 *.exe
 *.out
 *.app
+
+# QtCreator files
 *.txt.user
+
+# Pycharm files
+*.idea*
+
+# Python files
+*.pyc
