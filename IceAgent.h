@@ -13,7 +13,10 @@ class IceAgent
 {
 public:
   IceAgent(GMainLoop* mainloop,
-           std::string const& stunTurnHost);
+           std::string const& stunHost,
+           std::string const& turnHost,
+           std::string const& turnUser,
+           std::string const& turnPassword);
   virtual ~IceAgent();
 
   IceStream* createStream();
@@ -23,6 +26,10 @@ protected:
   NiceAgent* mAgent;
   GMainLoop* mMainloop;
   std::map<unsigned int, IceStream*> mStreams;
+  char* mStunIp;
+  char* mTurnIp;
+  std::string mTurnUser;
+  std::string mTurnPassword;
 
   friend void cb_candidate_gathering_done(NiceAgent*,
                                           unsigned int,

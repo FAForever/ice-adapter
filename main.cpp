@@ -2,16 +2,24 @@
 
 #include "IceAdapter.h"
 
-char const* playerId = "1234";
+char const* playerId      = "1234";
 char const* serverBaseUri = "http://localhost:5000/";
-char const* stunTurnHost = "erreich.bar";
-unsigned int httpApiPort = 8080;
+//char const* stunTurnHost  = "manchmal.erreich.bar";
+//char const* stunTurnHost  = "dev.faforever.com";
+char const* stunHost      = "dev.faforever.com";
+char const* turnHost      = "numb.viagenie.ca";
+char const* turnUser      = "mm+viagenie.ca@netlair.de";
+char const* turnPassword  = "asdf";
+unsigned int httpApiPort  = 8080;
 
 static GOptionEntry entries[] =
 {
   { "player-id",       'p', 0, G_OPTION_ARG_STRING, &playerId,      "ID of this player", nullptr},
   { "server-base-uri", 'b', 0, G_OPTION_ARG_STRING, &serverBaseUri, "URI of the HTTP SDP server", nullptr},
-  { "stun-turn-host",  's', 0, G_OPTION_ARG_STRING, &stunTurnHost,  "Hostname of the STUN/TURN server", nullptr},
+  { "stun-host",       's', 0, G_OPTION_ARG_STRING, &stunHost,      "Hostname of the STUN server", nullptr},
+  { "turn-host",       't', 0, G_OPTION_ARG_STRING, &turnHost,      "Hostname of the TURN server", nullptr},
+  { "turn-user",       'u', 0, G_OPTION_ARG_STRING, &turnUser,      "TURN credentials username", nullptr},
+  { "turn-pass",       'u', 0, G_OPTION_ARG_STRING, &turnPassword,  "TURN credentials password", nullptr},
   { "http-port",       'h', 0, G_OPTION_ARG_INT,    &httpApiPort,   "Port of the internal HTTP API server", nullptr},
   { NULL }
 };
@@ -34,7 +42,10 @@ int main(int argc, char *argv[])
 
   IceAdapter a(playerId,
                serverBaseUri,
-               stunTurnHost,
+               stunHost,
+               turnHost,
+               turnUser,
+               turnPassword,
                httpApiPort);
   a.run();
 

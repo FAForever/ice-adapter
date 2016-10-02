@@ -41,9 +41,16 @@ cb_component_state_changed(NiceAgent *agent,
 }
 
 IceAgent::IceAgent(GMainLoop* mainloop,
-                   std::string const& stunTurnHost):
+                   std::string const& stunHost,
+                   std::string const& turnHost,
+                   std::string const& turnUser,
+                   std::string const& turnPassword):
   mAgent(nullptr),
-  mMainloop(mainloop)
+  mMainloop(mainloop),
+  mStunIp(nullptr),
+  mTurnIp(nullptr),
+  mTurnUser(turnUser),
+  mTurnPassword(turnPassword)
 {
   mAgent = nice_agent_new(g_main_loop_get_context (mainloop),
                           NICE_COMPATIBILITY_RFC5245);
@@ -54,20 +61,30 @@ IceAgent::IceAgent(GMainLoop* mainloop,
 
   auto resolver = g_resolver_get_default();
 
-  auto results = g_resolver_lookup_by_name(resolver,
-                                           stunTurnHost.c_str(),
+  auto stunResults = g_resolver_lookup_by_name(resolver,
+                                           stunHost.c_str(),
                                            nullptr,
                                            nullptr);
-  auto addr = G_INET_ADDRESS (g_object_ref (results->data));
+  auto stunAddr = G_INET_ADDRESS (g_object_ref (stunResults->data));
+  mStunIp = g_inet_address_to_string(stunAddr);
+  g_object_unref(stunAddr);
 
-  g_resolver_free_addresses (results);
+  g_resolver_free_addresses (stunResults);
+
+  auto turnResults = g_resolver_lookup_by_name(resolver,
+                                               turnHost.c_str(),
+                                               nullptr,
+                                               nullptr);
+  auto turnAddr = G_INET_ADDRESS (g_object_ref (turnResults->data));
+  mTurnIp = g_inet_address_to_string(turnAddr);
+  g_object_unref(turnAddr);
+
   g_object_unref (resolver);
 
-  g_object_set(mAgent, "stun-server", addr, nullptr);
+  g_object_set(mAgent, "stun-server", mStunIp, nullptr);
   g_object_set(mAgent, "stun-server-port", 3478, nullptr);
   g_object_set(mAgent, "controlling-mode", true, nullptr);
 
-  g_object_unref (addr);
 
   // Connect to the signals
   g_signal_connect(mAgent,
@@ -86,6 +103,14 @@ IceAgent::~IceAgent()
   {
     g_object_unref(mAgent);
   }
+  if (mStunIp)
+  {
+    g_free(mStunIp);
+  }
+  if (mTurnIp)
+  {
+    g_free(mTurnIp);
+  }
 }
 
 IceStream* IceAgent::createStream()
@@ -95,6 +120,24 @@ IceStream* IceAgent::createStream()
   {
     throw std::runtime_error("nice_agent_add_stream() failed");
   }
+  nice_agent_set_relay_info(mAgent,
+                            streamId,
+                            1,
+                            mTurnIp,
+                            3478,
+                            mTurnUser.c_str(),
+                            mTurnPassword.c_str(),
+                            NICE_RELAY_TYPE_TURN_UDP);
+  /* crashes?
+  nice_agent_set_relay_info(mAgent,
+                            streamId,
+                            1,
+                            mStunTurnIp,
+                            3478,
+                            "mm+viagenie.ca@netlair.de",
+                            "asdf",
+                            NICE_RELAY_TYPE_TURN_TCP);
+                            */
 
   IceStream* result = new IceStream(streamId,
                                     this,

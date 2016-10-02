@@ -8,15 +8,32 @@
 
 #include "IceStream.h"
 
+
+int connect_players_timeout(gpointer data)
+{
+  static_cast<IceAdapter*>(data)->onConnectPlayers();
+  return 1;
+}
+
 IceAdapter::IceAdapter(std::string const& playerId,
                        std::string const& httpBaseUri,
-                       std::string const& stunTurnHost,
+                       std::string const& stunHost,
+                       std::string const& turnHost,
+                       std::string const& turnUser,
+                       std::string const& turnPassword,
                        unsigned int httpPort):
   mMainLoop(g_main_loop_new(NULL, FALSE)),
-  mIceAgent(mMainLoop, stunTurnHost),
+  mIceAgent(mMainLoop,
+            stunHost,
+            turnHost,
+            turnUser,
+            turnPassword),
   mHttpServer(httpPort),
   mHttpClient(httpBaseUri),
-  mPlayerId(playerId)
+  mPlayerId(playerId),
+  mTurnHost(turnHost),
+  mTurnUser(turnUser),
+  mTurnPassword(turnPassword)
 {
   mHttpServer.setJoinGameCallback(
         std::bind(&IceAdapter::onJoinGame, this, std::placeholders::_1)
@@ -24,10 +41,13 @@ IceAdapter::IceAdapter(std::string const& playerId,
   mHttpServer.setCreateGameCallback(
         std::bind(&IceAdapter::onCreateGame, this)
         );
+
+  mConnectPlayersTimer = g_timeout_add(100, connect_players_timeout, this);
 }
 
 IceAdapter::~IceAdapter()
 {
+  g_source_remove(mConnectPlayersTimer);
   if (mMainLoop)
   {
     g_main_loop_unref(mMainLoop);
@@ -43,33 +63,7 @@ void IceAdapter::run()
 void IceAdapter::onJoinGame(std::string const& gameId)
 {
   std::cout << "IceAdapter::onJoinGame " << gameId << std::endl;
-  auto jsonResponse = mHttpClient.getPlayers(gameId);
-  Json::Value root;
-  Json::Reader r;
-  if (!r.parse(jsonResponse, root))
-  {
-    std::cerr << "Invalid response from createGame: " << jsonResponse;
-    return;
-  }
   mGameId = gameId;
-  std::cout << "IceAdapter::onJoinGame players " << jsonResponse << std::endl;
-  if (root.isMember(mPlayerId))
-  {
-    std::cerr << "I'm already in the game" << std::endl;
-    return;
-  }
-  for (auto it = root.begin(), end = root.end(); it != end; ++it)
-  {
-    IceStream* iceStream = mIceAgent.createStream();
-    mStreamRemoteplayerMap.insert(std::make_pair(iceStream, it.key().asString()));
-    iceStream->setCandidateGatheringDoneCallback(
-          std::bind(&IceAdapter::onSdp,
-                    this,
-                    std::placeholders::_1,
-                    std::placeholders::_2)
-        );
-    iceStream->gatherCandidates();
-  }
 }
 
 void IceAdapter::onCreateGame()
@@ -110,5 +104,54 @@ void IceAdapter::onSdp(IceStream* stream, std::string const& sdp)
                      mPlayerId,
                      remotePlayerIt->second,
                      sdp);
+
+}
+
+void IceAdapter::onConnectPlayers()
+{
+  if (mGameId.size() == 0)
+  {
+    return;
+  }
+  auto jsonResponse = mHttpClient.getPlayers(mGameId);
+  Json::Value players;
+  Json::Reader r;
+  if (!r.parse(jsonResponse, players))
+  {
+    std::cerr << "Invalid response from getPlayers: " << jsonResponse;
+    return;
+  }
+  for (auto it = players.begin(), end = players.end(); it != end; ++it)
+  {
+    auto const& remotePlayerId = it.key().asString();
+    if (remotePlayerId == mPlayerId)
+    {
+      continue;
+    }
+    /* if there's no stream for this remotePlayer, create one */
+    if (mRemoteplayerStreamMap.find(remotePlayerId) == mRemoteplayerStreamMap.end())
+    {
+      IceStream* iceStream = mIceAgent.createStream();
+      mStreamRemoteplayerMap.insert(std::make_pair(iceStream, remotePlayerId));
+      mRemoteplayerStreamMap.insert(std::make_pair(remotePlayerId, iceStream));
+      iceStream->setCandidateGatheringDoneCallback(
+            std::bind(&IceAdapter::onSdp,
+                      this,
+                      std::placeholders::_1,
+                      std::placeholders::_2)
+          );
+      iceStream->gatherCandidates();
+    }
+
+    /* check if the remote player already has a SDP for us */
+    for (auto remotePlayerSdpsIt = it->begin(), end = it->end();
+         remotePlayerSdpsIt != end; ++remotePlayerSdpsIt)
+    {
+      if (it.key() == mPlayerId)
+      {
+        std::cout << "remote player " << remotePlayerId << " has SDP for us:" << it->asString() << std::endl;
+      }
+    }
+  }
 
 }
