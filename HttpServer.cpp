@@ -29,30 +29,38 @@ void handler_cb(SoupServer         *server,
       soup_message_set_status(msg, SOUP_STATUS_OK);
     }
   }
+  else if (strcmp(path, "/create_game") == 0 &&
+      httpServer->mCreateGameCallback)
+  {
+    httpServer->mCreateGameCallback();
+    soup_message_set_status(msg, SOUP_STATUS_OK);
+  }
   else
   {
     soup_message_set_status (msg, SOUP_STATUS_NOT_IMPLEMENTED);
   }
 }
 
-HttpServer::HttpServer():
+HttpServer::HttpServer(unsigned int httpPort):
   mServer(nullptr)
 {
   GError *error = NULL;
 
   mServer = soup_server_new(SOUP_SERVER_SERVER_HEADER,
                             "faf-ice-control ",
-                            NULL);
+                            nullptr);
   soup_server_listen_local(mServer,
-                           8080,
+                           httpPort,
                            static_cast<SoupServerListenOptions>(0),
                            &error);
 
   soup_server_add_handler(mServer,
-                          "/join_game",
+                          nullptr,
                           handler_cb,
                           this,
                           NULL);
+
+  std::cout << "Internal HTTP server listening at http://127.0.0.1:" << httpPort << std::endl;
 }
 
 HttpServer::~HttpServer()
@@ -63,4 +71,9 @@ HttpServer::~HttpServer()
 void HttpServer::setJoinGameCallback(JoinGameCallback cb)
 {
   mJoinGameCallback = cb;
+}
+
+void HttpServer::setCreateGameCallback(CreateGameCallback cb)
+{
+  mCreateGameCallback = cb;
 }

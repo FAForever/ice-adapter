@@ -17,10 +17,35 @@ HttpClient::~HttpClient()
   }
 }
 
-std::string HttpClient::joinGame(std::string const& gameId)
+std::string HttpClient::getPlayers(std::string const& gameId)
 {
-  SoupMessage *msg = soup_message_new("GET", (mBaseUri + "join_game").c_str());
+  SoupMessage *msg = soup_message_new("GET", (mBaseUri + "get_players/" + gameId).c_str());
   soup_session_send_message (mSession, msg);
   return std::string(msg->response_body->data,
-                     msg->response_body->length);
+                     static_cast<std::size_t>(msg->response_body->length));
+}
+
+std::string HttpClient::createGame(std::string const& hostId)
+{
+  SoupMessage *msg = soup_message_new("GET", (mBaseUri + "create_game/" + hostId).c_str());
+  soup_session_send_message (mSession, msg);
+  return std::string(msg->response_body->data,
+                     static_cast<std::size_t>(msg->response_body->length));
+}
+
+std::string HttpClient::setSdp(std::string const& gameId,
+                               std::string const& playerId,
+                               std::string const& remotePlayer,
+                               std::string const& sdp)
+{
+  SoupMessage *msg = soup_message_new("GET", (mBaseUri +
+                                              "set_sdp/" +
+                                              gameId + "/" +
+                                              playerId + "/" +
+                                              remotePlayer + "/" +
+                                              sdp).c_str());
+  soup_session_send_message (mSession, msg);
+  return std::string(msg->response_body->data,
+                     static_cast<std::size_t>(msg->response_body->length));
+
 }

@@ -12,7 +12,8 @@ class IceStream;
 class IceAgent
 {
 public:
-  IceAgent(GMainLoop* mainloop);
+  IceAgent(GMainLoop* mainloop,
+           std::string const& stunTurnHost);
   virtual ~IceAgent();
 
   IceStream* createStream();

@@ -34,16 +34,6 @@ IceStream::IceStream(unsigned int streamId,
                          this);
 }
 
-void IceStream::gatherCandidates()
-{
-  // Start gathering local candidates
-  if (!nice_agent_gather_candidates(mAgent->agent(),
-                                    mStreamId))
-  {
-    throw std::runtime_error("nice_agent_gather_candidates() failed");
-  }
-}
-
 IceStream::~IceStream()
 {
   if (mSdp)
@@ -58,11 +48,30 @@ IceStream::~IceStream()
   }
 }
 
+void IceStream::gatherCandidates()
+{
+  // Start gathering local candidates
+  if (!nice_agent_gather_candidates(mAgent->agent(),
+                                    mStreamId))
+  {
+    throw std::runtime_error("nice_agent_gather_candidates() failed");
+  }
+}
+
+void IceStream::setCandidateGatheringDoneCallback(CandidateGatheringDoneCallback cb)
+{
+  mCb = cb;
+}
+
 void IceStream::onCandidateGatheringDone()
 {
   mSdp = nice_agent_generate_local_sdp(mAgent->agent());
   mSdp64 = g_base64_encode(reinterpret_cast<unsigned char *>(mSdp),
                            strlen(mSdp));
+  if (mCb)
+  {
+    mCb(this, mSdp64);
+  }
   std::cout << "SDP:\n" << mSdp << std::endl;
 }
 

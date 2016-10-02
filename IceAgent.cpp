@@ -40,7 +40,8 @@ cb_component_state_changed(NiceAgent *agent,
   }
 }
 
-IceAgent::IceAgent(GMainLoop* mainloop):
+IceAgent::IceAgent(GMainLoop* mainloop,
+                   std::string const& stunTurnHost):
   mAgent(nullptr),
   mMainloop(mainloop)
 {
@@ -51,9 +52,22 @@ IceAgent::IceAgent(GMainLoop* mainloop):
     throw std::runtime_error("nice_agent_new() failed");
   }
 
-  g_object_set(mAgent, "stun-server", "144.76.93.157", NULL);
-  g_object_set(mAgent, "stun-server-port", 3478, NULL);
-  g_object_set(mAgent, "controlling-mode", true, NULL);
+  auto resolver = g_resolver_get_default();
+
+  auto results = g_resolver_lookup_by_name(resolver,
+                                           stunTurnHost.c_str(),
+                                           nullptr,
+                                           nullptr);
+  auto addr = G_INET_ADDRESS (g_object_ref (results->data));
+
+  g_resolver_free_addresses (results);
+  g_object_unref (resolver);
+
+  g_object_set(mAgent, "stun-server", addr, nullptr);
+  g_object_set(mAgent, "stun-server-port", 3478, nullptr);
+  g_object_set(mAgent, "controlling-mode", true, nullptr);
+
+  g_object_unref (addr);
 
   // Connect to the signals
   g_signal_connect(mAgent,
@@ -86,7 +100,6 @@ IceStream* IceAgent::createStream()
                                     this,
                                     mMainloop);
   mStreams.insert(std::make_pair(streamId, result));
-  result->gatherCandidates();
   return result;
 }
 

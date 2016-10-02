@@ -3,17 +3,12 @@
 import requests
 
 sdpserver_address = "http://127.0.0.1:5000/"
-faf_ice_adapter_address = "http://127.0.0.1:8080/"
+faf_ice_adapter_address = "http://127.0.0.1:8002/"
 
-my_host_id=1234
-
-r = requests.get(sdpserver_address + "get_games")
-print(r.json())
-
-r = requests.get(sdpserver_address + "create_game/" + str(my_host_id))
-print(r.text)
+my_id=6534
 
 r = requests.get(sdpserver_address + "get_games")
+
 games = r.json()
 if (len(games) < 1):
   exit(1)
