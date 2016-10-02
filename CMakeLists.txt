@@ -18,41 +18,30 @@ set(CMAKE_CXX_FLAGS_DEBUG "${CMAKE_CXX_FLAGS_DEBUG} -pedantic -Wall -Wextra -Wca
 if(NOT PKGCONFIG_FOUND)
   find_package(PkgConfig REQUIRED)
 endif()
-pkg_search_module(PJPROJECT REQUIRED libpjproject)
-pkg_search_module(LIBMICROHTTPD REQUIRED libmicrohttpd)
+pkg_search_module(NICE REQUIRED nice)
+pkg_search_module(SOUP REQUIRED libsoup-2.4)
+pkg_search_module(JSON REQUIRED json-glib-1.0)
 
-include_directories(${PJPROJECT_INCLUDE_DIRS})
-include_directories(${LIBMICROHTTPD_INCLUDE_DIRS})
+include_directories(${NICE_INCLUDE_DIRS})
+include_directories(${SOUP_INCLUDE_DIRS})
+include_directories(${JSON_INCLUDE_DIRS})
 
-add_executable(icetest
-  devtest/icetest.cpp)
-
-target_link_libraries(icetest
-  ${PJPROJECT_LIBRARIES}
+target_link_libraries(libnicetest
+  ${NICE_LIBRARIES}
   )
 
-add_executable(pjsua2_demo
-  devtest/pjsua2_demo.cpp)
-
-target_link_libraries(pjsua2_demo
-  ${PJPROJECT_LIBRARIES}
+add_executable(ice-adapter
+  HttpClient.cpp
+  HttpServer.cpp
+  IceAdapter.cpp
+  IceAgent.cpp
+  IceStream.cpp
+  main.cpp
   )
 
-#find_package(cppnetlib REQUIRED)
-#include_directories(${cppnetlib_INCLUDE_DIRS})
-
-add_executable(myice1
-  devtest/myice1.cpp
-  devtest/PjIceStreamTransport.cpp
-  devtest/PjIceGlobal.cpp
-  devtest/HttpTest.cpp
+target_link_libraries(ice-adapter
+  ${NICE_LIBRARIES}
+  ${SOUP_LIBRARIES}
+  ${JSON_LIBRARIES}
   )
 
-target_link_libraries(myice1
-  ${PJPROJECT_LIBRARIES}
-  ${LIBMICROHTTPD_LIBRARIES}
-  cppnetlib-uri
-  )
-
-#add_subdirectory(libretest)
-add_subdirectory(libnicetest)
