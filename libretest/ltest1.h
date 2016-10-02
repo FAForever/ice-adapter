@@ -1,11 +1,7 @@
-#ifndef LTEST1_H
-#define LTEST1_H
-
+#pragma once
 
 class ltest1
 {
 public:
   ltest1();
 };
-
-#endif // LTEST1_H
