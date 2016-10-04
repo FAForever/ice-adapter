@@ -6,6 +6,8 @@
 
 typedef struct _NiceAgent NiceAgent;
 typedef struct _GMainLoop GMainLoop;
+typedef struct _NiceCandidate NiceCandidate;
+
 
 class IceStream;
 
@@ -39,4 +41,10 @@ protected:
                                          unsigned int,
                                          unsigned int,
                                          void*);
+  friend void cb_new_selected_pair_full(NiceAgent*,
+                                        unsigned int,
+                                        unsigned int,
+                                        NiceCandidate*,
+                                        NiceCandidate*,
+                                        void*);
 };

@@ -40,6 +40,23 @@ cb_component_state_changed(NiceAgent *agent,
   }
 }
 
+void
+cb_new_selected_pair_full(NiceAgent *agent,
+                           guint stream_id,
+                           guint component_id,
+                           NiceCandidate* localCandidate,
+                           NiceCandidate* remoteCandidate,
+                           gpointer data)
+{
+  auto a = static_cast<IceAgent*>(data);
+  auto i = a->mStreams.find(stream_id);
+  if (i != a->mStreams.end())
+  {
+    i->second->onCandidateSelected(localCandidate,
+                                   remoteCandidate);
+  }
+}
+
 IceAgent::IceAgent(GMainLoop* mainloop,
                    std::string const& stunHost,
                    std::string const& turnHost,
@@ -94,6 +111,10 @@ IceAgent::IceAgent(GMainLoop* mainloop,
   g_signal_connect(mAgent,
                    "component-state-changed",
                     G_CALLBACK(cb_component_state_changed),
+                   this);
+  g_signal_connect(mAgent,
+                   "new-selected-pair-full",
+                   G_CALLBACK(cb_new_selected_pair_full),
                    this);
 }
 

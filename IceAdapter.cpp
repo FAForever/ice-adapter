@@ -14,6 +14,11 @@ int connect_players_timeout(gpointer data)
   static_cast<IceAdapter*>(data)->onConnectPlayers();
   return 1;
 }
+int ping_players_timeout(gpointer data)
+{
+  static_cast<IceAdapter*>(data)->onPingPlayers();
+  return 1;
+}
 
 IceAdapter::IceAdapter(std::string const& playerId,
                        std::string const& httpBaseUri,
@@ -43,11 +48,13 @@ IceAdapter::IceAdapter(std::string const& playerId,
         );
 
   mConnectPlayersTimer = g_timeout_add(100, connect_players_timeout, this);
+  mPingPlayersTimer    = g_timeout_add(10,  ping_players_timeout,    this);
 }
 
 IceAdapter::~IceAdapter()
 {
   g_source_remove(mConnectPlayersTimer);
+  g_source_remove(mPingPlayersTimer);
   if (mMainLoop)
   {
     g_main_loop_unref(mMainLoop);
@@ -107,6 +114,27 @@ void IceAdapter::onSdp(IceStream* stream, std::string const& sdp)
 
 }
 
+void IceAdapter::onReceive(IceStream* stream, std::string const& msg)
+{
+  if (msg == "PING")
+  {
+    stream->send("PONG");
+    ++mReceivedPings[stream];
+    if (mReceivedPings.at(stream) % 100 == 0)
+    {
+      std::cout << mStreamRemoteplayerMap.at(stream) << " PING " << mReceivedPings.at(stream) << std::endl;
+    }
+  }
+  else if (msg == "PONG")
+  {
+    ++mReceivedPongs[stream];
+    if (mReceivedPings.at(stream) % 100 == 0)
+    {
+      std::cout << mStreamRemoteplayerMap.at(stream) << " PONG " << mReceivedPings.at(stream) << std::endl;
+    }
+  }
+}
+
 void IceAdapter::onConnectPlayers()
 {
   if (mGameId.size() == 0)
@@ -123,23 +151,31 @@ void IceAdapter::onConnectPlayers()
   }
   for (auto it = players.begin(), end = players.end(); it != end; ++it)
   {
-    auto const& remotePlayerId = it.key().asString();
-    if (remotePlayerId == mPlayerId)
+    auto const& playerId = it.key().asString();
+    if (playerId == mPlayerId)
     {
       continue;
     }
     /* if there's no stream for this remotePlayer, create one */
-    if (mRemoteplayerStreamMap.find(remotePlayerId) == mRemoteplayerStreamMap.end())
+    if (mRemoteplayerStreamMap.find(playerId) == mRemoteplayerStreamMap.end())
     {
       IceStream* iceStream = mIceAgent.createStream();
-      mStreamRemoteplayerMap.insert(std::make_pair(iceStream, remotePlayerId));
-      mRemoteplayerStreamMap.insert(std::make_pair(remotePlayerId, iceStream));
+      mStreamRemoteplayerMap.insert(std::make_pair(iceStream, playerId));
+      mRemoteplayerStreamMap.insert(std::make_pair(playerId, iceStream));
+      mReceivedPings.insert(std::make_pair(iceStream, 0));
+      mReceivedPongs.insert(std::make_pair(iceStream, 0));
       iceStream->setCandidateGatheringDoneCallback(
             std::bind(&IceAdapter::onSdp,
                       this,
                       std::placeholders::_1,
                       std::placeholders::_2)
           );
+      iceStream->setReceiveCallback(
+            std::bind(&IceAdapter::onReceive,
+                      this,
+                      std::placeholders::_1,
+                      std::placeholders::_2)
+            );
       iceStream->gatherCandidates();
     }
 
@@ -147,11 +183,29 @@ void IceAdapter::onConnectPlayers()
     for (auto remotePlayerSdpsIt = it->begin(), end = it->end();
          remotePlayerSdpsIt != end; ++remotePlayerSdpsIt)
     {
-      if (it.key() == mPlayerId)
+      if (remotePlayerSdpsIt.key().isString() &&
+          remotePlayerSdpsIt.key().asString() == mPlayerId &&
+          remotePlayerSdpsIt->isString())
       {
-        std::cout << "remote player " << remotePlayerId << " has SDP for us:" << it->asString() << std::endl;
+        auto streamIt = mRemoteplayerStreamMap.find(playerId);
+        if (streamIt != mRemoteplayerStreamMap.end() &&
+            !streamIt->second->hasRemoteSdp())
+        {
+          streamIt->second->setRemoteSdp(remotePlayerSdpsIt->asString());
+          std::cout << "starting negotiation with remote ID " << playerId << std::endl;
+        }
       }
     }
   }
+}
 
+void IceAdapter::onPingPlayers()
+{
+  for (auto streamIt : mRemoteplayerStreamMap)
+  {
+    if (streamIt.second->isConnected())
+    {
+      streamIt.second->send("PING");
+    }
+  }
 }
