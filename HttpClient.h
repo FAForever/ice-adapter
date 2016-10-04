@@ -11,7 +11,9 @@ public:
   virtual ~HttpClient();
 
   std::string getPlayers(std::string const& gameId);
-  std::string createGame(std::string const& hostId);
+  std::string createGame(std::string const& gameId);
+  std::string joinGame(std::string const& gameId,
+                       std::string const& playerId);
   std::string setSdp(std::string const& gameId,
                      std::string const& playerId,
                      std::string const& remotePlayer,

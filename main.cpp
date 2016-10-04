@@ -1,8 +1,11 @@
+#include <ctime>
+#include <string>
+
 #include <gio/gnetworking.h>
 
 #include "IceAdapter.h"
 
-char const* playerId      = "1234";
+char const* playerId      = "invalid";
 char const* serverBaseUri = "http://localhost:5000/";
 //char const* stunTurnHost  = "manchmal.erreich.bar";
 //char const* stunTurnHost  = "dev.faforever.com";
@@ -38,9 +41,17 @@ int main(int argc, char *argv[])
     exit (1);
   }
 
+  std::string playerIdString = playerId;
+
+  if (playerIdString == "invalid")
+  {
+    srand (time(NULL));
+    playerIdString = std::to_string(rand() % 1000 + 1);
+  }
+
   g_networking_init();
 
-  IceAdapter a(playerId,
+  IceAdapter a(playerIdString,
                serverBaseUri,
                stunHost,
                turnHost,

@@ -113,6 +113,16 @@ void IceStream::send(std::string const& msg)
   }
 }
 
+std::string IceStream::localCandidateInfo() const
+{
+  return mLocalCandidateInfo;
+}
+
+std::string IceStream::remoteCandidateInfo() const
+{
+  return mRemoteCandidateInfo;
+}
+
 void IceStream::onCandidateGatheringDone()
 {
   mSdp = nice_agent_generate_local_sdp(mAgent->agent());
@@ -182,10 +192,12 @@ std::string addrString(NiceAddress* a)
 void IceStream::onCandidateSelected(NiceCandidate* localCandidate,
                                     NiceCandidate* remoteCandidate)
 {
-
-  std::cout << "selected Candidate: \n\t"
-            << "\tlocal:" << transportToString(localCandidate->transport) << " " << addrString(&localCandidate->addr) << "\n"
-            << "\tremote:" << transportToString(remoteCandidate->transport) << " " << addrString(&remoteCandidate->addr) << std::endl;
+  mLocalCandidateInfo += transportToString(localCandidate->transport);
+  mLocalCandidateInfo += " ";
+  mLocalCandidateInfo += addrString(&localCandidate->addr);
+  mRemoteCandidateInfo += transportToString(remoteCandidate->transport);
+  mRemoteCandidateInfo += " ";
+  mRemoteCandidateInfo += addrString(&remoteCandidate->addr);
 }
 
 void IceStream::onReceive(std::string const& msg)

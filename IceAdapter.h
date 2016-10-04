@@ -20,19 +20,25 @@ public:
   virtual ~IceAdapter();
   void run();
 
+protected:
   void onJoinGame(std::string const& gameId);
-  void onCreateGame();
+  void onCreateJoinGame(std::string const& gameId);
   void onSdp(IceStream* stream, std::string const& sdp);
   void onReceive(IceStream* stream, std::string const& msg);
   void onConnectPlayers();
   void onPingPlayers();
-protected:
+  void onSetPlayerId(std::string const& playerId);
+  std::string onStatus();
+
+  void parseGameInfoAndConnectPlayers(std::string const& jsonGameInfo);
+
   GMainLoop*   mMainLoop;
   IceAgent     mIceAgent;
   HttpServer   mHttpServer;
   HttpClient   mHttpClient;
   std::string  mPlayerId;
   std::map<IceStream*, std::string> mStreamRemoteplayerMap;
+  std::map<IceStream*, unsigned long long> mSentPings;
   std::map<IceStream*, unsigned long long> mReceivedPings;
   std::map<IceStream*, unsigned long long> mReceivedPongs;
   std::map<std::string, IceStream*> mRemoteplayerStreamMap;
@@ -44,4 +50,5 @@ protected:
   unsigned int mPingPlayersTimer;
 
   friend int connect_players_timeout(void*);
+  friend int ping_players_timeout(void*);
 };

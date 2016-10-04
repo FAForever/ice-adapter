@@ -27,6 +27,9 @@ public:
   bool hasRemoteSdp() const;
   bool isConnected() const;
   void send(std::string const& msg);
+
+  std::string localCandidateInfo() const;
+  std::string remoteCandidateInfo() const;
 protected:
   void onCandidateGatheringDone();
   void onComponentStateChanged(unsigned int componentId,
@@ -40,6 +43,8 @@ protected:
   char* mSdp64;
   bool mHasRemoteSdp;
   bool mConnected;
+  std::string mLocalCandidateInfo;
+  std::string mRemoteCandidateInfo;
 
   CandidateGatheringDoneCallback mCb;
   ReceiveCallback mReceiveCallback;
