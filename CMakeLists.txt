@@ -31,7 +31,6 @@ add_executable(ice-adapter
   HttpServer.cpp
   IceAdapter.cpp
   IceAgent.cpp
-  IceStream.cpp
   main.cpp
   )
 
@@ -41,3 +40,10 @@ target_link_libraries(ice-adapter
   ${JSON_LIBRARIES}
   )
 
+
+add_executable(libnice_example
+  libnice_example.c
+  )
+target_link_libraries(libnice_example
+  ${NICE_LIBRARIES}
+  )

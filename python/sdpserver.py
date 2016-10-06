@@ -45,4 +45,4 @@ def set_sdp(game_id, player_id, remote_player_id, player_sdp):
   return "OK"
 
 if __name__ == '__main__':
-    app.run(debug=True)
+    app.run(debug=False)

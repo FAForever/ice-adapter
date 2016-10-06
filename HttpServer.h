@@ -16,9 +16,6 @@ public:
   typedef std::function<void (std::string const&)> JoinGameCallback;
   void setJoinGameCallback(JoinGameCallback cb);
 
-  typedef std::function<void (std::string const&)> CreateJoinGameCallback;
-  void setCreateJoinGameCallback(CreateJoinGameCallback cb);
-
   typedef std::function<std::string ()> StatusCallback;
   void setStatusCallback(StatusCallback cb);
 
@@ -26,7 +23,6 @@ public:
   void setSetPlayerIdCallback(SetPlayerIdCallback cb);
 protected:
   JoinGameCallback mJoinGameCallback;
-  CreateJoinGameCallback mCreateJoinGameCallback;
   StatusCallback mStatusCallback;
   SetPlayerIdCallback mSetPlayerIdCallback;
   SoupServer *mServer;

@@ -32,18 +32,6 @@ void handler_cb(SoupServer         *server,
       soup_message_set_status(msg, SOUP_STATUS_MOVED_TEMPORARILY);
     }
   }
-  else if (strcmp(path, "/create_join_game") == 0 &&
-      httpServer->mCreateJoinGameCallback)
-  {
-    auto game_id = g_hash_table_lookup(query, "game_id");
-    httpServer->mCreateJoinGameCallback(static_cast<char*>(game_id));
-    soup_message_set_status(msg, SOUP_STATUS_OK);
-    soup_message_headers_append(msg->response_headers,
-                                "Location",
-                                "/");
-    soup_message_set_status(msg, SOUP_STATUS_MOVED_TEMPORARILY);
-    g_free(game_id);
-  }
   else if (strcmp(path, "/") == 0 &&
            httpServer->mStatusCallback)
   {
@@ -91,11 +79,6 @@ HttpServer::~HttpServer()
 void HttpServer::setJoinGameCallback(JoinGameCallback cb)
 {
   mJoinGameCallback = cb;
-}
-
-void HttpServer::setCreateJoinGameCallback(CreateJoinGameCallback cb)
-{
-  mCreateJoinGameCallback = cb;
 }
 
 void HttpServer::setStatusCallback(StatusCallback cb)

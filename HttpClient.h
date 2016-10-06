@@ -13,7 +13,8 @@ public:
   std::string getPlayers(std::string const& gameId);
   std::string createGame(std::string const& gameId);
   std::string joinGame(std::string const& gameId,
-                       std::string const& playerId);
+                       std::string const& playerId,
+                       bool* ok = nullptr);
   std::string setSdp(std::string const& gameId,
                      std::string const& playerId,
                      std::string const& remotePlayer,

@@ -4,10 +4,11 @@
 #include <sstream>
 
 #include <glib.h>
+#include <gio/gio.h>
 
 #include <json/json.h>
 
-#include "IceStream.h"
+#include "IceAgent.h"
 
 
 int connect_players_timeout(gpointer data)
@@ -27,38 +28,58 @@ IceAdapter::IceAdapter(std::string const& playerId,
                        std::string const& turnHost,
                        std::string const& turnUser,
                        std::string const& turnPassword,
-                       unsigned int httpPort):
+                       unsigned int httpPort,
+                       int joinGameId):
   mMainLoop(g_main_loop_new(NULL, FALSE)),
-  mIceAgent(mMainLoop,
-            stunHost,
-            turnHost,
-            turnUser,
-            turnPassword),
   mHttpServer(httpPort),
   mHttpClient(httpBaseUri),
   mPlayerId(playerId),
   mTurnHost(turnHost),
   mTurnUser(turnUser),
-  mTurnPassword(turnPassword)
+  mTurnPassword(turnPassword),
+  mJoinGameId(joinGameId)
 {
   mHttpServer.setJoinGameCallback(
         std::bind(&IceAdapter::onJoinGame, this, std::placeholders::_1)
       );
-  mHttpServer.setCreateJoinGameCallback(
-        std::bind(&IceAdapter::onCreateJoinGame, this, std::placeholders::_1)
-        );
   mHttpServer.setStatusCallback(
         std::bind(&IceAdapter::onStatus, this)
         );
 
-  mConnectPlayersTimer = g_timeout_add(100, connect_players_timeout, this);
+  mConnectPlayersTimer = g_timeout_add(1000, connect_players_timeout, this);
   mPingPlayersTimer    = g_timeout_add(10,  ping_players_timeout,    this);
+
+  auto resolver = g_resolver_get_default();
+
+  auto stunResults = g_resolver_lookup_by_name(resolver,
+                                           stunHost.c_str(),
+                                           nullptr,
+                                           nullptr);
+  auto stunAddr = G_INET_ADDRESS (g_object_ref (stunResults->data));
+  mStunIp = g_inet_address_to_string(stunAddr);
+  g_object_unref(stunAddr);
+
+  g_resolver_free_addresses (stunResults);
+
+  auto turnResults = g_resolver_lookup_by_name(resolver,
+                                               turnHost.c_str(),
+                                               nullptr,
+                                               nullptr);
+  auto turnAddr = G_INET_ADDRESS (g_object_ref (turnResults->data));
+  mTurnIp = g_inet_address_to_string(turnAddr);
+  g_object_unref(turnAddr);
+
+  g_object_unref (resolver);
 }
 
 IceAdapter::~IceAdapter()
 {
   g_source_remove(mConnectPlayersTimer);
   g_source_remove(mPingPlayersTimer);
+  for (auto agentIt : mRemoteplayerAgentMap)
+  {
+    delete agentIt.second;
+  }
   if (mMainLoop)
   {
     g_main_loop_unref(mMainLoop);
@@ -75,28 +96,30 @@ void IceAdapter::onJoinGame(std::string const& gameId)
 {
   std::cout << "IceAdapter::onJoinGame " << gameId << std::endl;
   mGameId = gameId;
-  parseGameInfoAndConnectPlayers(
-        mHttpClient.joinGame(gameId,
-                             mPlayerId));
-}
-
-void IceAdapter::onCreateJoinGame(std::string const& gameId)
-{
-  std::cout << "IceAdapter::onCreateJoinGame " << gameId << std::endl;
-  auto response = mHttpClient.createGame(gameId);
-  if (response != "OK")
+  bool ok;
+  std::string jsonGameInfo = mHttpClient.joinGame(gameId,
+                                                  mPlayerId,
+                                                  &ok);
+  if (!ok)
   {
-    throw std::runtime_error(std::string("createGame failed: ") + response);
+    mHttpClient.createGame(gameId);
+    jsonGameInfo = mHttpClient.joinGame(gameId,
+                                        mPlayerId,
+                                        &ok);
+    if (!ok)
+    {
+      throw std::runtime_error(std::string("joinGame failed: ") + jsonGameInfo);
+    }
   }
-  onJoinGame(gameId);
+  parseGameInfoAndConnectPlayers(jsonGameInfo);
 }
 
-void IceAdapter::onSdp(IceStream* stream, std::string const& sdp)
+void IceAdapter::onSdp(IceAgent* agent, std::string const& sdp)
 {
-  auto remotePlayerIt = mStreamRemoteplayerMap.find(stream);
-  if (remotePlayerIt == mStreamRemoteplayerMap.end())
+  auto remotePlayerIt = mAgentRemoteplayerMap.find(agent);
+  if (remotePlayerIt == mAgentRemoteplayerMap.end())
   {
-    std::cerr << "stream not found" << std::endl;
+    std::cerr << "agent not found" << std::endl;
     return;
   }
   std::cout << "received SDP for remote ID " << remotePlayerIt->second << std::endl;
@@ -112,12 +135,12 @@ void IceAdapter::onSdp(IceStream* stream, std::string const& sdp)
 
 }
 
-void IceAdapter::onReceive(IceStream* stream, std::string const& msg)
+void IceAdapter::onReceive(IceAgent* agent, std::string const& msg)
 {
   if (msg == "PING")
   {
-    stream->send("PONG");
-    ++mReceivedPings[stream];
+    agent->send("PONG");
+    ++mReceivedPings[agent];
     /*
     if (mReceivedPings.at(stream) % 100 == 0)
     {
@@ -127,7 +150,7 @@ void IceAdapter::onReceive(IceStream* stream, std::string const& msg)
   }
   else if (msg == "PONG")
   {
-    ++mReceivedPongs[stream];
+    ++mReceivedPongs[agent];
     /*
     if (mReceivedPings.at(stream) % 100 == 0)
     {
@@ -141,6 +164,10 @@ void IceAdapter::onConnectPlayers()
 {
   if (mGameId.size() == 0)
   {
+    if (mJoinGameId >= 0)
+    {
+      onJoinGame(std::to_string(mJoinGameId));
+    }
     return;
   }
   parseGameInfoAndConnectPlayers(mHttpClient.getPlayers(mGameId));
@@ -148,12 +175,12 @@ void IceAdapter::onConnectPlayers()
 
 void IceAdapter::onPingPlayers()
 {
-  for (auto streamIt : mRemoteplayerStreamMap)
+  for (auto agentIt : mRemoteplayerAgentMap)
   {
-    if (streamIt.second->isConnected())
+    if (agentIt.second->isConnected())
     {
-      streamIt.second->send("PING");
-      ++mSentPings[streamIt.second];
+      agentIt.second->send("PING");
+      ++mSentPings[agentIt.second];
     }
   }
 }
@@ -178,11 +205,6 @@ std::string IceAdapter::onStatus()
     os << "<input type=\"number\" id=\"name\" name=\"game_id\" value=\"0\"/>";
     os << "<button type=\"submit\">Join Game</button>";
     os << "</form>";
-
-    os << "<form action=\"/create_join_game\" method=\"get\">";
-    os << "<input type=\"number\" id=\"name\" name=\"game_id\" value=\"0\"/>";
-    os << "<button type=\"submit\">Create & Join Game</button>";
-    os << "</form>";
   }
   else
   {
@@ -199,7 +221,7 @@ std::string IceAdapter::onStatus()
     os << "</tr>";
     os << "</thead>";
     os << "<tbody>";
-    for (auto streamIt : mRemoteplayerStreamMap)
+    for (auto streamIt : mRemoteplayerAgentMap)
     {
       if (streamIt.second->isConnected())
       {
@@ -231,47 +253,59 @@ void IceAdapter::parseGameInfoAndConnectPlayers(std::string const& jsonGameInfo)
     std::cerr << "Invalid game info: " << jsonGameInfo;
     return;
   }
-  for (auto it = players.begin(), end = players.end(); it != end; ++it)
+  for (auto playersIt = players.begin(), end = players.end(); playersIt != end; ++playersIt)
   {
-    auto const& playerId = it.key().asString();
+    auto const& playerId = playersIt.key().asString();
     if (playerId == mPlayerId)
     {
       continue;
     }
     /* if there's no stream for this remotePlayer, create one */
-    if (mRemoteplayerStreamMap.find(playerId) == mRemoteplayerStreamMap.end())
+    if (mRemoteplayerAgentMap.find(playerId) == mRemoteplayerAgentMap.end())
     {
-      IceStream* iceStream = mIceAgent.createStream();
-      mStreamRemoteplayerMap.insert(std::make_pair(iceStream, playerId));
-      mRemoteplayerStreamMap.insert(std::make_pair(playerId, iceStream));
-      mReceivedPings.insert(std::make_pair(iceStream, 0));
-      mReceivedPongs.insert(std::make_pair(iceStream, 0));
-      mSentPings.insert(std::make_pair(iceStream, 0));
-      iceStream->setCandidateGatheringDoneCallback(
+      bool controlling = true;
+      if (playersIt->isObject() && playersIt->isMember(mPlayerId))
+      {
+        controlling = false;
+      }
+      std::cout << "creating " << (controlling ? "controlling" : "non-controlling") << " agent for player " << playerId;
+      auto newAgent = new IceAgent(mMainLoop,
+                                   controlling,
+                                   mStunIp,
+                                   mTurnIp,
+                                   mTurnUser,
+                                   mTurnPassword);
+
+      mAgentRemoteplayerMap.insert(std::make_pair(newAgent, playerId));
+      mRemoteplayerAgentMap.insert(std::make_pair(playerId, newAgent));
+      mReceivedPings.insert(std::make_pair(newAgent, 0));
+      mReceivedPongs.insert(std::make_pair(newAgent, 0));
+      mSentPings.insert(std::make_pair(newAgent, 0));
+      newAgent->setCandidateGatheringDoneCallback(
             std::bind(&IceAdapter::onSdp,
                       this,
                       std::placeholders::_1,
                       std::placeholders::_2)
           );
-      iceStream->setReceiveCallback(
+      newAgent->setReceiveCallback(
             std::bind(&IceAdapter::onReceive,
                       this,
                       std::placeholders::_1,
                       std::placeholders::_2)
             );
-      iceStream->gatherCandidates();
+      newAgent->gatherCandidates();
     }
 
     /* check if the remote player already has a SDP for us */
-    for (auto remotePlayerSdpsIt = it->begin(), remotePlayerSdpsEnd = it->end();
+    for (auto remotePlayerSdpsIt = playersIt->begin(), remotePlayerSdpsEnd = playersIt->end();
          remotePlayerSdpsIt != remotePlayerSdpsEnd; ++remotePlayerSdpsIt)
     {
       if (remotePlayerSdpsIt.key().isString() &&
           remotePlayerSdpsIt.key().asString() == mPlayerId &&
           remotePlayerSdpsIt->isString())
       {
-        auto streamIt = mRemoteplayerStreamMap.find(playerId);
-        if (streamIt != mRemoteplayerStreamMap.end() &&
+        auto streamIt = mRemoteplayerAgentMap.find(playerId);
+        if (streamIt != mRemoteplayerAgentMap.end() &&
             !streamIt->second->hasRemoteSdp())
         {
           try

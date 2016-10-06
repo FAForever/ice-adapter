@@ -14,16 +14,18 @@ char const* turnHost      = "numb.viagenie.ca";
 char const* turnUser      = "mm+viagenie.ca@netlair.de";
 char const* turnPassword  = "asdf";
 unsigned int httpApiPort  = 8080;
+int joinGameId            = -1;
 
 static GOptionEntry entries[] =
 {
-  { "player-id",       'p', 0, G_OPTION_ARG_STRING, &playerId,      "ID of this player", nullptr},
-  { "server-base-uri", 'b', 0, G_OPTION_ARG_STRING, &serverBaseUri, "URI of the HTTP SDP server", nullptr},
-  { "stun-host",       's', 0, G_OPTION_ARG_STRING, &stunHost,      "Hostname of the STUN server", nullptr},
-  { "turn-host",       't', 0, G_OPTION_ARG_STRING, &turnHost,      "Hostname of the TURN server", nullptr},
-  { "turn-user",       'u', 0, G_OPTION_ARG_STRING, &turnUser,      "TURN credentials username", nullptr},
-  { "turn-pass",       'u', 0, G_OPTION_ARG_STRING, &turnPassword,  "TURN credentials password", nullptr},
+  { "player-id",       'p', 0, G_OPTION_ARG_STRING, &playerId,      "ID of this player",                    nullptr},
+  { "server-base-uri", 'b', 0, G_OPTION_ARG_STRING, &serverBaseUri, "URI of the HTTP SDP server",           nullptr},
+  { "stun-host",       's', 0, G_OPTION_ARG_STRING, &stunHost,      "Hostname of the STUN server",          nullptr},
+  { "turn-host",       't', 0, G_OPTION_ARG_STRING, &turnHost,      "Hostname of the TURN server",          nullptr},
+  { "turn-user",       'u', 0, G_OPTION_ARG_STRING, &turnUser,      "TURN credentials username",            nullptr},
+  { "turn-pass",       'x', 0, G_OPTION_ARG_STRING, &turnPassword,  "TURN credentials password",            nullptr},
   { "http-port",       'h', 0, G_OPTION_ARG_INT,    &httpApiPort,   "Port of the internal HTTP API server", nullptr},
+  { "join-game",       'j', 0, G_OPTION_ARG_INT,    &joinGameId,   "ID of the game to initially join",     nullptr},
   { NULL }
 };
 
@@ -57,7 +59,8 @@ int main(int argc, char *argv[])
                turnHost,
                turnUser,
                turnPassword,
-               httpApiPort);
+               httpApiPort,
+               joinGameId);
   a.run();
 
   g_option_context_free (context);
