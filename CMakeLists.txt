@@ -1,6 +1,6 @@
 cmake_minimum_required(VERSION 2.8)
 
-project(ice-adapter CXX C)
+project(faf-ice-adapter CXX C)
 
 include(CheckCXXCompilerFlag)
 CHECK_CXX_COMPILER_FLAG("-std=c++11" ICE_ADAPTER_COMPILER_SUPPORTS_CXX11)
@@ -45,7 +45,8 @@ target_link_libraries(libnice_example
   ${NICE_LIBRARIES}
   )
 
-find_package(Boost COMPONENTS iostreams system REQUIRED)
+find_package(Boost COMPONENTS iostreams system log REQUIRED)
+add_definitions(-DBOOST_LOG_DYN_LINK)
 
 add_executable(jsonstreamtest
   jsonstreamtest.cpp

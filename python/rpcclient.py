@@ -8,3 +8,4 @@ class MyHandler(BaseHandler):
 conn = bjsonrpc.connect(host="127.0.0.1", port=5362, handler_factory=MyHandler)
 
 conn.call.ping('Hello World 2342fdswf w ')
+conn.call.quit('Hello World 2342fdswf w ')

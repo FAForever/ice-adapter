@@ -2,17 +2,22 @@
 
 #include <iostream>
 
+#include <boost/log/trivial.hpp>
+
 JsonRpcSession::JsonRpcSession(JsonRpcServer* server,
                                tcp::socket socket)
   : mSocket(std::move(socket)),
     mBufferPos(0),
     mServer(server)
 {
+  BOOST_LOG_TRIVIAL(trace) << "JsonRpcSession()";
 }
 
 JsonRpcSession::~JsonRpcSession()
 {
-  std::cout << "~JsonRpcSession()" << std::endl;
+  BOOST_LOG_TRIVIAL(trace) << "~JsonRpcSession()";
+  boost::system::error_code ignored_ec;
+  mSocket.shutdown(boost::asio::ip::tcp::socket::shutdown_both, ignored_ec);
 }
 
 void JsonRpcSession::start()
@@ -119,22 +124,48 @@ Json::Value JsonRpcSession::processRequest(Json::Value const& request,
 }
 
 JsonRpcServer::JsonRpcServer(boost::asio::io_service& io_service, short port)
-  : mAcceptor(io_service, tcp::endpoint(tcp::v6(), port)),
+  : mIoService(io_service),
+    mAcceptor(io_service, tcp::endpoint(tcp::v6(), port)),
     mSocket(io_service)
 {
   do_accept();
+
+  setRpcCallback("quit",
+                 [this](Json::Value const& paramsArray,
+                    Json::Value & result,
+                    Json::Value & error)
+      {
+        //TODO: am I doing this right?
+        result = "ok";
+        BOOST_LOG_TRIVIAL(trace) << "JsonRpcServer: quit";
+        mIoService.post([this]()
+        {
+          BOOST_LOG_TRIVIAL(trace) << "closing socket";
+          mSessions.clear();
+          mCallbacks.clear();
+          mSocket.close();
+          mIoService.stop();
+        });
+      });
+  BOOST_LOG_TRIVIAL(trace) << "JsonRpcServer()";
+}
+
+JsonRpcServer::~JsonRpcServer()
+{
+  BOOST_LOG_TRIVIAL(trace) << "~JsonRpcServer()";
 }
 
 void JsonRpcServer::setRpcCallback(std::string const& method,
                                    RpcCallback cb)
 {
+  /* We allow only one callback, because there's only one result of the RPC call */
   if (mCallbacks.find(method) == mCallbacks.end())
   {
     mCallbacks.insert(std::make_pair(method, cb));
   }
   else
   {
-    std::cerr << "RPC callback for method '" << method << "' already registered" << std::endl;
+    BOOST_LOG_TRIVIAL(error) << "RPC callback for method '" << method << "' already registered";
   }
 }
 

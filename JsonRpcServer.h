@@ -2,8 +2,11 @@
 
 #include <memory>
 #include <functional>
+
 #include <boost/asio.hpp>
+
 #include <json/json.h>
+
 
 using boost::asio::ip::tcp;
 
@@ -39,6 +42,7 @@ class JsonRpcServer
 {
 public:
   JsonRpcServer(boost::asio::io_service& io_service, short port);
+  virtual ~JsonRpcServer();
 
   typedef std::function<void (Json::Value const& paramsArray,
                               Json::Value & result,
@@ -56,6 +60,7 @@ protected:
 
   friend JsonRpcSession;
 
+  boost::asio::io_service& mIoService;
   tcp::acceptor mAcceptor;
   tcp::socket mSocket;
 
