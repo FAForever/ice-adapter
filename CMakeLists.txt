@@ -1,6 +1,6 @@
 cmake_minimum_required(VERSION 2.8)
 
-project(snowflake CXX C)
+project(ice-adapter CXX C)
 
 include(CheckCXXCompilerFlag)
 CHECK_CXX_COMPILER_FLAG("-std=c++11" ICE_ADAPTER_COMPILER_SUPPORTS_CXX11)
