@@ -6,7 +6,7 @@
 #include "IceAdapter.h"
 
 char const* playerId      = "invalid";
-char const* serverBaseUri = "http://localhost:5000/";
+char const* serverBaseUri = "https://fafsdp.erreich.bar/";
 //char const* stunTurnHost  = "manchmal.erreich.bar";
 //char const* stunTurnHost  = "dev.faforever.com";
 char const* stunHost      = "dev.faforever.com";
