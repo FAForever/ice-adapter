@@ -45,25 +45,46 @@ target_link_libraries(libnice_example
   ${NICE_LIBRARIES}
   )
 
-find_package(Boost COMPONENTS iostreams system log REQUIRED)
-add_definitions(-DBOOST_LOG_DYN_LINK)
+find_package(Boost REQUIRED COMPONENTS log system)
+#add_definitions(-DBOOST_LOG_DYN_LINK)
 
-add_executable(jsonstreamtest
-  jsonstreamtest.cpp
-  JsonRpcServer.cpp
+#add_executable(jsonstreamtest
+#  jsonstreamtest.cpp
+#  JsonRpcServer.cpp
+#  )
+#target_link_libraries(jsonstreamtest
+#  ${Boost_LIBRARIES}
+#  ${JSON_LIBRARIES}
+#  pthread
+#  )
+
+#add_executable(boost_example
+#  boost_example.cpp
+#  )
+#target_link_libraries(boost_example
+#  ${Boost_LIBRARIES}
+#  pthread
+#  )
+#add_executable(boost_example2
+#  boost_example2.cpp
+#  )
+#target_link_libraries(boost_example2
+#  ${Boost_LIBRARIES}
+#  pthread
+#  )
+
+add_definitions(-DBOOST_SYSTEM_NO_DEPRECATED)
+add_custom_target(docs SOURCES README.md LICENSE)
+
+pkg_search_module(GIOMM REQUIRED giomm-2.4)
+include_directories(${GIOMM_INCLUDE_DIRS})
+
+add_executable(giommtest
+  JsonRpcTcpServer.cpp
   )
-target_link_libraries(jsonstreamtest
+target_link_libraries(giommtest
+  ${GIOMM_LIBRARIES}
   ${Boost_LIBRARIES}
   ${JSON_LIBRARIES}
-  pthread
+  #pthread
   )
-
-add_executable(boost_example
-  boost_example.cpp
-  )
-target_link_libraries(boost_example
-  ${Boost_LIBRARIES}
-  pthread
-  )
-
-add_custom_target(docs SOURCES README.md LICENSE)

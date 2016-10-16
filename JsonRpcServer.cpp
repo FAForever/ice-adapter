@@ -197,6 +197,7 @@ void JsonRpcServer::onRpc(std::string const& method,
     it->second(paramsArray, result, error);
   }
 }
+
 void JsonRpcServer::onCloseSession(std::shared_ptr<JsonRpcSession> session)
 {
   mSessions.erase(std::remove(mSessions.begin(), mSessions.end(), session), mSessions.end());
