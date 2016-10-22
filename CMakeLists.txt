@@ -24,54 +24,11 @@ pkg_search_module(JSON REQUIRED jsoncpp)
 include_directories(${NICE_INCLUDE_DIRS})
 include_directories(${JSON_INCLUDE_DIRS})
 
-#add_executable(ice-adapter
-#  HttpClient.cpp
-#  HttpServer.cpp
-#  IceAdapter.cpp
-#  IceAgent.cpp
-#  main.cpp
-#  )
-
-#target_link_libraries(ice-adapter
-#  ${NICE_LIBRARIES}
-#  ${SOUP_LIBRARIES}
-#  ${JSON_LIBRARIES}
-#  )
-
-#add_executable(libnice_example
-#  libnice_example.c
-#  )
-#target_link_libraries(libnice_example
-#  ${NICE_LIBRARIES}
-#  )
-
 find_package(Boost REQUIRED COMPONENTS log system)
-add_definitions(-DBOOST_LOG_DYN_LINK)
 
-#add_executable(jsonstreamtest
-#  jsonstreamtest.cpp
-#  JsonRpcServer.cpp
-#  )
-#target_link_libraries(jsonstreamtest
-#  ${Boost_LIBRARIES}
-#  ${JSON_LIBRARIES}
-#  pthread
-#  )
-
-#add_executable(boost_example
-#  boost_example.cpp
-#  )
-#target_link_libraries(boost_example
-#  ${Boost_LIBRARIES}
-#  pthread
-#  )
-#add_executable(boost_example2
-#  boost_example2.cpp
-#  )
-#target_link_libraries(boost_example2
-#  ${Boost_LIBRARIES}
-#  pthread
-#  )
+if(NOT MINGW)
+  add_definitions(-DBOOST_LOG_DYN_LINK)
+endif()
 
 add_definitions(-DBOOST_SYSTEM_NO_DEPRECATED)
 add_custom_target(docs SOURCES README.md LICENSE)
@@ -89,11 +46,24 @@ add_executable(faf-ice-adapter
   GPGNetMessage.cpp
   main.cpp
   PeerRelay.cpp
-  )
+)
 target_link_libraries(faf-ice-adapter
   ${GIOMM_LIBRARIES}
   ${Boost_LIBRARIES}
   ${JSON_LIBRARIES}
   ${NICE_LIBRARIES}
   pthread
+)
+
+if(NOT MINGW)
+  target_link_libraries(faf-ice-adapter
+    pthread
+  )
+endif()
+
+# Strip exe to reduce file size
+add_custom_command(TARGET faf-ice-adapter
+  POST_BUILD
+  COMMAND ${CMAKE_STRIP} -s "$<TARGET_FILE:faf-ice-adapter>"
+  COMMENT "Stripping executable $<TARGET_FILE_NAME:faf-ice-adapter>"
   )

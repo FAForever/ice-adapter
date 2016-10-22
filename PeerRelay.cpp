@@ -58,6 +58,20 @@ void PeerRelay::gatherCandidates(CandidateGatheringDoneCallback cb)
   mIceAgent->gatherCandidates();
 }
 
+Glib::ustring
+socket_address_to_string(const Glib::RefPtr<Gio::SocketAddress>& address)
+{
+  auto isockaddr = Glib::RefPtr<Gio::InetSocketAddress>::cast_dynamic(address);
+  if (!isockaddr)
+    return Glib::ustring();
+
+  auto inet_address = isockaddr->get_address();
+  auto str = inet_address->to_string();
+  auto the_port = isockaddr->get_port();
+  auto res = Glib::ustring::compose("%1:%2", str, the_port);
+  return res;
+}
+
 bool PeerRelay::onGameReceive(Glib::IOCondition condition)
 {
   gchar buffer[4096] = {};
@@ -66,7 +80,7 @@ bool PeerRelay::onGameReceive(Glib::IOCondition condition)
   auto size = mLocalSocket->receive_from(address,
                                          buffer,
                                          4096);
-  BOOST_LOG_TRIVIAL(trace) << "onReceive " << size << " from " << address->to_string() << ": " << buffer;
+  BOOST_LOG_TRIVIAL(trace) << "onReceive " << size << " from " << socket_address_to_string(address) << ": " << buffer;
   if (mIceAgent &&
       mIceAgent->isConnected())
   {
