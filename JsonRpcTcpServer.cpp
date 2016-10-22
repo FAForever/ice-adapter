@@ -3,132 +3,14 @@
 #include <sigc++/sigc++.h>
 #include <boost/log/trivial.hpp>
 
+#include "JsonRpcTcpSession.h"
+
 namespace sigc {
   SIGC_FUNCTORS_DEDUCE_RESULT_TYPE_WITH_DECLTYPE
 }
 
-JsonRpcTcpSession::JsonRpcTcpSession(JsonRpcTcpServer* server,
-                                     Glib::RefPtr<Gio::Socket> socket)
-  : mSocket(socket),
-    mBufferPos(0),
-    mServer(server)
-{
-  BOOST_LOG_TRIVIAL(trace) << "JsonRpcSession()";
-
-  mSocket->set_blocking(false);
-
-  Gio::signal_socket().connect(
-        sigc::mem_fun(this, &JsonRpcTcpSession::onRead),
-        mSocket,
-        Glib::IO_IN);
-}
-
-JsonRpcTcpSession::~JsonRpcTcpSession()
-{
-  BOOST_LOG_TRIVIAL(trace) << "~JsonRpcSession()";
-}
-
-bool JsonRpcTcpSession::onRead(Glib::IOCondition condition)
-{
-  auto numReceive = mSocket->receive(mBuffer.data() + mBufferPos,
-                                     mBuffer.size() - mBufferPos);
-
-  if (numReceive == 0)
-  {
-    BOOST_LOG_TRIVIAL(error) << "numReceive == 0";
-    mServer->onCloseSession(this);
-    return false;
-  }
-  BOOST_LOG_TRIVIAL(trace) << "received:" << std::string(mBuffer.data() + mBufferPos,
-                                                         numReceive);
-  mBufferPos += numReceive;
-  Json::Value request;
-  Json::Reader r;
-  if (r.parse(mBuffer.data(),
-              mBuffer.data() + mBufferPos,
-              request))
-  {
-    numReceive = 0;
-    Json::Value id;
-    Json::Value error;
-    Json::Value response = processRequest(request,
-                                          error,
-                                          id);
-
-    std::string responseString = Json::FastWriter().write(response);
-    BOOST_LOG_TRIVIAL(trace) << "sending response:" << responseString;
-    auto numSent = mSocket->send(responseString.c_str(),
-                                 responseString.size());
-    BOOST_LOG_TRIVIAL(trace) << numSent << " bytes sent";
-    mBufferPos = 0;
-  }
-  else
-  {
-    BOOST_LOG_TRIVIAL(warning) << "problems parsing";
-  }
-  if (mBufferPos >= mBuffer.size())
-  {
-    BOOST_LOG_TRIVIAL(error) << "buffer full!";
-    mBufferPos = 0;
-  }
-  return true;
-}
-
-Json::Value JsonRpcTcpSession::processRequest(Json::Value const& request,
-                                              Json::Value & error,
-                                              Json::Value & id)
-{
-  if (!request.isMember("id"))
-  {
-    error["code"] = -1;
-    error["message"] = "missing methods parameter";
-    return Json::Value::null;
-  }
-  id = request["id"];
-  if (!request.isMember("method"))
-  {
-    error["code"] = -1;
-    error["message"] = "missing 'method' parameter";
-    return Json::Value::null;
-  }
-  if (!request["method"].isString())
-  {
-    error["code"] = -1;
-    error["message"] = "'method' parameter must be a string";
-    return Json::Value::null;
-  }
-
-  Json::Value params(Json::arrayValue);
-  if (request.isMember("params") &&
-      request["params"].isArray())
-  {
-    params = request["params"];
-  }
-
-  Json::Value result;
-  mServer->onRpc(request["method"].asString(),
-                 params,
-                 result,
-                 error);
-  Json::Value response;
-  response["jsonrpc"] = "2.0";
-
-  /* TODO: Better check for valid error/result combination */
-  if (!result.isNull())
-  {
-    response["result"] = result;
-  }
-  else
-  {
-    response["error"] = error;
-  }
-  response["id"] = id;
-
-  return response;
-}
-
-
-JsonRpcTcpServer::JsonRpcTcpServer(short port)
+JsonRpcTcpServer::JsonRpcTcpServer(int port):
+  mCurrentId(0)
 {
   mListenSocket = Gio::Socket::create(Gio::SOCKET_FAMILY_IPV4,
                                       Gio::SOCKET_TYPE_STREAM,
@@ -136,7 +18,7 @@ JsonRpcTcpServer::JsonRpcTcpServer(short port)
   mListenSocket->set_blocking(false);
 
   auto srcAddress =
-    Gio::InetSocketAddress::create(Gio::InetAddress::create_any(Gio::SOCKET_FAMILY_IPV4),
+    Gio::InetSocketAddress::create(Gio::InetAddress::create_loopback(Gio::SOCKET_FAMILY_IPV4),
                                    port);
   mListenSocket->bind(srcAddress, false);
   mListenSocket->listen();
@@ -173,7 +55,50 @@ void JsonRpcTcpServer::setRpcCallback(std::string const& method,
   }
 }
 
-void JsonRpcTcpServer::onRpc(std::string const& method,
+void JsonRpcTcpServer::sendRequest(std::string const& method,
+                                   Json::Value const& paramsArray,
+                                   RpcRequestResult resultCb)
+{
+  if (!paramsArray.isArray())
+  {
+    Json::Value error = "paramsArray MUST be an array";
+    resultCb(Json::Value(),
+             error);
+    return;
+  }
+  if (method.empty())
+  {
+    Json::Value error = "method MUST not be empty";
+    resultCb(Json::Value(),
+             error);
+    return;
+  }
+  if (mSessions.empty())
+  {
+    Json::Value error = "no sessions connected";
+    resultCb(Json::Value(),
+             error);
+    return;
+  }
+
+  int id = -1;
+  if (resultCb)
+  {
+    id = mCurrentId++;
+  }
+  for(auto session: mSessions)
+  {
+    session->sendRequest(method,
+                         paramsArray,
+                         id);
+    if (resultCb)
+    {
+      mCurrentRequests[id] = resultCb;
+    }
+  }
+}
+
+void JsonRpcTcpServer::onRpcRequest(std::string const& method,
                              Json::Value const& paramsArray,
                              Json::Value & result,
                              Json::Value & error)
@@ -190,12 +115,26 @@ void JsonRpcTcpServer::onRpc(std::string const& method,
   }
 }
 
+void JsonRpcTcpServer::onRpcResponse(Json::Value const& id,
+                                     Json::Value const& result,
+                                     Json::Value const& error)
+{
+  if (id.isInt())
+  {
+    auto reqIt = mCurrentRequests.find(id.asInt());
+    if (reqIt != mCurrentRequests.end())
+    {
+      reqIt->second(result, error);
+      mCurrentRequests.erase(reqIt);
+    }
+  }
+}
+
 void JsonRpcTcpServer::onCloseSession(JsonRpcTcpSession* session)
 //void JsonRpcTcpServer::onCloseSession(std::shared_ptr<JsonRpcTcpSession> session)
 {
   for (auto it = mSessions.begin(), end = mSessions.end(); it != end; ++it)
   {
-    BOOST_LOG_TRIVIAL(trace) << "iterating";
     if (it->get() == session)
     {
       mSessions.erase(it);
@@ -205,46 +144,4 @@ void JsonRpcTcpServer::onCloseSession(JsonRpcTcpSession* session)
     }
   }
   //mSessions.erase(std::remove(mSessions.begin(), mSessions.end(), session), mSessions.end());
-}
-
-#include <boost/log/core.hpp>
-#include <boost/log/expressions.hpp>
-
-int main(int argc, char *argv[])
-{
-  boost::log::core::get()->set_filter (
-      boost::log::trivial::severity >= boost::log::trivial::trace
-      );
-
-
-  Gio::init();
-
-  auto loop = Glib::MainLoop::create();
-  JsonRpcTcpServer server(5362);
-
-  server.setRpcCallback("ping", [](Json::Value const& paramsArray,
-                                   Json::Value & result,
-                                   Json::Value & error)
-  {
-    BOOST_LOG_TRIVIAL(trace) << "ping: " << paramsArray;
-    result = "pong";
-  });
-
-  server.setRpcCallback("quit", [loop](Json::Value const& paramsArray,
-                                       Json::Value & result,
-                                       Json::Value & error)
-  {
-    BOOST_LOG_TRIVIAL(trace) << "onquit starts" << paramsArray;
-    Glib::signal_idle().connect_once([loop]
-    {
-      BOOST_LOG_TRIVIAL(trace) << "quitting for real bro";
-//      loop->quit();
-    });
-    result = "ok";
-    loop->quit();
-    BOOST_LOG_TRIVIAL(trace) << "onquit ends" << paramsArray;
-  });
-
-  loop->run();
-  return 0;
 }

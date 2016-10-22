@@ -1,58 +1,61 @@
 #pragma once
 
-#include <map>
+#include <string>
+#include <memory>
+#include <vector>
 
-#include "HttpServer.h"
-#include "HttpClient.h"
+#include <glibmm.h>
 
-typedef struct _GMainLoop  GMainLoop;
-class IceAgent;
+struct IceAdapterOptions
+{
+  Glib::ustring stunHost;
+  Glib::ustring turnHost;
+  Glib::ustring turnUser;
+  Glib::ustring turnPass;
+  int rpcPort;
+  int gpgNetPort;
+  int gameUdpPort;
+  int relayUdpPortStart;
+  int localPlayerId;
+  Glib::ustring localPlayerLogin;
+
+  IceAdapterOptions();
+};
+
+class JsonRpcTcpServer;
+class GPGNetServer;
+class PeerRelay;
+namespace Json
+{
+  class Value;
+}
 
 class IceAdapter
 {
 public:
-  IceAdapter(std::string const& playerId,
-             std::string const& httpBaseUri,
-             std::string const& stunHost,
-             std::string const& turnHost,
-             std::string const& turnUser,
-             std::string const& turnPassword,
-             unsigned int httpPort,
-             int joinGameId);
-  virtual ~IceAdapter();
-  void run();
+  IceAdapter(IceAdapterOptions const& options,
+             Glib::RefPtr<Glib::MainLoop> mainloop);
 
+  void hostGame(std::string const& map);
+  void joinGame(std::string const& remotePlayerLogin,
+                int remotePlayerId);
 protected:
-  void onJoinGame(std::string const& gameId);
-  void onSdp(IceAgent* stream, std::string const& sdp);
-  void onReceive(IceAgent* stream, std::string const& msg);
-  void onConnectPlayers();
-  void onPingPlayers();
-  void onSetPlayerId(std::string const& playerId);
-  std::string onStatus();
+  void onGpgNetGamestate(std::vector<Json::Value> const& chunks);
 
-  void parseGameInfoAndConnectPlayers(std::string const& jsonGameInfo);
+  void connectRpcMethods();
 
-  GMainLoop*   mMainLoop;
-  HttpServer   mHttpServer;
-  HttpClient   mHttpClient;
-  std::string  mPlayerId;
-  std::map<IceAgent*, std::string> mAgentRemoteplayerMap;
-  std::map<std::string, IceAgent*> mRemoteplayerAgentMap;
-  std::map<IceAgent*, unsigned long long> mSentPings;
-  std::map<IceAgent*, unsigned long long> mReceivedPings;
-  std::map<IceAgent*, unsigned long long> mReceivedPongs;
-  std::string  mGameId;
-  std::string  mTurnHost;
-  std::string  mTurnUser;
-  std::string  mTurnPassword;
-  unsigned int mConnectPlayersTimer;
-  unsigned int mPingPlayersTimer;
-  char* mStunIp;
-  char* mTurnIp;
+  std::shared_ptr<JsonRpcTcpServer> mRpcServer;
+  std::shared_ptr<GPGNetServer> mGPGNetServer;
+  IceAdapterOptions mOptions;
+  Glib::RefPtr<Glib::MainLoop> mMainloop;
 
-  int mJoinGameId;
+  std::string mStunIp;
+  std::string mTurnIp;
 
-  friend int connect_players_timeout(void*);
-  friend int ping_players_timeout(void*);
+  std::string mHostGameMap;
+  std::string mJoinGameRemotePlayerLogin;
+  int mJoinGameRemotePlayerId;
+
+  int mCurrentRelayPort;
+  std::map<int, std::shared_ptr<PeerRelay>> mRelays;
 };

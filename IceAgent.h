@@ -3,7 +3,6 @@
 #include <functional>
 #include <map>
 
-
 typedef struct _NiceAgent NiceAgent;
 typedef struct _GMainLoop GMainLoop;
 typedef struct _NiceCandidate NiceCandidate;
@@ -13,8 +12,8 @@ class IceAgent
 public:
   IceAgent(GMainLoop* mainloop,
            bool controlling,
-           char* stunIp,
-           char* turnIp,
+           std::string const& stunIp,
+           std::string const& turnIp,
            std::string const& turnUser,
            std::string const& turnPassword);
   virtual ~IceAgent();

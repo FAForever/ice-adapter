@@ -1,0 +1,185 @@
+(python2.7:21072): Gtk-CRITICAL **: IA__gtk_progress_configure: assertion 'value >= min && value <= max' failed
+2016-10-22 09:34:52,257 - connectivity.turn - INFO - Requesting relay allocation
+2016-10-22 09:34:52,309 - connectivity.turn - INFO - Relay allocated: ('37.58.123.3', 53719)
+2016-10-22 09:34:52,309 - connectivity.qturnsocket.QTurnSocket - INFO - TURN state changed: TURNState.BOUND
+2016-10-22 09:34:52,309 - client._clientwindow - INFO - Outgoing JSON Message: {"title": "blubb", "visibility": "friends", "is_rehost": false, "mapname": "4v4isis.v0001", "relay_address": ["37.58.123.3", 53719], "command": "game_host", "password": "z", "mod": "faf"}
+2016-10-22 09:34:52,309 - connectivity.turn - INFO - Permitting sends from ('79.228.226.165', 56165)
+2016-10-22 09:34:52,310 - connectivity.turn - INFO - Permitting sends from ('37.58.123.2', 6112)
+2016-10-22 09:34:52,310 - connectivity.turn - INFO - Permitting sends from ('37.58.123.3', 6112)
+2016-10-22 09:34:52,351 - client._clientwindow - INFO - Handling game_launch via JSON {u'args': [u'/numgames 112'], u'command': u'game_launch', u'uid': 5311593, u'mod': u'faf'}
+2016-10-22 09:34:52,352 - fa.play - INFO - Play received arguments: ['/mean', '1083.26', '/deviation', '91.5406', '/country ', u'DE', '/clan', u'GDI']
+2016-10-22 09:34:52,352 - fa.game_process - INFO - Running FA with info: {'recorder': u'sandwormsurfer', 'featured_mod': u'faf', 'uid': 5311593, 'launched_at': 1477121692.351993}
+2016-10-22 09:34:52,352 - fa.game_process - INFO - Running FA via command:  /usr/bin/wine "/home/sws/FAForever/bin/ForgedAlliance.exe" /mean 1083.26 /deviation 91.5406 /country  DE /clan GDI /init init_faf.lua /numgames 112 /nobugreport /savereplay "gpgnet://localhost/5311593/sandwormsurfer.SCFAreplay" /gpgnet 127.0.0.1:44185
+2016-10-22 09:34:52,352 - fa.game_process - INFO - Running FA via executable: /home/sws/FAForever/bin/ForgedAlliance.exe
+2016-10-22 09:34:52,359 - client._clientwindow - INFO - FA has launched in an attached process.
+2016-10-22 09:34:52,360 - fa.game_session.GameSession - INFO - Game has started
+2016-10-22 09:34:56,934 - fa.game_session.GameSession - INFO - Game connected through GPGNet
+2016-10-22 09:34:56,939 - fa.game_connection.GPGNetConnection - INFO - GC >> : GameState : [u'Idle']
+2016-10-22 09:34:56,939 - fa.game_session.GameSession - INFO - Incoming GPGNet: GameState [u'Idle']
+2016-10-22 09:34:56,939 - fa.game_connection.GPGNetConnection - INFO - GC<<: CreateLobby:(0, 6113, u'sandwormsurfer', 96114, 1)
+2016-10-22 09:34:56,939 - fa.game_session.GameSession - INFO - Outgoing relay message GameState [u'Idle']
+2016-10-22 09:34:56,939 - client._clientwindow - INFO - Outgoing JSON Message: {"args": ["Idle"], "command": "GameState", "target": "game"}
+2016-10-22 09:34:57,087 - fa.game_connection.GPGNetConnection - INFO - GC >> : GameState : [u'Lobby']
+2016-10-22 09:34:57,087 - fa.game_session.GameSession - INFO - Incoming GPGNet: GameState [u'Lobby']
+2016-10-22 09:34:57,088 - fa.game_session.GameSession - INFO - Outgoing relay message GameState [u'Lobby']
+2016-10-22 09:34:57,088 - client._clientwindow - INFO - Outgoing JSON Message: {"args": ["Lobby"], "command": "GameState", "target": "game"}
+2016-10-22 09:34:57,128 - fa.game_connection.GPGNetConnection - INFO - GC<<: HostGame:(u'4v4isis.v0001',)
+2016-10-22 09:34:57,688 - fa.game_connection.GPGNetConnection - INFO - GC >> : GameOption : [u'UnitCap', u'1000']
+2016-10-22 09:34:57,688 - fa.game_session.GameSession - INFO - Incoming GPGNet: GameOption [u'UnitCap', u'1000']
+2016-10-22 09:34:57,688 - fa.game_session.GameSession - INFO - Outgoing relay message GameOption [u'UnitCap', u'1000']
+2016-10-22 09:34:57,688 - client._clientwindow - INFO - Outgoing JSON Message: {"args": ["UnitCap", "1000"], "command": "GameOption", "target": "game"}
+2016-10-22 09:34:57,729 - fa.game_connection.GPGNetConnection - INFO - GC >> : GameOption : [u'ShareUnitCap', u'none']
+2016-10-22 09:34:57,729 - fa.game_session.GameSession - INFO - Incoming GPGNet: GameOption [u'ShareUnitCap', u'none']
+2016-10-22 09:34:57,729 - fa.game_session.GameSession - INFO - Outgoing relay message GameOption [u'ShareUnitCap', u'none']
+2016-10-22 09:34:57,729 - client._clientwindow - INFO - Outgoing JSON Message: {"args": ["ShareUnitCap", "none"], "command": "GameOption", "target": "game"}
+2016-10-22 09:34:57,730 - fa.game_connection.GPGNetConnection - INFO - GC >> : GameOption : [u'FogOfWar', u'explored']
+2016-10-22 09:34:57,730 - fa.game_session.GameSession - INFO - Incoming GPGNet: GameOption [u'FogOfWar', u'explored']
+2016-10-22 09:34:57,730 - fa.game_session.GameSession - INFO - Outgoing relay message GameOption [u'FogOfWar', u'explored']
+2016-10-22 09:34:57,730 - client._clientwindow - INFO - Outgoing JSON Message: {"args": ["FogOfWar", "explored"], "command": "GameOption", "target": "game"}
+2016-10-22 09:34:57,730 - fa.game_connection.GPGNetConnection - INFO - GC >> : GameOption : [u'Victory', u'demoralization']
+2016-10-22 09:34:57,730 - fa.game_session.GameSession - INFO - Incoming GPGNet: GameOption [u'Victory', u'demoralization']
+2016-10-22 09:34:57,730 - fa.game_session.GameSession - INFO - Outgoing relay message GameOption [u'Victory', u'demoralization']
+2016-10-22 09:34:57,730 - client._clientwindow - INFO - Outgoing JSON Message: {"args": ["Victory", "demoralization"], "command": "GameOption", "target": "game"}
+2016-10-22 09:34:57,731 - fa.game_connection.GPGNetConnection - INFO - GC >> : GameOption : [u'Timeouts', u'3']
+2016-10-22 09:34:57,731 - fa.game_session.GameSession - INFO - Incoming GPGNet: GameOption [u'Timeouts', u'3']
+2016-10-22 09:34:57,731 - fa.game_session.GameSession - INFO - Outgoing relay message GameOption [u'Timeouts', u'3']
+2016-10-22 09:34:57,731 - client._clientwindow - INFO - Outgoing JSON Message: {"args": ["Timeouts", "3"], "command": "GameOption", "target": "game"}
+2016-10-22 09:34:57,731 - fa.game_connection.GPGNetConnection - INFO - GC >> : GameOption : [u'GameSpeed', u'normal']
+2016-10-22 09:34:57,731 - fa.game_session.GameSession - INFO - Incoming GPGNet: GameOption [u'GameSpeed', u'normal']
+2016-10-22 09:34:57,731 - fa.game_session.GameSession - INFO - Outgoing relay message GameOption [u'GameSpeed', u'normal']
+2016-10-22 09:34:57,731 - client._clientwindow - INFO - Outgoing JSON Message: {"args": ["GameSpeed", "normal"], "command": "GameOption", "target": "game"}
+2016-10-22 09:34:57,731 - fa.game_connection.GPGNetConnection - INFO - GC >> : GameOption : [u'AllowObservers', 1]
+2016-10-22 09:34:57,731 - fa.game_session.GameSession - INFO - Incoming GPGNet: GameOption [u'AllowObservers', 1]
+2016-10-22 09:34:57,732 - fa.game_session.GameSession - INFO - Outgoing relay message GameOption [u'AllowObservers', 1]
+2016-10-22 09:34:57,732 - client._clientwindow - INFO - Outgoing JSON Message: {"args": ["AllowObservers", 1], "command": "GameOption", "target": "game"}
+2016-10-22 09:34:57,732 - fa.game_connection.GPGNetConnection - INFO - GC >> : GameOption : [u'CheatsEnabled', u'false']
+2016-10-22 09:34:57,732 - fa.game_session.GameSession - INFO - Incoming GPGNet: GameOption [u'CheatsEnabled', u'false']
+2016-10-22 09:34:57,732 - fa.game_session.GameSession - INFO - Outgoing relay message GameOption [u'CheatsEnabled', u'false']
+2016-10-22 09:34:57,732 - client._clientwindow - INFO - Outgoing JSON Message: {"args": ["CheatsEnabled", "false"], "command": "GameOption", "target": "game"}
+2016-10-22 09:34:57,732 - fa.game_connection.GPGNetConnection - INFO - GC >> : GameOption : [u'CivilianAlliance', u'enemy']
+2016-10-22 09:34:57,732 - fa.game_session.GameSession - INFO - Incoming GPGNet: GameOption [u'CivilianAlliance', u'enemy']
+2016-10-22 09:34:57,732 - fa.game_session.GameSession - INFO - Outgoing relay message GameOption [u'CivilianAlliance', u'enemy']
+2016-10-22 09:34:57,733 - client._clientwindow - INFO - Outgoing JSON Message: {"args": ["CivilianAlliance", "enemy"], "command": "GameOption", "target": "game"}
+2016-10-22 09:34:57,733 - fa.game_connection.GPGNetConnection - INFO - GC >> : GameOption : [u'RevealCivilians', u'Yes']
+2016-10-22 09:34:57,733 - fa.game_session.GameSession - INFO - Incoming GPGNet: GameOption [u'RevealCivilians', u'Yes']
+2016-10-22 09:34:57,733 - fa.game_session.GameSession - INFO - Outgoing relay message GameOption [u'RevealCivilians', u'Yes']
+2016-10-22 09:34:57,733 - client._clientwindow - INFO - Outgoing JSON Message: {"args": ["RevealCivilians", "Yes"], "command": "GameOption", "target": "game"}
+2016-10-22 09:34:57,733 - fa.game_connection.GPGNetConnection - INFO - GC >> : GameOption : [u'PrebuiltUnits', u'Off']
+2016-10-22 09:34:57,733 - fa.game_session.GameSession - INFO - Incoming GPGNet: GameOption [u'PrebuiltUnits', u'Off']
+2016-10-22 09:34:57,733 - fa.game_session.GameSession - INFO - Outgoing relay message GameOption [u'PrebuiltUnits', u'Off']
+2016-10-22 09:34:57,733 - client._clientwindow - INFO - Outgoing JSON Message: {"args": ["PrebuiltUnits", "Off"], "command": "GameOption", "target": "game"}
+2016-10-22 09:34:57,734 - fa.game_connection.GPGNetConnection - INFO - GC >> : GameOption : [u'NoRushOption', u'Off']
+2016-10-22 09:34:57,734 - fa.game_session.GameSession - INFO - Incoming GPGNet: GameOption [u'NoRushOption', u'Off']
+2016-10-22 09:34:57,734 - fa.game_session.GameSession - INFO - Outgoing relay message GameOption [u'NoRushOption', u'Off']
+2016-10-22 09:34:57,734 - client._clientwindow - INFO - Outgoing JSON Message: {"args": ["NoRushOption", "Off"], "command": "GameOption", "target": "game"}
+2016-10-22 09:34:57,734 - fa.game_connection.GPGNetConnection - INFO - GC >> : GameOption : [u'RandomMap', u'Off']
+2016-10-22 09:34:57,734 - fa.game_session.GameSession - INFO - Incoming GPGNet: GameOption [u'RandomMap', u'Off']
+2016-10-22 09:34:57,734 - fa.game_session.GameSession - INFO - Outgoing relay message GameOption [u'RandomMap', u'Off']
+2016-10-22 09:34:57,734 - client._clientwindow - INFO - Outgoing JSON Message: {"args": ["RandomMap", "Off"], "command": "GameOption", "target": "game"}
+2016-10-22 09:34:57,734 - fa.game_connection.GPGNetConnection - INFO - GC >> : GameOption : [u'Score', u'no']
+2016-10-22 09:34:57,735 - fa.game_session.GameSession - INFO - Incoming GPGNet: GameOption [u'Score', u'no']
+2016-10-22 09:34:57,735 - fa.game_session.GameSession - INFO - Outgoing relay message GameOption [u'Score', u'no']
+2016-10-22 09:34:57,735 - client._clientwindow - INFO - Outgoing JSON Message: {"args": ["Score", "no"], "command": "GameOption", "target": "game"}
+2016-10-22 09:34:57,735 - fa.game_connection.GPGNetConnection - INFO - GC >> : GameOption : [u'Share', u'yes']
+2016-10-22 09:34:57,735 - fa.game_session.GameSession - INFO - Incoming GPGNet: GameOption [u'Share', u'yes']
+2016-10-22 09:34:57,735 - fa.game_session.GameSession - INFO - Outgoing relay message GameOption [u'Share', u'yes']
+2016-10-22 09:34:57,735 - client._clientwindow - INFO - Outgoing JSON Message: {"args": ["Share", "yes"], "command": "GameOption", "target": "game"}
+2016-10-22 09:34:57,735 - fa.game_connection.GPGNetConnection - INFO - GC >> : GameOption : [u'TeamSpawn', u'fixed']
+2016-10-22 09:34:57,735 - fa.game_session.GameSession - INFO - Incoming GPGNet: GameOption [u'TeamSpawn', u'fixed']
+2016-10-22 09:34:57,735 - fa.game_session.GameSession - INFO - Outgoing relay message GameOption [u'TeamSpawn', u'fixed']
+2016-10-22 09:34:57,736 - client._clientwindow - INFO - Outgoing JSON Message: {"args": ["TeamSpawn", "fixed"], "command": "GameOption", "target": "game"}
+2016-10-22 09:34:57,736 - fa.game_connection.GPGNetConnection - INFO - GC >> : GameOption : [u'TeamLock', u'locked']
+2016-10-22 09:34:57,736 - fa.game_session.GameSession - INFO - Incoming GPGNet: GameOption [u'TeamLock', u'locked']
+2016-10-22 09:34:57,736 - fa.game_session.GameSession - INFO - Outgoing relay message GameOption [u'TeamLock', u'locked']
+2016-10-22 09:34:57,736 - client._clientwindow - INFO - Outgoing JSON Message: {"args": ["TeamLock", "locked"], "command": "GameOption", "target": "game"}
+2016-10-22 09:34:57,736 - fa.game_connection.GPGNetConnection - INFO - GC >> : GameOption : [u'AutoTeams', u'tvsb']
+2016-10-22 09:34:57,736 - fa.game_session.GameSession - INFO - Incoming GPGNet: GameOption [u'AutoTeams', u'tvsb']
+2016-10-22 09:34:57,736 - fa.game_session.GameSession - INFO - Outgoing relay message GameOption [u'AutoTeams', u'tvsb']
+2016-10-22 09:34:57,736 - client._clientwindow - INFO - Outgoing JSON Message: {"args": ["AutoTeams", "tvsb"], "command": "GameOption", "target": "game"}
+2016-10-22 09:34:57,737 - fa.game_connection.GPGNetConnection - INFO - GC >> : GameOption : [u'CheatMult', u'1.0']
+2016-10-22 09:34:57,737 - fa.game_session.GameSession - INFO - Incoming GPGNet: GameOption [u'CheatMult', u'1.0']
+2016-10-22 09:34:57,737 - fa.game_session.GameSession - INFO - Outgoing relay message GameOption [u'CheatMult', u'1.0']
+2016-10-22 09:34:57,737 - client._clientwindow - INFO - Outgoing JSON Message: {"args": ["CheatMult", "1.0"], "command": "GameOption", "target": "game"}
+2016-10-22 09:34:57,737 - fa.game_connection.GPGNetConnection - INFO - GC >> : GameOption : [u'BuildMult', u'1.0']
+2016-10-22 09:34:57,737 - fa.game_session.GameSession - INFO - Incoming GPGNet: GameOption [u'BuildMult', u'1.0']
+2016-10-22 09:34:57,737 - fa.game_session.GameSession - INFO - Outgoing relay message GameOption [u'BuildMult', u'1.0']
+2016-10-22 09:34:57,737 - client._clientwindow - INFO - Outgoing JSON Message: {"args": ["BuildMult", "1.0"], "command": "GameOption", "target": "game"}
+2016-10-22 09:34:57,737 - fa.game_connection.GPGNetConnection - INFO - GC >> : GameOption : [u'TMLRandom', u'0']
+2016-10-22 09:34:57,738 - fa.game_session.GameSession - INFO - Incoming GPGNet: GameOption [u'TMLRandom', u'0']
+2016-10-22 09:34:57,738 - fa.game_session.GameSession - INFO - Outgoing relay message GameOption [u'TMLRandom', u'0']
+2016-10-22 09:34:57,738 - client._clientwindow - INFO - Outgoing JSON Message: {"args": ["TMLRandom", "0"], "command": "GameOption", "target": "game"}
+2016-10-22 09:34:57,738 - fa.game_connection.GPGNetConnection - INFO - GC >> : GameOption : [u'LandExpansionsAllowed', u'5']
+2016-10-22 09:34:57,738 - fa.game_session.GameSession - INFO - Incoming GPGNet: GameOption [u'LandExpansionsAllowed', u'5']
+2016-10-22 09:34:57,738 - fa.game_session.GameSession - INFO - Outgoing relay message GameOption [u'LandExpansionsAllowed', u'5']
+2016-10-22 09:34:57,738 - client._clientwindow - INFO - Outgoing JSON Message: {"args": ["LandExpansionsAllowed", "5"], "command": "GameOption", "target": "game"}
+2016-10-22 09:34:57,738 - fa.game_connection.GPGNetConnection - INFO - GC >> : GameOption : [u'NavalExpansionsAllowed', u'4']
+2016-10-22 09:34:57,738 - fa.game_session.GameSession - INFO - Incoming GPGNet: GameOption [u'NavalExpansionsAllowed', u'4']
+2016-10-22 09:34:57,739 - fa.game_session.GameSession - INFO - Outgoing relay message GameOption [u'NavalExpansionsAllowed', u'4']
+2016-10-22 09:34:57,739 - client._clientwindow - INFO - Outgoing JSON Message: {"args": ["NavalExpansionsAllowed", "4"], "command": "GameOption", "target": "game"}
+2016-10-22 09:34:57,739 - fa.game_connection.GPGNetConnection - INFO - GC >> : GameOption : [u'OmniCheat', u'on']
+2016-10-22 09:34:57,739 - fa.game_session.GameSession - INFO - Incoming GPGNet: GameOption [u'OmniCheat', u'on']
+2016-10-22 09:34:57,739 - fa.game_session.GameSession - INFO - Outgoing relay message GameOption [u'OmniCheat', u'on']
+2016-10-22 09:34:57,739 - client._clientwindow - INFO - Outgoing JSON Message: {"args": ["OmniCheat", "on"], "command": "GameOption", "target": "game"}
+2016-10-22 09:34:57,739 - fa.game_connection.GPGNetConnection - INFO - GC >> : GameOption : [u'ScenarioFile', u'/maps/4v4isis.v0001/4v4isis_scenario.lua']
+2016-10-22 09:34:57,739 - fa.game_session.GameSession - INFO - Incoming GPGNet: GameOption [u'ScenarioFile', u'/maps/4v4isis.v0001/4v4isis_scenario.lua']
+2016-10-22 09:34:57,739 - fa.game_session.GameSession - INFO - Outgoing relay message GameOption [u'ScenarioFile', u'/maps/4v4isis.v0001/4v4isis_scenario.lua']
+2016-10-22 09:34:57,740 - client._clientwindow - INFO - Outgoing JSON Message: {"args": ["ScenarioFile", "/maps/4v4isis.v0001/4v4isis_scenario.lua"], "command": "GameOption", "target": "game"}
+2016-10-22 09:34:57,740 - fa.game_connection.GPGNetConnection - INFO - GC >> : GameOption : [u'Slots', 8]
+2016-10-22 09:34:57,740 - fa.game_session.GameSession - INFO - Incoming GPGNet: GameOption [u'Slots', 8]
+2016-10-22 09:34:57,740 - fa.game_session.GameSession - INFO - Outgoing relay message GameOption [u'Slots', 8]
+2016-10-22 09:34:57,740 - client._clientwindow - INFO - Outgoing JSON Message: {"args": ["Slots", 8], "command": "GameOption", "target": "game"}
+2016-10-22 09:34:57,931 - fa.game_connection.GPGNetConnection - INFO - GC >> : PlayerOption : [u'96114', u'Faction', 3]
+2016-10-22 09:34:57,931 - fa.game_session.GameSession - INFO - Incoming GPGNet: PlayerOption [u'96114', u'Faction', 3]
+2016-10-22 09:34:57,931 - fa.game_session.GameSession - INFO - Outgoing relay message PlayerOption [u'96114', u'Faction', 3]
+2016-10-22 09:34:57,931 - client._clientwindow - INFO - Outgoing JSON Message: {"args": ["96114", "Faction", 3], "command": "PlayerOption", "target": "game"}
+2016-10-22 09:34:57,931 - fa.game_connection.GPGNetConnection - INFO - GC >> : PlayerOption : [u'96114', u'Color', 6]
+2016-10-22 09:34:57,932 - fa.game_session.GameSession - INFO - Incoming GPGNet: PlayerOption [u'96114', u'Color', 6]
+2016-10-22 09:34:57,932 - fa.game_session.GameSession - INFO - Outgoing relay message PlayerOption [u'96114', u'Color', 6]
+2016-10-22 09:34:57,932 - client._clientwindow - INFO - Outgoing JSON Message: {"args": ["96114", "Color", 6], "command": "PlayerOption", "target": "game"}
+2016-10-22 09:34:57,932 - fa.game_connection.GPGNetConnection - INFO - GC >> : PlayerOption : [u'96114', u'Team', 1]
+2016-10-22 09:34:57,932 - fa.game_session.GameSession - INFO - Incoming GPGNet: PlayerOption [u'96114', u'Team', 1]
+2016-10-22 09:34:57,932 - fa.game_session.GameSession - INFO - Outgoing relay message PlayerOption [u'96114', u'Team', 1]
+2016-10-22 09:34:57,932 - client._clientwindow - INFO - Outgoing JSON Message: {"args": ["96114", "Team", 1], "command": "PlayerOption", "target": "game"}
+2016-10-22 09:34:57,932 - fa.game_connection.GPGNetConnection - INFO - GC >> : PlayerOption : [u'96114', u'StartSpot', 1]
+2016-10-22 09:34:57,932 - fa.game_session.GameSession - INFO - Incoming GPGNet: PlayerOption [u'96114', u'StartSpot', 1]
+2016-10-22 09:34:57,932 - fa.game_session.GameSession - INFO - Outgoing relay message PlayerOption [u'96114', u'StartSpot', 1]
+2016-10-22 09:34:57,933 - client._clientwindow - INFO - Outgoing JSON Message: {"args": ["96114", "StartSpot", 1], "command": "PlayerOption", "target": "game"}
+2016-10-22 09:34:57,933 - fa.game_connection.GPGNetConnection - INFO - GC >> : PlayerOption : [u'96114', u'Army', 1]
+2016-10-22 09:34:57,933 - fa.game_session.GameSession - INFO - Incoming GPGNet: PlayerOption [u'96114', u'Army', 1]
+2016-10-22 09:34:57,933 - fa.game_session.GameSession - INFO - Outgoing relay message PlayerOption [u'96114', u'Army', 1]
+2016-10-22 09:34:57,933 - client._clientwindow - INFO - Outgoing JSON Message: {"args": ["96114", "Army", 1], "command": "PlayerOption", "target": "game"}
+2016-10-22 09:34:57,935 - fa.game_connection.GPGNetConnection - INFO - GC >> : ClearSlot : [2]
+2016-10-22 09:34:57,936 - fa.game_session.GameSession - INFO - Incoming GPGNet: ClearSlot [2]
+2016-10-22 09:34:57,936 - fa.game_session.GameSession - INFO - Outgoing relay message ClearSlot [2]
+2016-10-22 09:34:57,936 - client._clientwindow - INFO - Outgoing JSON Message: {"args": [2], "command": "ClearSlot", "target": "game"}
+2016-10-22 09:34:57,972 - fa.game_connection.GPGNetConnection - INFO - GC >> : ClearSlot : [3]
+2016-10-22 09:34:57,973 - fa.game_session.GameSession - INFO - Incoming GPGNet: ClearSlot [3]
+2016-10-22 09:34:57,973 - fa.game_session.GameSession - INFO - Outgoing relay message ClearSlot [3]
+2016-10-22 09:34:57,973 - client._clientwindow - INFO - Outgoing JSON Message: {"args": [3], "command": "ClearSlot", "target": "game"}
+2016-10-22 09:34:57,973 - fa.game_connection.GPGNetConnection - INFO - GC >> : ClearSlot : [4]
+2016-10-22 09:34:57,974 - fa.game_session.GameSession - INFO - Incoming GPGNet: ClearSlot [4]
+2016-10-22 09:34:57,974 - fa.game_session.GameSession - INFO - Outgoing relay message ClearSlot [4]
+2016-10-22 09:34:57,974 - client._clientwindow - INFO - Outgoing JSON Message: {"args": [4], "command": "ClearSlot", "target": "game"}
+2016-10-22 09:34:57,974 - fa.game_connection.GPGNetConnection - INFO - GC >> : ClearSlot : [5]
+2016-10-22 09:34:57,974 - fa.game_session.GameSession - INFO - Incoming GPGNet: ClearSlot [5]
+2016-10-22 09:34:57,974 - fa.game_session.GameSession - INFO - Outgoing relay message ClearSlot [5]
+2016-10-22 09:34:57,975 - client._clientwindow - INFO - Outgoing JSON Message: {"args": [5], "command": "ClearSlot", "target": "game"}
+2016-10-22 09:34:57,975 - fa.game_connection.GPGNetConnection - INFO - GC >> : ClearSlot : [6]
+2016-10-22 09:34:57,975 - fa.game_session.GameSession - INFO - Incoming GPGNet: ClearSlot [6]
+2016-10-22 09:34:57,975 - fa.game_session.GameSession - INFO - Outgoing relay message ClearSlot [6]
+2016-10-22 09:34:57,975 - client._clientwindow - INFO - Outgoing JSON Message: {"args": [6], "command": "ClearSlot", "target": "game"}
+2016-10-22 09:34:57,976 - fa.game_connection.GPGNetConnection - INFO - GC >> : ClearSlot : [7]
+2016-10-22 09:34:57,976 - fa.game_session.GameSession - INFO - Incoming GPGNet: ClearSlot [7]
+2016-10-22 09:34:57,976 - fa.game_session.GameSession - INFO - Outgoing relay message ClearSlot [7]
+2016-10-22 09:34:57,976 - client._clientwindow - INFO - Outgoing JSON Message: {"args": [7], "command": "ClearSlot", "target": "game"}
+2016-10-22 09:34:57,977 - fa.game_connection.GPGNetConnection - INFO - GC >> : ClearSlot : [8]
+2016-10-22 09:34:57,977 - fa.game_session.GameSession - INFO - Incoming GPGNet: ClearSlot [8]
+2016-10-22 09:34:57,977 - fa.game_session.GameSession - INFO - Outgoing relay message ClearSlot [8]
+2016-10-22 09:34:57,977 - client._clientwindow - INFO - Outgoing JSON Message: {"args": [8], "command": "ClearSlot", "target": "game"}
+2016-10-22 09:35:06,563 - client._clientwindow - INFO - FA has finished with exit code: 0
+2016-10-22 09:35:06,564 - fa.game_session.GameSession - INFO - Game has exited with status code: 0
+2016-10-22 09:35:06,564 - fa.game_session.GameSession - INFO - Outgoing relay message GameState ['Ended']
+2016-10-22 09:35:06,564 - client._clientwindow - INFO - Outgoing JSON Message: {"args": ["Ended"], "command": "GameState", "target": "game"}
+2016-10-22 09:35:09,366 - client._clientwindow - INFO - Close Event for Application Main Window
+2016-10-22 09:35:09,368 - client._clientwindow - WARNING - Disconnected from lobby server.
+2016-10-22 09:35:09,372 - __main__ - INFO - <<< --------------------------- Application Shutdown

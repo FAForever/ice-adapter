@@ -38,15 +38,15 @@ include_directories(${JSON_INCLUDE_DIRS})
 #  ${JSON_LIBRARIES}
 #  )
 
-add_executable(libnice_example
-  libnice_example.c
-  )
-target_link_libraries(libnice_example
-  ${NICE_LIBRARIES}
-  )
+#add_executable(libnice_example
+#  libnice_example.c
+#  )
+#target_link_libraries(libnice_example
+#  ${NICE_LIBRARIES}
+#  )
 
 find_package(Boost REQUIRED COMPONENTS log system)
-#add_definitions(-DBOOST_LOG_DYN_LINK)
+add_definitions(-DBOOST_LOG_DYN_LINK)
 
 #add_executable(jsonstreamtest
 #  jsonstreamtest.cpp
@@ -79,12 +79,21 @@ add_custom_target(docs SOURCES README.md LICENSE)
 pkg_search_module(GIOMM REQUIRED giomm-2.4)
 include_directories(${GIOMM_INCLUDE_DIRS})
 
-add_executable(giommtest
+add_executable(faf-ice-adapter
+  IceAdapter.cpp
+  IceAgent.cpp
   JsonRpcTcpServer.cpp
+  JsonRpcTcpSession.cpp
+  GPGNetServer.cpp
+  GPGNetConnection.cpp
+  GPGNetMessage.cpp
+  main.cpp
+  PeerRelay.cpp
   )
-target_link_libraries(giommtest
+target_link_libraries(faf-ice-adapter
   ${GIOMM_LIBRARIES}
   ${Boost_LIBRARIES}
   ${JSON_LIBRARIES}
-  #pthread
+  ${NICE_LIBRARIES}
+  pthread
   )

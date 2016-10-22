@@ -1,8 +1,9 @@
 #include "IceAgent.h"
 
-#include <iostream>
 #include <stdexcept>
 #include <cstring>
+
+#include <boost/log/trivial.hpp>
 
 #include <agent.h>
 #include <nice.h>
@@ -48,8 +49,8 @@ void cb_nice_recv(NiceAgent *agent,
 
 IceAgent::IceAgent(GMainLoop* mainloop,
                    bool controlling,
-                   char* stunIp,
-                   char* turnIp,
+                   std::string const& stunIp,
+                   std::string const& turnIp,
                    std::string const& turnUser,
                    std::string const& turnPassword):
   mAgent(nullptr),
@@ -68,7 +69,7 @@ IceAgent::IceAgent(GMainLoop* mainloop,
     throw std::runtime_error("nice_agent_new() failed");
   }
 
-  g_object_set(mAgent, "stun-server", stunIp, nullptr);
+  g_object_set(mAgent, "stun-server", stunIp.c_str(), nullptr);
   g_object_set(mAgent, "stun-server-port", 3478, nullptr);
   g_object_set(mAgent, "controlling-mode", controlling, nullptr);
 
@@ -80,7 +81,7 @@ IceAgent::IceAgent(GMainLoop* mainloop,
   nice_agent_set_relay_info(mAgent,
                             mStreamId,
                             1,
-                            turnIp,
+                            turnIp.c_str(),
                             3478,
                             mTurnUser.c_str(),
                             mTurnPassword.c_str(),
@@ -176,7 +177,7 @@ void IceAgent::setRemoteSdp(std::string const& sdpBase64)
   int res = nice_agent_parse_remote_sdp(mAgent, mRemoteSdp.c_str());
   if (res <= 0)
   {
-    std::cerr << "res " << res << std::endl;
+    BOOST_LOG_TRIVIAL(error) << "res " << res;
     throw std::runtime_error("nice_agent_parse_remote_sdp() failed");
   }
   mHasRemoteSdp = true;
@@ -223,7 +224,7 @@ void IceAgent::onCandidateGatheringDone()
   {
     mGatheringDoneCallback(this, mSdp64);
   }
-  //std::cout << "SDP:\n" << mSdp << std::endl;
+  BOOST_LOG_TRIVIAL(trace) << "SDP:\n" << mSdp;
 }
 
 void IceAgent::onComponentStateChanged(unsigned int state)
@@ -231,27 +232,27 @@ void IceAgent::onComponentStateChanged(unsigned int state)
   switch (state)
   {
     case NICE_COMPONENT_STATE_DISCONNECTED:
-      std::cerr << "NICE_COMPONENT_STATE_DISCONNECTED" << std::endl;
+      BOOST_LOG_TRIVIAL(warning) << "NICE_COMPONENT_STATE_DISCONNECTED";
       mConnected = false;
       break;
     case NICE_COMPONENT_STATE_GATHERING:
-      std::cout << "NICE_COMPONENT_STATE_GATHERING" << std::endl;
+      BOOST_LOG_TRIVIAL(trace) << "NICE_COMPONENT_STATE_GATHERING";
       mConnected = false;
       break;
     case NICE_COMPONENT_STATE_CONNECTING:
-      std::cout << "NICE_COMPONENT_STATE_CONNECTING" << std::endl;
+      BOOST_LOG_TRIVIAL(trace) << "NICE_COMPONENT_STATE_CONNECTING";
       mConnected = false;
       break;
     case NICE_COMPONENT_STATE_CONNECTED:
-      std::cout << "NICE_COMPONENT_STATE_CONNECTED" << std::endl;
+      BOOST_LOG_TRIVIAL(trace) << "NICE_COMPONENT_STATE_CONNECTED";
       mConnected = false;
       break;
     case NICE_COMPONENT_STATE_READY:
-      std::cout << "NICE_COMPONENT_STATE_READY" << std::endl;
+      BOOST_LOG_TRIVIAL(trace) << "NICE_COMPONENT_STATE_READY";
       mConnected = true;
       break;
     case NICE_COMPONENT_STATE_FAILED:
-      std::cerr << "NICE_COMPONENT_STATE_FAILED" << std::endl;
+      BOOST_LOG_TRIVIAL(error) << "NICE_COMPONENT_STATE_FAILED";
       mConnected = false;
       break;
   }
