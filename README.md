@@ -9,7 +9,7 @@ The internal server was tested against [bjsonrpc](https://github.com/deavid/bjso
 ### Methods (client ➠ faf-ice-adapter)
 
 | Name|Parameters|Returns|Description|
-|- |-| -|-|
+|---|---|---|---|
 | quit| |"ok"|Gracefully shuts down the `faf-ice-adapter`.|
 | hostGame|mapName (string)|"ok"|Tell the game to create the lobby and host game on Lobby-State.|
 | joinGame|remotePlayerLogin (string), remotePlayerId (int)|"ok"|Tell the game to create the Lobby, create a PeerRelay and join the remote game.|
@@ -20,7 +20,7 @@ The internal server was tested against [bjsonrpc](https://github.com/deavid/bjso
 
 ### Notifications (faf-ice-adapter ➠ client )
 | Name|Parameters|Description |
-|- |-| -|
+|---|---|---|
 | rpcNeedSdp|localPlayerId (int), remotePlayerId (int)|A PeerRelay was created and the SDP record is needed to establish a connection.|
 |rpcConnectionStateChanged|"Connected"/"Disconnected" (string)|The game connected to the internal GPGNetServer.|
 |rpcGPGNetMessageReceived|header (string), chunks (array)|The game sent a message to the `faf-ice-adapter` via the internal GPGNetServer.|
