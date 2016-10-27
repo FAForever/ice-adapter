@@ -8,6 +8,34 @@
 #include <agent.h>
 #include <nice.h>
 
+std::string stateToString(IceAgentState const& s)
+{
+  switch(s)
+  {
+    case IceAgentState::NeedRemoteSdp:
+      return "NeedRemoteSdp";
+      break;
+    case IceAgentState::Disconnected:
+      return "Disconnected";
+      break;
+    case IceAgentState::Gathering:
+      return "Gathering";
+      break;
+    case IceAgentState::Connecting:
+      return "Connecting";
+      break;
+    case IceAgentState::Connected:
+      return "Connected";
+      break;
+    case IceAgentState::Ready:
+      return "Ready";
+      break;
+    case IceAgentState::Failed:
+      return "Failed";
+      break;
+  }
+}
+
 void cb_candidate_gathering_done(NiceAgent *agent,
                                  guint stream_id,
                                  gpointer data)
@@ -59,8 +87,8 @@ IceAgent::IceAgent(GMainLoop* mainloop,
   mSdp(nullptr),
   mSdp64(nullptr),
   mHasRemoteSdp(false),
-  mConnected(false),
-  mStreamId(0)
+  mStreamId(0),
+  mState(IceAgentState::NeedRemoteSdp)
 {
   mAgent = nice_agent_new(g_main_loop_get_context (mainloop),
                           NICE_COMPATIBILITY_RFC5245);
@@ -121,6 +149,8 @@ IceAgent::IceAgent(GMainLoop* mainloop,
                    "new-selected-pair-full",
                    G_CALLBACK(cb_new_selected_pair_full),
                    this);
+  BOOST_LOG_TRIVIAL(trace) << "IceAgent()";
+
 }
 
 IceAgent::~IceAgent()
@@ -144,6 +174,7 @@ IceAgent::~IceAgent()
   {
     g_object_unref(mAgent);
   }
+  BOOST_LOG_TRIVIAL(trace) << "~IceAgent()";
 }
 
 void IceAgent::gatherCandidates()
@@ -166,15 +197,20 @@ void IceAgent::setReceiveCallback(ReceiveCallback cb)
   mReceiveCallback = cb;
 }
 
+void IceAgent::setStateCallback(StateCallback cb)
+{
+  mStateCallback = cb;
+}
+
 void IceAgent::setRemoteSdp(std::string const& sdpBase64)
 {
-  mRemoteSdp = sdpBase64;
+  mRemoteSdp64 = sdpBase64;
   gsize sdp_len;
-  char* sdp = reinterpret_cast<char*>(g_base64_decode(mRemoteSdp.c_str(), &sdp_len));
-  mRemoteSdp = std::string(sdp, sdp_len);
+  char* sdp = reinterpret_cast<char*>(g_base64_decode(mRemoteSdp64.c_str(), &sdp_len));
+  mRemoteSdp64 = std::string(sdp, sdp_len);
   g_free (sdp);
 
-  int res = nice_agent_parse_remote_sdp(mAgent, mRemoteSdp.c_str());
+  int res = nice_agent_parse_remote_sdp(mAgent, mRemoteSdp64.c_str());
   if (res <= 0)
   {
     BOOST_LOG_TRIVIAL(error) << "res " << res;
@@ -190,7 +226,7 @@ bool IceAgent::hasRemoteSdp() const
 
 bool IceAgent::isConnected() const
 {
-  return mConnected;
+  return mState == IceAgentState::Ready;
 }
 
 void IceAgent::send(std::string const& msg)
@@ -215,6 +251,40 @@ std::string IceAgent::remoteCandidateInfo() const
   return mRemoteCandidateInfo;
 }
 
+std::string IceAgent::localSdp() const
+{
+  if (mSdp)
+  {
+    return std::string(mSdp);
+  }
+  else
+  {
+    return std::string();
+  }
+}
+
+std::string IceAgent::localSdp64() const
+{
+  if (mSdp64)
+  {
+    return std::string(mSdp64);
+  }
+  else
+  {
+    return std::string();
+  }
+}
+
+std::string IceAgent::remoteSdp64() const
+{
+  return mRemoteSdp64;
+}
+
+IceAgentState IceAgent::state() const
+{
+  return mState;
+}
+
 void IceAgent::onCandidateGatheringDone()
 {
   mSdp = nice_agent_generate_local_sdp(mAgent);
@@ -233,28 +303,32 @@ void IceAgent::onComponentStateChanged(unsigned int state)
   {
     case NICE_COMPONENT_STATE_DISCONNECTED:
       BOOST_LOG_TRIVIAL(warning) << "NICE_COMPONENT_STATE_DISCONNECTED";
-      mConnected = false;
+      mState = IceAgentState::Disconnected;
       break;
     case NICE_COMPONENT_STATE_GATHERING:
       BOOST_LOG_TRIVIAL(trace) << "NICE_COMPONENT_STATE_GATHERING";
-      mConnected = false;
+      mState = IceAgentState::Gathering;
       break;
     case NICE_COMPONENT_STATE_CONNECTING:
       BOOST_LOG_TRIVIAL(trace) << "NICE_COMPONENT_STATE_CONNECTING";
-      mConnected = false;
+      mState = IceAgentState::Connecting;
       break;
     case NICE_COMPONENT_STATE_CONNECTED:
       BOOST_LOG_TRIVIAL(trace) << "NICE_COMPONENT_STATE_CONNECTED";
-      mConnected = false;
+      mState = IceAgentState::Connected;
       break;
     case NICE_COMPONENT_STATE_READY:
       BOOST_LOG_TRIVIAL(trace) << "NICE_COMPONENT_STATE_READY";
-      mConnected = true;
+      mState = IceAgentState::Ready;
       break;
     case NICE_COMPONENT_STATE_FAILED:
       BOOST_LOG_TRIVIAL(error) << "NICE_COMPONENT_STATE_FAILED";
-      mConnected = false;
+      mState = IceAgentState::Failed;
       break;
+  }
+  if (mStateCallback)
+  {
+    mStateCallback(this, mState);
   }
 }
 

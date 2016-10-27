@@ -164,6 +164,8 @@ void GPGNetConnection::parseMessages()
     debugOutputMessage(message);
     mServer->onGPGNetMessage(message);
 
+    /* TODO: stop copying the buffer to pos 0,
+     * and move the start pos */
     std::copy(mBuffer.data() + bufferPos,
               mBuffer.data() + mBufferEnd,
               mBuffer.data());

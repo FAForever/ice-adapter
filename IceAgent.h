@@ -7,6 +7,19 @@ typedef struct _NiceAgent NiceAgent;
 typedef struct _GMainLoop GMainLoop;
 typedef struct _NiceCandidate NiceCandidate;
 
+enum class IceAgentState
+{
+  NeedRemoteSdp,
+  Disconnected,
+  Gathering,
+  Connecting,
+  Connected,
+  Ready,
+  Failed
+};
+
+std::string stateToString(IceAgentState const& s);
+
 class IceAgent
 {
 public:
@@ -26,6 +39,9 @@ public:
   typedef std::function<void (IceAgent*, std::string const&)> ReceiveCallback;
   void setReceiveCallback(ReceiveCallback cb);
 
+  typedef std::function<void (IceAgent*, IceAgentState const&)> StateCallback;
+  void setStateCallback(StateCallback cb);
+
   void setRemoteSdp(std::string const& sdpBase64);
   bool hasRemoteSdp() const;
   bool isConnected() const;
@@ -34,7 +50,11 @@ public:
   std::string localCandidateInfo() const;
   std::string remoteCandidateInfo() const;
 
-  std::string mRemoteSdp;
+  std::string localSdp() const;
+  std::string localSdp64() const;
+  std::string remoteSdp64() const;
+
+  IceAgentState state() const;
 
 protected:
   void onCandidateGatheringDone();
@@ -52,11 +72,15 @@ protected:
   bool mConnected;
   std::string mLocalCandidateInfo;
   std::string mRemoteCandidateInfo;
+  std::string mRemoteSdp64;
 
   CandidateGatheringDoneCallback mGatheringDoneCallback;
   ReceiveCallback mReceiveCallback;
+  StateCallback mStateCallback;
 
   unsigned int mStreamId;
+
+  IceAgentState mState;
 
   friend void cb_candidate_gathering_done(NiceAgent*,
                                           unsigned int,

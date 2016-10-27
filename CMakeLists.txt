@@ -1,6 +1,9 @@
-cmake_minimum_required(VERSION 2.8)
+cmake_minimum_required(VERSION 3.0)
 
-project(faf-ice-adapter CXX C)
+project(faf-ice-adapter
+  VERSION 0.1
+  LANGUAGES CXX C
+  )
 
 include(CheckCXXCompilerFlag)
 CHECK_CXX_COMPILER_FLAG("-std=c++11" ICE_ADAPTER_COMPILER_SUPPORTS_CXX11)
@@ -43,7 +46,7 @@ add_executable(faf-ice-adapter
   JsonRpcTcpSession.cpp
   GPGNetServer.cpp
   GPGNetConnection.cpp
-  GPGNetMessage.cpp
+  GPGNetMessage.h
   main.cpp
   PeerRelay.cpp
 )

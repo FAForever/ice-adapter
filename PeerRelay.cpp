@@ -15,6 +15,7 @@ PeerRelay::PeerRelay(Glib::RefPtr<Glib::MainLoop> mainloop,
   mMainloop(mainloop),
   mPeerId(peerId)
 {
+  mLocalGameUdpPort = port;
   mIceAgent = std::make_shared<IceAgent>(mainloop->gobj(),
                                          true,
                                          stunIp,
@@ -27,6 +28,14 @@ PeerRelay::PeerRelay(Glib::RefPtr<Glib::MainLoop> mainloop,
     mLocalSocket->send_to(mGameAddress,
                           message.c_str(),
                           message.size());
+  });
+
+  mIceAgent->setStateCallback([this](IceAgent* agent, IceAgentState const& state)
+  {
+    if (mIceAgentStateCallback)
+    {
+      mIceAgentStateCallback(this, state);
+    }
   });
 
   mLocalSocket = Gio::Socket::create(Gio::SOCKET_FAMILY_IPV4,
@@ -46,7 +55,12 @@ PeerRelay::PeerRelay(Glib::RefPtr<Glib::MainLoop> mainloop,
 
   mGameAddress = Gio::InetSocketAddress::create(Gio::InetAddress::create("127.0.0.1"),
                                                 gamePort);
+  BOOST_LOG_TRIVIAL(trace) << "PeerRelay " << mPeerId << " constructed";
+}
 
+PeerRelay::~PeerRelay()
+{
+  BOOST_LOG_TRIVIAL(trace) << "PeerRelay " << mPeerId << " destructed";
 }
 
 void PeerRelay::gatherCandidates(CandidateGatheringDoneCallback cb)
@@ -56,6 +70,21 @@ void PeerRelay::gatherCandidates(CandidateGatheringDoneCallback cb)
     cb(this, sdp);
   });
   mIceAgent->gatherCandidates();
+}
+
+void PeerRelay::setIceAgentStateCallback(IceAgentStateCallback cb)
+{
+  mIceAgentStateCallback = cb;
+}
+
+int PeerRelay::localGameUdpPort() const
+{
+  return mLocalGameUdpPort;
+}
+
+std::shared_ptr<IceAgent> PeerRelay::iceAgent() const
+{
+  return mIceAgent;
 }
 
 Glib::ustring

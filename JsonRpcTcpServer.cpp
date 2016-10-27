@@ -47,7 +47,7 @@ void JsonRpcTcpServer::setRpcCallback(std::string const& method,
   if (mCallbacks.find(method) == mCallbacks.end())
   {
     mCallbacks.insert(std::make_pair(method, cb));
-    BOOST_LOG_TRIVIAL(trace) << "callback for " << method << " registed";
+    BOOST_LOG_TRIVIAL(trace) << "callback for " << method << " registered";
   }
   else
   {

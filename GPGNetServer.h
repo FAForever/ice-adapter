@@ -14,25 +14,30 @@ namespace Json
   class Value;
 }
 
-enum class GameState
-{
-  NotConnected,
-  Idle,
-  Lobby
-};
-
 enum class InitMode : unsigned int
 {
   NormalLobby = 0,
   AutoLobby = 1
 };
 
+enum class ConnectionState
+{
+  Connected,
+  Disconnected
+};
+
 class GPGNetServer
 {
 public:
+  /** \brief create a GPGNetServer instance
+       \param port: The port for the TCP server
+      */
   GPGNetServer(short port);
   virtual ~GPGNetServer();
 
+  /** \brief send an arbitrary message to the client
+       \param msg: The message to send
+      */
   void sendMessage(GPGNetMessage const& msg);
 
   /** \brief Tells the client to create a new LobbyComm instance and have it listen on the given port number
@@ -88,10 +93,13 @@ public:
       */
   void sendPing();
 
-  typedef std::function<void (std::vector<Json::Value> const&)> GpgNetCallback;
-  void setGpgNetCallback(std::string const& header,
-                         GpgNetCallback cb);
+  typedef std::function<void (GPGNetMessage const&)> GpgMessageCallback;
+  void addGpgMessageCallback(GpgMessageCallback cb);
 
+  typedef std::function<void (ConnectionState const&)> ConnectionStateCallback;
+  void addConnectionStateCallback(ConnectionStateCallback cb);
+
+  ConnectionState connectionState() const;
 protected:
   void onCloseConnection(GPGNetConnection* connection);
   void onGPGNetMessage(GPGNetMessage const& msg);
@@ -99,8 +107,7 @@ protected:
   friend GPGNetConnection;
 
   Glib::RefPtr<Gio::Socket> mListenSocket;
-  std::vector<std::shared_ptr<GPGNetConnection>> mConnections;
-  std::map<std::string, GpgNetCallback> mCallbacks;
-
-  GameState mGameState;
+  std::shared_ptr<GPGNetConnection> mConnection;
+  std::vector<GpgMessageCallback> mGPGNetMessageCallbacks;
+  std::vector<ConnectionStateCallback> mConnectionStateCallbacks;
 };

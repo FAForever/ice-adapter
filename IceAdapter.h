@@ -6,43 +6,98 @@
 
 #include <glibmm.h>
 
+/*! \brief Options struct
+ */
 struct IceAdapterOptions
 {
-  Glib::ustring stunHost;
-  Glib::ustring turnHost;
-  Glib::ustring turnUser;
-  Glib::ustring turnPass;
-  int rpcPort;
-  int gpgNetPort;
-  int gameUdpPort;
-  int relayUdpPortStart;
-  int localPlayerId;
-  Glib::ustring localPlayerLogin;
+  Glib::ustring stunHost; /*!< STUN hostname for ICE, default: dev.faforever.com */
+  Glib::ustring turnHost; /*!< TURN hostname for ICE, default: dev.faforever.com */
+  Glib::ustring turnUser; /*!< TURN user credential for ICE, default: empty */
+  Glib::ustring turnPass; /*!< TURN password credential for ICE, default: empty */
+  int rpcPort;            /*!< Port of the internal JSON-RPC server to control the IceAdapter */
+  int gpgNetPort;         /*!< Port of the internal GPGNet server to communicate with the game */
+  int gameUdpPort;        /*!< UDP port the game should use to communicate to the internal Relays */
+  int relayUdpPortStart;  /*!< first UDP port the IceAdapter should use for the Relays */
+  int localPlayerId;      /*!< ID of the local player */
+  Glib::ustring localPlayerLogin; /*!< Login of the local player */
 
   IceAdapterOptions();
 };
 
+/* Forward declarations */
 class JsonRpcTcpServer;
+enum class ConnectionState;
 class GPGNetServer;
+class GPGNetMessage;
 class PeerRelay;
 namespace Json
 {
   class Value;
 }
 
+/*! \brief The main controller class
+ *
+ *  IceAdapter opens the JsonRpcTcpServer to be controlled
+ *  by the game client.
+ *  Creates the GPGNetServer for communication with the game.
+ *  Creates one Relay for every Peer.
+ */
 class IceAdapter
 {
 public:
   IceAdapter(IceAdapterOptions const& options,
              Glib::RefPtr<Glib::MainLoop> mainloop);
 
+  /** \brief Sets the IceAdapter in hosting mode and tells the connected game to host the map once
+   *         it reaches "Lobby" state
+       \param map: Map to host
+      */
   void hostGame(std::string const& map);
+
+  /** \brief Sets the IceAdapter in join mode and connects to the hosted lobby
+   *         The IceAdapter will implicitly create a Relay for the remote player.
+   *         The IceAdapter will ask the client for an SDP record of the remote peer via "rpcNeedSdp" JSONRPC notification.
+   *         The IceAdapter will send the client the SDP record via "rpcGatheredSdp" JSONRPC notification.
+       \param remotePlayerLogin: Login name of the player hosting the Lobby
+       \param remotePlayerId:    ID of the player hosting the Lobby
+      */
   void joinGame(std::string const& remotePlayerLogin,
                 int remotePlayerId);
+
+  /** \brief Tell the game to connect to a remote player once it reached Lobby state
+   *         The same internal procedures as in @joinGame happen:
+   *         The IceAdapter will implicitly create a Relay for the remote player.
+   *         The IceAdapter will ask the client for an SDP record of the remote peer via "rpcNeedSdp" JSONRPC notification.
+   *         The IceAdapter will send the client the SDP record via "rpcGatheredSdp" JSONRPC notification.
+       \param remotePlayerLogin: Login name of the player to connect to
+       \param remotePlayerId:    ID of the player to connect to
+      */
+  void connectToPeer(std::string const& remotePlayerLogin,
+                     int remotePlayerId);
+
+  /** \brief Sets the SDP record for the remote peer.
+   *         This method assumes a previous call of joinGame or connectToPeer.
+       \param remotePlayerId: ID of the remote player
+       \param sdp64:          Base64 encoded sdp record
+      */
+  void setSdp(int remotePlayerId, std::string const& sdp64);
+
+  /** \brief Send an arbitrary GPGNet message to the game
+       \param message: The GPGNet message
+      */
+  void sendToGpgNet(GPGNetMessage const& message);
+
+  /** \brief Return the ICEAdapters status
+       \returns The status as JSON structure
+      */
+  Json::Value status() const;
 protected:
-  void onGpgNetGamestate(std::vector<Json::Value> const& chunks);
+  void onGpgNetMessage(GPGNetMessage const& message);
+  void onGpgConnectionStateChanged(ConnectionState const& s);
 
   void connectRpcMethods();
+
+  std::shared_ptr<PeerRelay> createPeerRelay(int remotePlayerId, int& portResult);
 
   std::shared_ptr<JsonRpcTcpServer> mRpcServer;
   std::shared_ptr<GPGNetServer> mGPGNetServer;
@@ -55,6 +110,8 @@ protected:
   std::string mHostGameMap;
   std::string mJoinGameRemotePlayerLogin;
   int mJoinGameRemotePlayerId;
+
+  std::string mGPGNetGameState;
 
   int mCurrentRelayPort;
   std::map<int, std::shared_ptr<PeerRelay>> mRelays;

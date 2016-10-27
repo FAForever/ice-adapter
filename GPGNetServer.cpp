@@ -28,15 +28,19 @@ GPGNetServer::GPGNetServer(short port)
 
   Gio::signal_socket().connect([this](Glib::IOCondition condition)
   {
+    if (mConnection)
+    {
+      BOOST_LOG_TRIVIAL(error) << "simultaneous GPGNetConnections are not supported";
+      return true;
+    }
     auto newSocket = mListenSocket->accept();
-    auto connection = std::make_shared<GPGNetConnection>(this,
-                                                         newSocket);
-    mConnections.push_back(connection);
+    mConnection = std::make_shared<GPGNetConnection>(this,
+                                                     newSocket);
     BOOST_LOG_TRIVIAL(trace) << "new GPGNetConnection created";
 
-    if (mConnections.size() > 1)
+    for (auto cb : mConnectionStateCallbacks)
     {
-      BOOST_LOG_TRIVIAL(error) << mConnections.size() << " GPGNetConnections simultaneous are not supported";
+      cb(ConnectionState::Connected);
     }
     return true;
   }, mListenSocket, Glib::IO_IN);
@@ -49,14 +53,12 @@ GPGNetServer::~GPGNetServer()
 
 void GPGNetServer::sendMessage(GPGNetMessage const& msg)
 {
-  if (mConnections.size() != 1)
+  if (!mConnection)
   {
-    BOOST_LOG_TRIVIAL(error) << mConnections.size() << " GPGNetConnections";
+    BOOST_LOG_TRIVIAL(error) << "no GPGNetConnection";
+    return;
   }
-  for (auto it = mConnections.begin(), end = mConnections.end(); it != end; ++it)
-  {
-    (*it)->sendMessage(msg);
-  }
+  mConnection->sendMessage(msg);
 }
 
 void GPGNetServer::sendCreateLobby(InitMode initMode,
@@ -144,49 +146,42 @@ void GPGNetServer::sendPing()
   sendMessage(msg);
 }
 
-void GPGNetServer::setGpgNetCallback(std::string const& header,
-                                     GpgNetCallback cb)
+void GPGNetServer::addGpgMessageCallback(GpgMessageCallback cb)
 {
-  mCallbacks.insert(std::make_pair(header, cb));
+  mGPGNetMessageCallbacks.push_back(cb);
+}
+
+void GPGNetServer::addConnectionStateCallback(ConnectionStateCallback cb)
+{
+  mConnectionStateCallbacks.push_back(cb);
+}
+
+ConnectionState GPGNetServer::connectionState() const
+{
+  if (mConnection)
+  {
+    return ConnectionState::Connected;
+  }
+  else
+  {
+    return ConnectionState::Disconnected;
+  }
 }
 
 void GPGNetServer::onCloseConnection(GPGNetConnection* connection)
 {
-  for (auto it = mConnections.begin(), end = mConnections.end(); it != end; ++it)
+  mConnection.reset();
+  for (auto cb : mConnectionStateCallbacks)
   {
-    if (it->get() == connection)
-    {
-      mConnections.erase(it);
-      BOOST_LOG_TRIVIAL(trace) << "connection removed";
-      return;
-    }
+    cb(ConnectionState::Disconnected);
   }
-  mGameState = GameState::NotConnected;
-  BOOST_LOG_TRIVIAL(trace) << "GameState changed to 'NotConnected'";
 }
+
 
 void GPGNetServer::onGPGNetMessage(GPGNetMessage const& msg)
 {
-  if (msg.header == "GameState")
+  for (auto cb : mGPGNetMessageCallbacks)
   {
-    if (msg.chunks.size() == 1)
-    {
-      if (msg.chunks.at(0).asString() == "Idle")
-      {
-        mGameState = GameState::Idle;
-        BOOST_LOG_TRIVIAL(trace) << "GameState changed to 'Idle'";
-
-      }
-      else if (msg.chunks.at(0).asString() == "Lobby")
-      {
-        mGameState = GameState::Lobby;
-        BOOST_LOG_TRIVIAL(trace) << "GameState changed to 'Lobby'";
-      }
-    }
-  }
-
-  for (auto it = mCallbacks.find(msg.header), end = mCallbacks.end(); it != end; ++it)
-  {
-    it->second(msg.chunks);
+    cb(msg);
   }
 }
