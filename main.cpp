@@ -52,8 +52,22 @@ public:
 
     entry.set_long_name("gpgnet-port");
     entry.set_short_name('g');
-    entry.set_description("Port of internal GPGNet server, default: 7237");
+    entry.set_description("Port of internal GPGNet server, default: 7237. May be 0 for dynamic port.");
     add_entry(entry, gpgNetPort);
+
+    entry.set_long_name("login");
+    entry.set_short_name('l');
+    entry.set_description("Login of the local player, e.g. \"Rhiza\"");
+    add_entry(entry, localPlayerLogin);
+
+    entry.set_long_name("id");
+    entry.set_short_name('i');
+    entry.set_description("ID of the local player");
+    add_entry(entry, localPlayerId);
+
+    entry.set_long_name("lobby-port");
+    entry.set_description("Port the game lobby should use for incoming UDP packets from the PeerRelay, default: 7238");
+    add_entry(entry, gameUdpPort);
   }
 };
 

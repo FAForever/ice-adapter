@@ -32,6 +32,7 @@ The internal server was tested against [bjsonrpc](https://github.com/deavid/bjso
 {
 "options" : /* The commandline options */
 "gpgnet" : { /* The GPGNet state */
+  "local_port" : /*int: The port the game should connect to via /gpgnet 127.0.0.1:port*/
   "connected" : /*boolean: Is the game connected?*/
   "game_state" : /*string: The last received "GameState"*/
   "host_game" : {  /*optional, only in hosting mode*/

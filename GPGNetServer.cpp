@@ -11,7 +11,8 @@ namespace sigc {
   SIGC_FUNCTORS_DEDUCE_RESULT_TYPE_WITH_DECLTYPE
 }
 
-GPGNetServer::GPGNetServer(short port)
+GPGNetServer::GPGNetServer(short port):
+  mPort(port)
 {
   mListenSocket = Gio::Socket::create(Gio::SOCKET_FAMILY_IPV4,
                                       Gio::SOCKET_TYPE_STREAM,
@@ -24,7 +25,16 @@ GPGNetServer::GPGNetServer(short port)
   mListenSocket->bind(srcAddress, false);
   mListenSocket->listen();
 
-  BOOST_LOG_TRIVIAL(trace) << "GPGNetServer listening on port " << port;
+  auto isockaddr = Glib::RefPtr<Gio::InetSocketAddress>::cast_dynamic(mListenSocket->get_local_address());
+  if (isockaddr)
+  {
+    mPort = isockaddr->get_port();
+    BOOST_LOG_TRIVIAL(trace) << "GPGNetServer listening on port " << mPort;
+  }
+  else
+  {
+    BOOST_LOG_TRIVIAL(error) << "!isockaddr";
+  }
 
   Gio::signal_socket().connect([this](Glib::IOCondition condition)
   {
@@ -166,6 +176,11 @@ ConnectionState GPGNetServer::connectionState() const
   {
     return ConnectionState::Disconnected;
   }
+}
+
+guint16 GPGNetServer::port() const
+{
+  return mPort;
 }
 
 void GPGNetServer::onCloseConnection(GPGNetConnection* connection)

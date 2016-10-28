@@ -100,6 +100,8 @@ public:
   void addConnectionStateCallback(ConnectionStateCallback cb);
 
   ConnectionState connectionState() const;
+
+  guint16 port() const;
 protected:
   void onCloseConnection(GPGNetConnection* connection);
   void onGPGNetMessage(GPGNetMessage const& msg);
@@ -110,4 +112,5 @@ protected:
   std::shared_ptr<GPGNetConnection> mConnection;
   std::vector<GpgMessageCallback> mGPGNetMessageCallbacks;
   std::vector<ConnectionStateCallback> mConnectionStateCallbacks;
+  guint16 mPort;
 };
