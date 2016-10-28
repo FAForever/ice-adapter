@@ -47,12 +47,12 @@ public:
 
     entry.set_long_name("rpc-port");
     entry.set_short_name('p');
-    entry.set_description("Port of internal JSON-RPC server, default: 54321");
+    entry.set_description("Port of internal JSON-RPC server, default: 7236");
     add_entry(entry, rpcPort);
 
     entry.set_long_name("gpgnet-port");
     entry.set_short_name('g');
-    entry.set_description("Port of internal GPGNet server, default: 6113");
+    entry.set_description("Port of internal GPGNet server, default: 7237");
     add_entry(entry, gpgNetPort);
   }
 };
