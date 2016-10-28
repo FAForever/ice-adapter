@@ -124,6 +124,21 @@ void IceAdapter::connectToPeer(std::string const& remotePlayerLogin,
   }
 }
 
+void IceAdapter::disconnectFromPeer(int remotePlayerId)
+{
+  auto relayIt = mRelays.find(remotePlayerId);
+  if (relayIt == mRelays.end())
+  {
+    BOOST_LOG_TRIVIAL(error) << "no relay for remote peer " << remotePlayerId << " found";
+    std::string errorMsg("no relay for remote peer ");
+    errorMsg += std::to_string(remotePlayerId);
+    errorMsg += " found. Please call joinGame() or connectToPeer() first";
+    throw std::runtime_error(errorMsg);
+  }
+  mGPGNetServer->sendDisconnectFromPeer(remotePlayerId);
+  mRelays.erase(relayIt);
+}
+
 void IceAdapter::setSdp(int remotePlayerId, std::string const& sdp64)
 {
   auto relayIt = mRelays.find(remotePlayerId);
@@ -337,6 +352,27 @@ void IceAdapter::connectRpcMethods()
     try
     {
       connectToPeer(paramsArray[0].asString(), paramsArray[1].asInt());
+      result = "ok";
+    }
+    catch(std::exception& e)
+    {
+      error = e.what();
+    }
+  });
+
+  mRpcServer->setRpcCallback("disconnectFromPeer",
+                             [this](Json::Value const& paramsArray,
+                             Json::Value & result,
+                             Json::Value & error)
+  {
+    if (paramsArray.size() < 1)
+    {
+      error = "Need 1 parameters: remotePlayerId (int)";
+      return;
+    }
+    try
+    {
+      disconnectFromPeer(paramsArray[0].asInt());
       result = "ok";
     }
     catch(std::exception& e)

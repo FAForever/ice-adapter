@@ -14,6 +14,7 @@ The internal server was tested against [bjsonrpc](https://github.com/deavid/bjso
 | hostGame |mapName (string)|"ok"|Tell the game to create the lobby and host game on Lobby-State.|
 | joinGame |remotePlayerLogin (string), remotePlayerId (int)|"ok"|Tell the game to create the Lobby, create a PeerRelay and join the remote game.|
 | connectToPeer |remotePlayerLogin (string), remotePlayerId (int)|"ok"|Create a PeerRelay and tell the game to connect to the remote peer.|
+| disconnectFromPeer | remotePlayerId (int)| "ok" | Create a PeerRelay and tell the game to connect to the remote peer. |
 | setSdp |remotePlayerId (int), sdp64 (string)|"ok"|Set the remote SDP to the PeerRelay to establish a connection.|
 | sendToGpgNet |header (string), chunks (array)|"ok"|Send an arbitrary message to the game.|
 |status |header (string), chunks (array)|[status structure](#Status structure)|Polls the current status of the `faf-ice-adapter`.|

@@ -75,6 +75,12 @@ public:
   void connectToPeer(std::string const& remotePlayerLogin,
                      int remotePlayerId);
 
+  /** \brief Tell the game to disconnect from a remote peer
+   *         Will remove the Relay.
+       \param remotePlayerId:    ID of the player to disconnect from
+      */
+  void disconnectFromPeer(int remotePlayerId);
+
   /** \brief Sets the SDP record for the remote peer.
    *         This method assumes a previous call of joinGame or connectToPeer.
        \param remotePlayerId: ID of the remote player
