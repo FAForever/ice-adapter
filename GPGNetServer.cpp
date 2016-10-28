@@ -11,7 +11,7 @@ namespace sigc {
   SIGC_FUNCTORS_DEDUCE_RESULT_TYPE_WITH_DECLTYPE
 }
 
-GPGNetServer::GPGNetServer(short port):
+GPGNetServer::GPGNetServer(int port):
   mPort(port)
 {
   mListenSocket = Gio::Socket::create(Gio::SOCKET_FAMILY_IPV4,
@@ -21,7 +21,7 @@ GPGNetServer::GPGNetServer(short port):
 
   auto srcAddress =
     Gio::InetSocketAddress::create(Gio::InetAddress::create_loopback(Gio::SOCKET_FAMILY_IPV4),
-                                   port);
+                                   mPort);
   mListenSocket->bind(srcAddress, false);
   mListenSocket->listen();
 
@@ -38,19 +38,27 @@ GPGNetServer::GPGNetServer(short port):
 
   Gio::signal_socket().connect([this](Glib::IOCondition condition)
   {
-    if (mConnection)
+    try
     {
-      BOOST_LOG_TRIVIAL(error) << "simultaneous GPGNetConnections are not supported";
-      return true;
-    }
-    auto newSocket = mListenSocket->accept();
-    mConnection = std::make_shared<GPGNetConnection>(this,
-                                                     newSocket);
-    BOOST_LOG_TRIVIAL(trace) << "new GPGNetConnection created";
+      if (mConnection)
+      {
+        BOOST_LOG_TRIVIAL(error) << "simultaneous GPGNetConnections are not supported";
+        return true;
+      }
+      auto newSocket = mListenSocket->accept();
+      mConnection = std::make_shared<GPGNetConnection>(this,
+                                                       newSocket);
+      BOOST_LOG_TRIVIAL(trace) << "new GPGNetConnection created";
 
-    for (auto cb : mConnectionStateCallbacks)
+      for (auto cb : mConnectionStateCallbacks)
+      {
+        cb(ConnectionState::Connected);
+      }
+    }
+    catch (std::exception& e)
     {
-      cb(ConnectionState::Connected);
+      BOOST_LOG_TRIVIAL(error) << "error in connecting: " << e.what();
+      return true;
     }
     return true;
   }, mListenSocket, Glib::IO_IN);

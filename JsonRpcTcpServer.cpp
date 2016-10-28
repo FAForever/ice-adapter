@@ -62,22 +62,31 @@ void JsonRpcTcpServer::sendRequest(std::string const& method,
   if (!paramsArray.isArray())
   {
     Json::Value error = "paramsArray MUST be an array";
-    resultCb(Json::Value(),
-             error);
+    if (resultCb)
+    {
+      resultCb(Json::Value(),
+               error);
+    }
     return;
   }
   if (method.empty())
   {
     Json::Value error = "method MUST not be empty";
-    resultCb(Json::Value(),
-             error);
+    if (resultCb)
+    {
+      resultCb(Json::Value(),
+               error);
+    }
     return;
   }
   if (mSessions.empty())
   {
     Json::Value error = "no sessions connected";
-    resultCb(Json::Value(),
-             error);
+    if (resultCb)
+    {
+      resultCb(Json::Value(),
+               error);
+    }
     return;
   }
 

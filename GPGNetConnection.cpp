@@ -12,12 +12,19 @@ GPGNetConnection::GPGNetConnection(GPGNetServer* server,
 {
   BOOST_LOG_TRIVIAL(trace) << "GPGNetConnection()";
 
-  mSocket->set_blocking(false);
+  try
+  {
+    mSocket->set_blocking(false);
 
-  Gio::signal_socket().connect(
-        sigc::mem_fun(this, &GPGNetConnection::onRead),
-        mSocket,
-        Glib::IO_IN);
+      Gio::signal_socket().connect(
+            sigc::mem_fun(this, &GPGNetConnection::onRead),
+            mSocket,
+            Glib::IO_IN);
+  }
+  catch (std::exception& e)
+  {
+    BOOST_LOG_TRIVIAL(error) << "error in GPGNetConnection: " << e.what();
+  }
 }
 
 GPGNetConnection::~GPGNetConnection()
@@ -68,25 +75,33 @@ void GPGNetConnection::sendMessage(GPGNetMessage const& msg)
 
 bool GPGNetConnection::onRead(Glib::IOCondition /*condition*/)
 {
-  auto receiveCount = mSocket->receive(mBuffer.data() + mBufferEnd,
-                                     mBuffer.size() - mBufferEnd);
-
-  if (receiveCount == 0)
+  try
   {
-    //BOOST_LOG_TRIVIAL(error) << "receiveCount == 0";
-    mServer->onCloseConnection(this);
-    return false;
+    auto receiveCount = mSocket->receive(mBuffer.data() + mBufferEnd,
+                                       mBuffer.size() - mBufferEnd);
+
+    if (receiveCount == 0)
+    {
+      //BOOST_LOG_TRIVIAL(error) << "receiveCount == 0";
+      mServer->onCloseConnection(this);
+      return false;
+    }
+    BOOST_LOG_TRIVIAL(trace) << "received:" << std::string(mBuffer.data() + mBufferEnd,
+                                                           receiveCount);
+    mBufferEnd += receiveCount;
+
+    parseMessages();
+
+    if (mBufferEnd >= mBuffer.size())
+    {
+      BOOST_LOG_TRIVIAL(error) << "buffer full!";
+      mBufferEnd = 0;
+    }
   }
-  BOOST_LOG_TRIVIAL(trace) << "received:" << std::string(mBuffer.data() + mBufferEnd,
-                                                         receiveCount);
-  mBufferEnd += receiveCount;
-
-  parseMessages();
-
-  if (mBufferEnd >= mBuffer.size())
+  catch (std::exception& e)
   {
-    BOOST_LOG_TRIVIAL(error) << "buffer full!";
-    mBufferEnd = 0;
+    BOOST_LOG_TRIVIAL(error) << "error in receive: " << e.what();
+    return true;
   }
 
   return true;

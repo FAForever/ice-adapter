@@ -32,7 +32,7 @@ public:
   /** \brief create a GPGNetServer instance
        \param port: The port for the TCP server
       */
-  GPGNetServer(short port);
+  GPGNetServer(int port);
   virtual ~GPGNetServer();
 
   /** \brief send an arbitrary message to the client
@@ -112,5 +112,5 @@ protected:
   std::shared_ptr<GPGNetConnection> mConnection;
   std::vector<GpgMessageCallback> mGPGNetMessageCallbacks;
   std::vector<ConnectionStateCallback> mConnectionStateCallbacks;
-  guint16 mPort;
+  int mPort;
 };
