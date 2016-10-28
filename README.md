@@ -8,24 +8,24 @@ The internal server was tested against [bjsonrpc](https://github.com/deavid/bjso
 
 ### Methods (client ➠ faf-ice-adapter)
 
-| Name|Parameters|Returns|Description|
-|- |-| -|-|
-| quit| |"ok"|Gracefully shuts down the `faf-ice-adapter`.|
-| hostGame|mapName (string)|"ok"|Tell the game to create the lobby and host game on Lobby-State.|
-| joinGame|remotePlayerLogin (string), remotePlayerId (int)|"ok"|Tell the game to create the Lobby, create a PeerRelay and join the remote game.|
-| connectToPeer|remotePlayerLogin (string), remotePlayerId (int)|"ok"|Create a PeerRelay and tell the game to connect to the remote peer.|
-| setSdp|remotePlayerId (int), sdp64 (string)|"ok"|Set the remote SDP to the PeerRelay to establish a connection.|
-| sendToGpgNet|header (string), chunks (array)|"ok"|Send an arbitrary message to the game.|
-|status|header (string), chunks (array)|[status structure](#Status structure)|Polls the current status of the `faf-ice-adapter`.|
+| Name | Parameters | Returns | Description |
+| --- | --- | --- | --- |
+| quit | |"ok"|Gracefully shuts down the `faf-ice-adapter`.|
+| hostGame |mapName (string)|"ok"|Tell the game to create the lobby and host game on Lobby-State.|
+| joinGame |remotePlayerLogin (string), remotePlayerId (int)|"ok"|Tell the game to create the Lobby, create a PeerRelay and join the remote game.|
+| connectToPeer |remotePlayerLogin (string), remotePlayerId (int)|"ok"|Create a PeerRelay and tell the game to connect to the remote peer.|
+| setSdp |remotePlayerId (int), sdp64 (string)|"ok"|Set the remote SDP to the PeerRelay to establish a connection.|
+| sendToGpgNet |header (string), chunks (array)|"ok"|Send an arbitrary message to the game.|
+|status |header (string), chunks (array)|[status structure](#Status structure)|Polls the current status of the `faf-ice-adapter`.|
 
 ### Notifications (faf-ice-adapter ➠ client )
-| Name|Parameters|Description |
-|- |-| -|
-| rpcNeedSdp|localPlayerId (int), remotePlayerId (int)|A PeerRelay was created and the SDP record is needed to establish a connection.|
-|rpcConnectionStateChanged|"Connected"/"Disconnected" (string)|The game connected to the internal GPGNetServer.|
-|rpcGPGNetMessageReceived|header (string), chunks (array)|The game sent a message to the `faf-ice-adapter` via the internal GPGNetServer.|
-|rpcGatheredSdp|localPlayerId (int), remotePlayerId (int), SDP (string)|The PeerRelays IceAgent gathered the local SDP record for connecting to the remote player. This Base64 encoded SDP string must be forwarded to the remote peer and set using the `setSdp` command.|
-|rpcIceStateChanged|localPlayerId (int), remotePlayerId (int), "NeedRemoteSdp" / "Disconnected" / "Gathering" / "Connecting" / "Connected" / "Ready" / "Failed"|Informs the client about the ICE connectivity state change.|
+| Name | Parameters | Description |
+| --- | --- | --- |
+| rpcNeedSdp | localPlayerId (int), remotePlayerId (int) | A PeerRelay was created and the SDP record is needed to establish a connection. |
+| rpcConnectionStateChanged | "Connected"/"Disconnected" (string) | The game connected to the internal GPGNetServer. |
+| rpcGPGNetMessageReceived | header (string), chunks (array) | The game sent a message to the `faf-ice-adapter` via the internal GPGNetServer. |
+| rpcGatheredSdp | localPlayerId (int), remotePlayerId (int), SDP (string) | The PeerRelays IceAgent gathered the local SDP record for connecting to the remote player. This Base64 encoded SDP string must be forwarded to the remote peer and set using the `setSdp` command. |
+| rpcIceStateChanged | localPlayerId (int), remotePlayerId (int), "NeedRemoteSdp" / "Disconnected" / "Gathering" / "Connecting" / "Connected" / "Ready" / "Failed" | Informs the client about the ICE connectivity state change. |
 
 #### Status structure
 ```
@@ -64,7 +64,7 @@ The internal server was tested against [bjsonrpc](https://github.com/deavid/bjso
 ## Example usage sequence
 
 | Step | Player 1 "Alice" | Player 2 "Bob" |
-| - | - | - |
+| --- | --- | --- |
 | 1 | Start the client |  | 
 | 2 | The client starts `faf-ice-adapter` and connects to the JSONRPC server |  |
 | 3 | The client starts the game and makes it connect to the GPGNet server of the `faf-ice-adapter` using `/gpgnet 127.0.0.1:7237` commandline argument for `ForgedAlliance.exe` |  |
