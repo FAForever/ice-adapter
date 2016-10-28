@@ -21,43 +21,43 @@ The internal server was tested against [bjsonrpc](https://github.com/deavid/bjso
 ### Notifications (faf-ice-adapter ➠ client )
 | Name | Parameters | Description |
 | --- | --- | --- |
-| rpcNeedSdp | localPlayerId (int), remotePlayerId (int) | A PeerRelay was created and the SDP record is needed to establish a connection. |
-| rpcConnectionStateChanged | "Connected"/"Disconnected" (string) | The game connected to the internal GPGNetServer. |
-| rpcGPGNetMessageReceived | header (string), chunks (array) | The game sent a message to the `faf-ice-adapter` via the internal GPGNetServer. |
-| rpcGatheredSdp | localPlayerId (int), remotePlayerId (int), SDP (string) | The PeerRelays IceAgent gathered the local SDP record for connecting to the remote player. This Base64 encoded SDP string must be forwarded to the remote peer and set using the `setSdp` command. |
-| rpcIceStateChanged | localPlayerId (int), remotePlayerId (int), "NeedRemoteSdp" / "Disconnected" / "Gathering" / "Connecting" / "Connected" / "Ready" / "Failed" | Informs the client about the ICE connectivity state change. |
+| onNeedSdp | localPlayerId (int), remotePlayerId (int) | A PeerRelay was created and the SDP record is needed to establish a connection. |
+| onConnectionStateChanged | "Connected"/"Disconnected" (string) | The game connected to the internal GPGNetServer. |
+| onGpgNetMessageReceived | header (string), chunks (array) | The game sent a message to the `faf-ice-adapter` via the internal GPGNetServer. |
+| onGatheredSdp | localPlayerId (int), remotePlayerId (int), SDP (string) | The PeerRelays IceAgent gathered the local SDP record for connecting to the remote player. This Base64 encoded SDP string must be forwarded to the remote peer and set using the `setSdp` command. |
+| onIceStateChanged | localPlayerId (int), remotePlayerId (int), "NeedRemoteSdp" / "Disconnected" / "Gathering" / "Connecting" / "Connected" / "Ready" / "Failed" | Informs the client about the ICE connectivity state change. |
 
 #### Status structure
 ```
 {
 "options" : /* The commandline options */
 "gpgnet" : { /* The GPGNet state */
-	"connected" : /*boolean: Is the game connected?*/
-	"game_state" : /*string: The last received "GameState"*/
-	"host_game" : {  /*optional, only in hosting mode*/
-		"map" : /*string: The scenario to host*/
-		}
-	"join_game" : {  /*optional, only in joining mode*/
-		"remote_player_login" : /*string: The name of the player to connect to*/
-		"remote_player_id" : /*int: The ID of the remote player*/
-		}
-	}
+  "connected" : /*boolean: Is the game connected?*/
+  "game_state" : /*string: The last received "GameState"*/
+  "host_game" : {  /*optional, only in hosting mode*/
+    "map" : /*string: The scenario to host*/
+    }
+  "join_game" : {  /*optional, only in joining mode*/
+    "remote_player_login" : /*string: The name of the player to connect to*/
+    "remote_player_id" : /*int: The ID of the remote player*/
+    }
+  }
 "relays" : [/* An array of relay information*/
-	{
-		"remote_player_id" : /*int: The ID of the remote player*/
-		"local_game_udp_port" : /*int: The UDP port opened for the game to connect to*/
-		"ice_agent": {/*Information about the IceAgent for this peer */
-			"state": /*string: The connection state*/
-			"connected": /*bool: The connection state is "Ready" and bidirectional communication between the peera is established*/
-			"local_candidate": /*string: The local connection information negotiated */
-			"remote_candidate": /*string: The remote connection information negotiated */
-			"local_sdp": /*string: The unencoded local SDP*/
-			"local_sdp64": /*string: The Base64 encoded local SDP*/
-			"remote_sdp64": /*string: The Base64 encoded remote SDP*/
-			}
-		}, 
-	...
-	]
+  {
+    "remote_player_id" : /*int: The ID of the remote player*/
+    "local_game_udp_port" : /*int: The UDP port opened for the game to connect to*/
+    "ice_agent": {/*Information about the IceAgent for this peer */
+      "state": /*string: The connection state*/
+      "connected": /*bool: The connection state is "Ready" and bidirectional communication between the peera is established*/
+      "local_candidate": /*string: The local connection information negotiated */
+      "remote_candidate": /*string: The remote connection information negotiated */
+      "local_sdp": /*string: The unencoded local SDP*/
+      "local_sdp64": /*string: The Base64 encoded local SDP*/
+      "remote_sdp64": /*string: The Base64 encoded remote SDP*/
+      }
+    },
+  ...
+  ]
 }
 ```
 
@@ -65,7 +65,7 @@ The internal server was tested against [bjsonrpc](https://github.com/deavid/bjso
 
 | Step | Player 1 "Alice" | Player 2 "Bob" |
 | --- | --- | --- |
-| 1 | Start the client |  | 
+| 1 | Start the client |  |
 | 2 | The client starts `faf-ice-adapter` and connects to the JSONRPC server |  |
 | 3 | The client starts the game and makes it connect to the GPGNet server of the `faf-ice-adapter` using `/gpgnet 127.0.0.1:7237` commandline argument for `ForgedAlliance.exe` |  |
 | 4 | The client sends `hostGame('monument_valley.v0001')`||
@@ -80,7 +80,7 @@ The internal server was tested against [bjsonrpc](https://github.com/deavid/bjso
 
 ## Building `faf-ice-adapter`
 `faf-ice-adapter` is using [libnice](https://nice.freedesktop.org/wiki/), a glib-based [ICE](https://en.wikipedia.org/wiki/Interactive_Connectivity_Establishment) implementation.
-`faf-ice-adapter` is intentionally single-threaded to keep things simple. 
+`faf-ice-adapter` is intentionally single-threaded to keep things simple.
 `faf-ice-adapter` uses mostly async I/O to keep things responsive.
 
 To circumvent mixing of mainloops, the remaining networking part of `faf-ice-adapter` is also using gio, more precisely [glibmm/giomm](https://developer.gnome.org/glibmm/stable/), to keep C++ development simple.

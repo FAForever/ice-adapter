@@ -240,7 +240,7 @@ void IceAdapter::onGpgNetMessage(GPGNetMessage const& message)
     msgChunks.append(chunk);
   }
   rpcParams.append(msgChunks);
-  mRpcServer->sendRequest("rpcGPGNetMessageReceived",
+  mRpcServer->sendRequest("onGpgNetMessageReceived",
                           rpcParams);
 }
 
@@ -248,7 +248,7 @@ void IceAdapter::onGpgConnectionStateChanged(ConnectionState const& s)
 {
   Json::Value params(Json::arrayValue);
   params.append(s == ConnectionState::Connected ? "Connected" : "Disconnected");
-  mRpcServer->sendRequest("rpcConnectionStateChanged",
+  mRpcServer->sendRequest("onConnectionStateChanged",
                           params);
   if (s == ConnectionState::Disconnected)
   {
@@ -416,7 +416,7 @@ std::shared_ptr<PeerRelay> IceAdapter::createPeerRelay(int remotePlayerId, int& 
   Json::Value needSdpParams(Json::arrayValue);
   needSdpParams.append(mOptions.localPlayerId);
   needSdpParams.append(remotePlayerId);
-  mRpcServer->sendRequest("rpcNeedSdp",
+  mRpcServer->sendRequest("onNeedSdp",
                           needSdpParams);
 
   result->gatherCandidates([this, remotePlayerId](PeerRelay* relay, std::string const& sdp)
@@ -425,7 +425,7 @@ std::shared_ptr<PeerRelay> IceAdapter::createPeerRelay(int remotePlayerId, int& 
     gatheredSdpParams.append(mOptions.localPlayerId);
     gatheredSdpParams.append(remotePlayerId);
     gatheredSdpParams.append(sdp);
-    mRpcServer->sendRequest("rpcGatheredSdp",
+    mRpcServer->sendRequest("onGatheredSdp",
                             gatheredSdpParams);
   });
 
@@ -435,7 +435,7 @@ std::shared_ptr<PeerRelay> IceAdapter::createPeerRelay(int remotePlayerId, int& 
     iceStateParams.append(mOptions.localPlayerId);
     iceStateParams.append(remotePlayerId);
     iceStateParams.append(stateToString(state));
-    mRpcServer->sendRequest("rpcIceStateChanged",
+    mRpcServer->sendRequest("onIceStateChanged",
                             iceStateParams);
   });
    mRelays[remotePlayerId] = result;
