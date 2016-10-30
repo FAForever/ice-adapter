@@ -6,23 +6,7 @@
 
 #include <glibmm.h>
 
-/*! \brief Options struct
- */
-struct IceAdapterOptions
-{
-  Glib::ustring stunHost; /*!< STUN hostname for ICE, default: dev.faforever.com */
-  Glib::ustring turnHost; /*!< TURN hostname for ICE, default: dev.faforever.com */
-  Glib::ustring turnUser; /*!< TURN user credential for ICE, default: empty */
-  Glib::ustring turnPass; /*!< TURN password credential for ICE, default: empty */
-  int rpcPort;            /*!< Port of the internal JSON-RPC server to control the IceAdapter */
-  int gpgNetPort;         /*!< Port of the internal GPGNet server to communicate with the game */
-  int gameUdpPort;        /*!< UDP port the game should use to communicate to the internal Relays */
-  int relayUdpPortStart;  /*!< first UDP port the IceAdapter should use for the Relays */
-  int localPlayerId;      /*!< ID of the local player */
-  Glib::ustring localPlayerLogin; /*!< Login of the local player */
-
-  IceAdapterOptions();
-};
+#include "IceAdapterOptions.h"
 
 /* Forward declarations */
 class JsonRpcTcpServer;
@@ -45,7 +29,7 @@ namespace Json
 class IceAdapter
 {
 public:
-  IceAdapter(IceAdapterOptions const& options,
+  IceAdapter(IceAdapterOptionsPtr const& options,
              Glib::RefPtr<Glib::MainLoop> mainloop);
 
   /** \brief Sets the IceAdapter in hosting mode and tells the connected game to host the map once
@@ -105,9 +89,9 @@ protected:
 
   std::shared_ptr<PeerRelay> createPeerRelay(int remotePlayerId, int& portResult);
 
+  IceAdapterOptionsPtr mOptions;
   std::shared_ptr<JsonRpcTcpServer> mRpcServer;
   std::shared_ptr<GPGNetServer> mGPGNetServer;
-  IceAdapterOptions mOptions;
   Glib::RefPtr<Glib::MainLoop> mMainloop;
 
   std::string mStunIp;

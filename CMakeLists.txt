@@ -41,6 +41,7 @@ include_directories(${GIOMM_INCLUDE_DIRS})
 
 add_executable(faf-ice-adapter
   IceAdapter.cpp
+  IceAdapterOptions.cpp
   IceAgent.cpp
   JsonRpcTcpServer.cpp
   JsonRpcTcpSession.cpp

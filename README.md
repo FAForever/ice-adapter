@@ -10,14 +10,14 @@ The internal server was tested against [bjsonrpc](https://github.com/deavid/bjso
 
 | Name | Parameters | Returns | Description |
 | --- | --- | --- | --- |
-| quit | |"ok"|Gracefully shuts down the `faf-ice-adapter`.|
-| hostGame |mapName (string)|"ok"|Tell the game to create the lobby and host game on Lobby-State.|
-| joinGame |remotePlayerLogin (string), remotePlayerId (int)|"ok"|Tell the game to create the Lobby, create a PeerRelay and join the remote game.|
-| connectToPeer |remotePlayerLogin (string), remotePlayerId (int)|"ok"|Create a PeerRelay and tell the game to connect to the remote peer.|
+| quit | | "ok" | Gracefully shuts down the `faf-ice-adapter`. |
+| hostGame | mapName (string) | "ok" | Tell the game to create the lobby and host game on Lobby-State. |
+| joinGame | remotePlayerLogin (string), remotePlayerId (int) | "ok" | Tell the game to create the Lobby, create a PeerRelay and join the remote game. |
+| connectToPeer | remotePlayerLogin (string), remotePlayerId (int)| "ok" | Create a PeerRelay and tell the game to connect to the remote peer. |
 | disconnectFromPeer | remotePlayerId (int)| "ok" | Create a PeerRelay and tell the game to connect to the remote peer. |
-| setSdp |remotePlayerId (int), sdp64 (string)|"ok"|Set the remote SDP to the PeerRelay to establish a connection.|
-| sendToGpgNet |header (string), chunks (array)|"ok"|Send an arbitrary message to the game.|
-|status |header (string), chunks (array)|[status structure](#Status structure)|Polls the current status of the `faf-ice-adapter`.|
+| setSdp | remotePlayerId (int), sdp64 (string) | "ok" | Set the remote SDP to the PeerRelay to establish a connection. |
+| sendToGpgNet | header (string), chunks (array) | "ok" | Send an arbitrary message to the game. |
+| status | header (string), chunks (array) | [status structure](#Status structure) | Polls the current status of the `faf-ice-adapter`. |
 
 ### Notifications (faf-ice-adapter ➠ client )
 | Name | Parameters | Description |
@@ -61,6 +61,26 @@ The internal server was tested against [bjsonrpc](https://github.com/deavid/bjso
   ...
   ]
 }
+```
+
+## Commandline invocation
+```
+Usage:
+  faf-ice-adapter [OPTION...] - FAF ICE Adapter
+
+Help Options:
+  -h, --help            Show help options
+
+Application Options:
+  -s, --stun-host       STUN-host, default: dev.faforever.com
+  -t, --turn-host       TURN-host, default: dev.faforever.com
+  -u, --turn-user       TURN-user, default:
+  -x, --turn-pass       TURN-password, default:
+  -p, --rpc-port        Port of internal JSON-RPC server, default: 7236
+  -g, --gpgnet-port     Port of internal GPGNet server, default: 7237. May be 0 for dynamic port.
+  -l, --login           Login of the local player, e.g. "Rhiza"
+  -i, --id              ID of the local player
+  --lobby-port          Port the game lobby should use for incoming UDP packets from the PeerRelay, default: 7238
 ```
 
 ## Example usage sequence

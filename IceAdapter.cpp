@@ -10,28 +10,14 @@
 #include "PeerRelay.h"
 #include "IceAgent.h"
 
-IceAdapterOptions::IceAdapterOptions()
-{
-  stunHost          = "dev.faforever.com";
-  turnHost          = "dev.faforever.com";
-  turnUser          = "";
-  turnPass          = "";
-  rpcPort           = 7236;
-  gpgNetPort        = 7237;
-  gameUdpPort       = 7238;
-  relayUdpPortStart = 7240;
-  localPlayerId     = 96114;
-  localPlayerLogin  = "sandwormsurfer";
-}
-
-IceAdapter::IceAdapter(IceAdapterOptions const& options,
+IceAdapter::IceAdapter(IceAdapterOptionsPtr const& options,
                        Glib::RefPtr<Glib::MainLoop> mainloop):
   mOptions(options),
   mMainloop(mainloop),
-  mCurrentRelayPort(options.relayUdpPortStart)
+  mCurrentRelayPort(mOptions->relayUdpPortStart)
 {
-  mRpcServer    = std::make_shared<JsonRpcTcpServer>(options.rpcPort);
-  mGPGNetServer = std::make_shared<GPGNetServer>(options.gpgNetPort);
+  mRpcServer    = std::make_shared<JsonRpcTcpServer>(mOptions->rpcPort);
+  mGPGNetServer = std::make_shared<GPGNetServer>(mOptions->gpgNetPort);
   mGPGNetServer->addGpgMessageCallback(std::bind(&IceAdapter::onGpgNetMessage,
                                        this,
                                        std::placeholders::_1));
@@ -42,7 +28,7 @@ IceAdapter::IceAdapter(IceAdapterOptions const& options,
 
   auto resolver = Gio::Resolver::get_default();
   {
-    auto addresses = resolver->lookup_by_name(mOptions.stunHost);
+    auto addresses = resolver->lookup_by_name(mOptions->stunHost);
     if (addresses.size() == 0)
     {
       throw std::runtime_error("error looking up STUN hostname");
@@ -50,7 +36,7 @@ IceAdapter::IceAdapter(IceAdapterOptions const& options,
     mStunIp = (*addresses.begin())->to_string();
   }
   {
-    auto addresses = resolver->lookup_by_name(mOptions.turnHost);
+    auto addresses = resolver->lookup_by_name(mOptions->turnHost);
     if (addresses.size() == 0)
     {
       throw std::runtime_error("error looking up TURN hostname");
@@ -72,9 +58,9 @@ void IceAdapter::hostGame(std::string const& map)
   mHostGameMap = map;
 
   mGPGNetServer->sendCreateLobby(InitMode::NormalLobby,
-                                 mOptions.gameUdpPort,
-                                 mOptions.localPlayerLogin,
-                                 mOptions.localPlayerId,
+                                 mOptions->gameUdpPort,
+                                 mOptions->localPlayerLogin,
+                                 mOptions->localPlayerId,
                                  1);
 }
 
@@ -93,9 +79,9 @@ void IceAdapter::joinGame(std::string const& remotePlayerLogin,
   mJoinGameRemotePlayerId = remotePlayerId;
 
   mGPGNetServer->sendCreateLobby(InitMode::NormalLobby,
-                                 mOptions.gameUdpPort,
-                                 mOptions.localPlayerLogin,
-                                 mOptions.localPlayerId,
+                                 mOptions->gameUdpPort,
+                                 mOptions->localPlayerLogin,
+                                 mOptions->localPlayerId,
                                  1);
 
   int relayPort;
@@ -174,16 +160,16 @@ Json::Value IceAdapter::status() const
   {
     Json::Value options;
 
-    options["stun_host"]            = std::string(mOptions.stunHost);
-    options["turn_host"]            = std::string(mOptions.turnHost);
-    options["turn_user"]            = std::string(mOptions.turnUser);
-    options["turn_pass"]            = std::string(mOptions.turnPass);
-    options["rpc_port"]             = mOptions.rpcPort;
-    options["gpgnet_port"]          = mOptions.gpgNetPort;
-    options["game_udp_port"]        = mOptions.gameUdpPort;
-    options["relay_udp_port_start"] = mOptions.relayUdpPortStart;
-    options["player_id"]            = mOptions.localPlayerId;
-    options["player_login"]         = std::string(mOptions.localPlayerLogin);
+    options["player_id"]            = mOptions->localPlayerId;
+    options["player_login"]         = std::string(mOptions->localPlayerLogin);
+    options["rpc_port"]             = mOptions->rpcPort;
+    options["gpgnet_port"]          = mOptions->gpgNetPort;
+    options["game_udp_port"]        = mOptions->gameUdpPort;
+    options["relay_udp_port_start"] = mOptions->relayUdpPortStart;
+    options["stun_host"]            = std::string(mOptions->stunHost);
+    options["turn_host"]            = std::string(mOptions->turnHost);
+    options["turn_user"]            = std::string(mOptions->turnUser);
+    options["turn_pass"]            = std::string(mOptions->turnPass);
     result["options"] = options;
   }
   /* GPGNet */
@@ -443,15 +429,15 @@ std::shared_ptr<PeerRelay> IceAdapter::createPeerRelay(int remotePlayerId, int& 
   portResult = mCurrentRelayPort++;
   auto result = std::make_shared<PeerRelay>(mMainloop,
                                             portResult,
-                                            mOptions.gameUdpPort,
+                                            mOptions->gameUdpPort,
                                             remotePlayerId,
                                             mStunIp,
                                             mTurnIp,
-                                            mOptions.turnUser,
-                                            mOptions.turnPass);
+                                            mOptions->turnUser,
+                                            mOptions->turnPass);
 
   Json::Value needSdpParams(Json::arrayValue);
-  needSdpParams.append(mOptions.localPlayerId);
+  needSdpParams.append(mOptions->localPlayerId);
   needSdpParams.append(remotePlayerId);
   mRpcServer->sendRequest("onNeedSdp",
                           needSdpParams);
@@ -459,7 +445,7 @@ std::shared_ptr<PeerRelay> IceAdapter::createPeerRelay(int remotePlayerId, int& 
   result->gatherCandidates([this, remotePlayerId](PeerRelay* relay, std::string const& sdp)
   {
     Json::Value gatheredSdpParams(Json::arrayValue);
-    gatheredSdpParams.append(mOptions.localPlayerId);
+    gatheredSdpParams.append(mOptions->localPlayerId);
     gatheredSdpParams.append(remotePlayerId);
     gatheredSdpParams.append(sdp);
     mRpcServer->sendRequest("onGatheredSdp",
@@ -469,7 +455,7 @@ std::shared_ptr<PeerRelay> IceAdapter::createPeerRelay(int remotePlayerId, int& 
   result->setIceAgentStateCallback([this, remotePlayerId](PeerRelay* relay, IceAgentState const& state)
   {
     Json::Value iceStateParams(Json::arrayValue);
-    iceStateParams.append(mOptions.localPlayerId);
+    iceStateParams.append(mOptions->localPlayerId);
     iceStateParams.append(remotePlayerId);
     iceStateParams.append(stateToString(state));
     mRpcServer->sendRequest("onIceStateChanged",
