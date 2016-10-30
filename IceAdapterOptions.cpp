@@ -70,4 +70,5 @@ IceAdapterOptions IceAdapterOptions::init(int argc, char *argv[])
       BOOST_LOG_TRIVIAL(error) << "Unknown error!";
       std::exit(1);
   }
+  return result;
 }

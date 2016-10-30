@@ -109,10 +109,10 @@ bool GPGNetConnection::onRead(Glib::IOCondition /*condition*/)
 
 void GPGNetConnection::parseMessages()
 {
-  while(mBufferEnd > 0)
-  {
-    int bufferPos = 0;
+  int bufferPos = 0;
 
+  while(bufferPos < mBufferEnd)
+  {
     int32_t headerLength;
     if (mBufferEnd <= sizeof(int32_t))
     {
@@ -179,8 +179,16 @@ void GPGNetConnection::parseMessages()
     debugOutputMessage(message);
     mServer->onGPGNetMessage(message);
 
+#if 0
     /* TODO: stop copying the buffer to pos 0,
      * and move the start pos */
+#endif
+  }
+  /* Now move the remaining bytes in the buffer to the start
+   * of the buffer */
+  if (bufferPos > 0 &&
+      bufferPos <= mBufferEnd)
+  {
     std::copy(mBuffer.data() + bufferPos,
               mBuffer.data() + mBufferEnd,
               mBuffer.data());

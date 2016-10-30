@@ -64,7 +64,7 @@ The internal server was tested against [bjsonrpc](https://github.com/deavid/bjso
 ```
 
 ## Commandline invocation
-The first two commandline arguments `--id` and `--login` must be specified like this: `faf-ice-adapter --id 3 --login "Rhiza"`
+The first two commandline arguments `--id` and `--login` must be specified like this: `faf-ice-adapter -i 3 -l "Rhiza"`
 The full commandline help text is:
 ```
 faf-ice-adapter usage:
