@@ -29,7 +29,7 @@ namespace Json
 class IceAdapter
 {
 public:
-  IceAdapter(IceAdapterOptionsPtr const& options,
+  IceAdapter(IceAdapterOptions const& options,
              Glib::RefPtr<Glib::MainLoop> mainloop);
 
   /** \brief Sets the IceAdapter in hosting mode and tells the connected game to host the map once
@@ -89,7 +89,7 @@ protected:
 
   std::shared_ptr<PeerRelay> createPeerRelay(int remotePlayerId, int& portResult);
 
-  IceAdapterOptionsPtr mOptions;
+  IceAdapterOptions mOptions;
   std::shared_ptr<JsonRpcTcpServer> mRpcServer;
   std::shared_ptr<GPGNetServer> mGPGNetServer;
   Glib::RefPtr<Glib::MainLoop> mMainloop;

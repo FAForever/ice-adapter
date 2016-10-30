@@ -8,123 +8,66 @@
 namespace po = boost::program_options;
 
 IceAdapterOptions::IceAdapterOptions():
-  Glib::OptionGroup("main",
-                    "")
+  relayUdpPortStart(7240)
 {
-  {
-    Glib::OptionEntry entry;
-    entry.set_long_name("login");
-    entry.set_short_name('l');
-    entry.set_description("Login of the local player, e.g. \"Rhiza\"");
-    add_entry(entry, localPlayerLogin);
-  }
-
-
-  {
-    Glib::OptionEntry entry;
-    entry.set_long_name("id");
-    entry.set_short_name('i');
-    entry.set_description("ID of the local player");
-    localPlayerId = -1;
-    add_entry(entry, localPlayerId);
-  }
-
-  {
-    Glib::OptionEntry entry;
-    entry.set_long_name("rpc-port");
-    entry.set_short_name('p');
-    entry.set_description("Port of internal JSON-RPC server, default: 7236");
-    rpcPort = 7236;
-    add_entry(entry, rpcPort);
-  }
-
-  {
-    Glib::OptionEntry entry;
-    entry.set_long_name("gpgnet-port");
-    entry.set_short_name('g');
-    entry.set_description("Port of internal GPGNet server, default: 7237. May be 0 for dynamic port.");
-    gpgNetPort = 7237;
-    add_entry(entry, gpgNetPort);
-  }
-
-  {
-    Glib::OptionEntry entry;
-    entry.set_long_name("lobby-port");
-    entry.set_short_name('a');
-    entry.set_description("Port the game lobby should use for incoming UDP packets from the PeerRelay, default: 7238");
-    gameUdpPort = 7238;
-    add_entry(entry, gameUdpPort);
-  }
-
-  {
-    Glib::OptionEntry entry;
-    entry.set_long_name("stun-host");
-    entry.set_short_name('s');
-    entry.set_description("STUN-host, default: dev.faforever.com");
-    stunHost = "dev.faforever.com";
-    add_entry(entry, stunHost);
-  }
-
-  {
-    Glib::OptionEntry entry;
-    entry.set_long_name("turn-host");
-    entry.set_short_name('t');
-    entry.set_description("TURN-host, default: dev.faforever.com");
-    turnHost = "dev.faforever.com";
-    add_entry(entry, turnHost);
-  }
-
-  {
-    Glib::OptionEntry entry;
-    entry.set_long_name("turn-user");
-    entry.set_short_name('u');
-    entry.set_description("TURN-user, default: \"\"");
-    turnUser = "";
-    add_entry(entry, turnUser);
-  }
-
-  {
-    Glib::OptionEntry entry;
-    entry.set_long_name("turn-pass");
-    entry.set_short_name('x');
-    entry.set_description("TURN-password, default: \"\"");
-    turnPass = "";
-    add_entry(entry, turnPass);
-  }
-  relayUdpPortStart = 7240;
 }
 
-IceAdapterOptionsPtr IceAdapterOptions::init(int argc, char *argv[])
+IceAdapterOptions IceAdapterOptions::init(int argc, char *argv[])
 {
-  auto result = IceAdapterOptionsPtr(new IceAdapterOptions);
-  Glib::OptionContext option_context("- FAF ICE Adapter");
-  option_context.set_summary("see https://github.com/FAForever/ice-adapter");
-  option_context.set_main_group(*result);
+  IceAdapterOptions result;
+
   try
   {
-    if (!option_context.parse(argc, argv))
-    {
-      BOOST_LOG_TRIVIAL(error) << "Error parsing commandline.\n" << option_context.get_help();
+      po::options_description desc("faf-ice-adapter usage");
+      desc.add_options()
+        ("help",          "produce help message")
+        ("id,i",          po::value<int>(&result.localPlayerId)->required(),                            "set the ID of the local player")
+        ("login,l",       po::value<std::string>(&result.localPlayerLogin)->required(),                 "set the login of the local player, e.g. \"Rhiza\"")
+        ("rpc-port,p",    po::value<int>(&result.rpcPort)->default_value(7236),                         "set the port of internal JSON-RPC server")
+        ("gpgnet-port,g", po::value<int>(&result.gpgNetPort)->default_value(7237),                      "set the port of internal GPGNet server")
+        ("lobby-port,g",  po::value<int>(&result.gameUdpPort)->default_value(7238),                     "set the port the game lobby should use for incoming UDP packets from the PeerRelay")
+        ("stun-host,s",   po::value<std::string>(&result.stunHost)->default_value("dev.faforever.com"), "set the STUN hostname")
+        ("turn-host,t",   po::value<std::string>(&result.turnHost)->default_value("dev.faforever.com"), "set the TURN hostname")
+        ("turn-user,u",   po::value<std::string>(&result.turnUser)->default_value(""),                  "set the TURN username")
+        ("turn-pass,x",   po::value<std::string>(&result.turnPass)->default_value(""),                  "set the TURN password")
+      ;
+
+      try
+      {
+        po::variables_map vm;
+        po::store(po::parse_command_line(argc, argv, desc), vm);
+
+        if (vm.count("help"))
+        {
+            BOOST_LOG_TRIVIAL(error) << desc;
+            std::exit(1);
+        }
+
+        // There must be an easy way to handle the relationship between the
+        // option "help" and "host"-"port"-"config"
+        // Yes, the magic is putting the po::notify after "help" option check
+        po::notify(vm);
+      }
+      catch(std::exception& e)
+      {
+        BOOST_LOG_TRIVIAL(error) << "Error: " << e.what() << "\n" << desc;
+        std::exit(1);
+
+      }
+      catch(...)
+      {
+        BOOST_LOG_TRIVIAL(error) << "Unknown error!" << "\n" << desc;
+        std::exit(1);
+      }
+  }
+  catch(std::exception& e)
+  {
+      BOOST_LOG_TRIVIAL(error) << "Error: " << e.what();
       std::exit(1);
-    }
   }
-  catch(const Glib::Error & e)
+  catch(...)
   {
-    BOOST_LOG_TRIVIAL(error) << "Error parsing commandline.\n" << option_context.get_help();
-    std::exit(1);
+      BOOST_LOG_TRIVIAL(error) << "Unknown error!";
+      std::exit(1);
   }
-
-  if (result->localPlayerId == -1)
-  {
-    BOOST_LOG_TRIVIAL(error) << "Missing parameter 'id'.\n" << option_context.get_help();
-    std::exit(1);
-  }
-
-  if (result->localPlayerLogin.empty())
-  {
-    BOOST_LOG_TRIVIAL(error) << "Missing parameter 'login'.\n" << option_context.get_help();
-    std::exit(1);
-  }
-
-  return result;
 }

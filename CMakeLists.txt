@@ -27,7 +27,7 @@ pkg_search_module(JSON REQUIRED jsoncpp)
 include_directories(${NICE_INCLUDE_DIRS})
 include_directories(${JSON_INCLUDE_DIRS})
 
-find_package(Boost REQUIRED COMPONENTS log system)
+find_package(Boost REQUIRED COMPONENTS log program_options system)
 
 if(NOT MINGW)
   add_definitions(-DBOOST_LOG_DYN_LINK)
