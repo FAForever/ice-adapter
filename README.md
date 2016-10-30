@@ -64,23 +64,20 @@ The internal server was tested against [bjsonrpc](https://github.com/deavid/bjso
 ```
 
 ## Commandline invocation
+The first two commandline arguments `--id` and `--login` must be specified like this: `faf-ice-adapter --id 3 --login "Rhiza"`
+The full commandline help text is:
 ```
-Usage:
-  faf-ice-adapter [OPTION...] - FAF ICE Adapter
-
-Help Options:
-  -h, --help            Show help options
-
-Application Options:
-  -s, --stun-host       STUN-host, default: dev.faforever.com
-  -t, --turn-host       TURN-host, default: dev.faforever.com
-  -u, --turn-user       TURN-user, default:
-  -x, --turn-pass       TURN-password, default:
-  -p, --rpc-port        Port of internal JSON-RPC server, default: 7236
-  -g, --gpgnet-port     Port of internal GPGNet server, default: 7237. May be 0 for dynamic port.
-  -l, --login           Login of the local player, e.g. "Rhiza"
-  -i, --id              ID of the local player
-  --lobby-port          Port the game lobby should use for incoming UDP packets from the PeerRelay, default: 7238
+faf-ice-adapter usage:
+  --help                                produce help message
+  -i [ --id ] arg                       set the ID of the local player
+  -l [ --login ] arg                    set the login of the local player, e.g. "Rhiza"
+  -p [ --rpc-port ] arg (=7236)         set the port of internal JSON-RPC server
+  -g [ --gpgnet-port ] arg (=7237)      set the port of internal GPGNet server
+  -g [ --lobby-port ] arg (=7238)       set the port the game lobby should use for incoming UDP packets from the PeerRelay
+  -s [ --stun-host ] arg (=dev.faforever.com) set the STUN hostname
+  -t [ --turn-host ] arg (=dev.faforever.com) set the TURN hostname
+  -u [ --turn-user ] arg                set the TURN username
+  -x [ --turn-pass ] arg                set the TURN password
 ```
 
 ## Example usage sequence
