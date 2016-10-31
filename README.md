@@ -25,8 +25,8 @@ The internal server was tested against [bjsonrpc](https://github.com/deavid/bjso
 | onNeedSdp | localPlayerId (int), remotePlayerId (int) | A PeerRelay was created and the SDP record is needed to establish a connection. |
 | onConnectionStateChanged | "Connected"/"Disconnected" (string) | The game connected to the internal GPGNetServer. |
 | onGpgNetMessageReceived | header (string), chunks (array) | The game sent a message to the `faf-ice-adapter` via the internal GPGNetServer. |
-| onGatheredSdp | localPlayerId (int), remotePlayerId (int), SDP (string) | The PeerRelays IceAgent gathered the local SDP record for connecting to the remote player. This Base64 encoded SDP string must be forwarded to the remote peer and set using the `setSdp` command. |
-| onIceStateChanged | localPlayerId (int), remotePlayerId (int), "NeedRemoteSdp" / "Disconnected" / "Gathering" / "Connecting" / "Connected" / "Ready" / "Failed" | Informs the client about the ICE connectivity state change. |
+| onSdpGathered | localPlayerId (int), remotePlayerId (int), SDP (string) | The PeerRelays IceAgent gathered the local SDP record for connecting to the remote player. This Base64 encoded SDP string must be forwarded to the remote peer and set using the `setSdp` command. |
+| onPeerStateChanged | localPlayerId (int), remotePlayerId (int), "NeedRemoteSdp" / "Disconnected" / "Gathering" / "Connecting" / "Connected" / "Ready" / "Failed" | Informs the client about the ICE connectivity state change. |
 
 #### Status structure
 ```
@@ -73,7 +73,7 @@ faf-ice-adapter usage:
   -l [ --login ] arg                    set the login of the local player, e.g. "Rhiza"
   -p [ --rpc-port ] arg (=7236)         set the port of internal JSON-RPC server
   -g [ --gpgnet-port ] arg (=7237)      set the port of internal GPGNet server
-  -g [ --lobby-port ] arg (=7238)       set the port the game lobby should use for incoming UDP packets from the PeerRelay
+  -o [ --lobby-port ] arg (=7238)       set the port the game lobby should use for incoming UDP packets from the PeerRelay
   -s [ --stun-host ] arg (=dev.faforever.com) set the STUN hostname
   -t [ --turn-host ] arg (=dev.faforever.com) set the TURN hostname
   -u [ --turn-user ] arg                set the TURN username
@@ -88,14 +88,14 @@ faf-ice-adapter usage:
 | 2 | The client starts `faf-ice-adapter` and connects to the JSONRPC server |  |
 | 3 | The client starts the game and makes it connect to the GPGNet server of the `faf-ice-adapter` using `/gpgnet 127.0.0.1:7237` commandline argument for `ForgedAlliance.exe` |  |
 | 4 | The client sends `hostGame('monument_valley.v0001')`||
-| 5 | The game should now wait in the lobby and the client receives a lot of `rpcGPGNetMessageReceived` notifications from `faf-ice-adapter`||
+| 5 | The game should now wait in the lobby and the client receives a lot of `onGpgNetMessageReceived` notifications from `faf-ice-adapter`||
 | 6 |  | Now Bob want to join Alices game, starts the client, the client starts `faf-ice-adapter` and the game like Alice did. |
 | 7 | The client sends `connectToPeer('Bob', 2)` | The client sends `joinGame('Alice', 1)` |
-| 8 | The client receives `rpcNeedSdp(1,2)` | The client receives `rpcNeedSdp(2,1)` |
+| 8 | The client receives `onNeedSdp(1,2)` | The client receives `rpcNeedSdp(2,1)` |
 | 9 | The game should connect to the internal PeerRelay, and shows that it's connecting to the peer. | The game should connect to the internal PeerRelay, and shows that it's connecting to the peer. |
-| 10 | After some time the client receives `rpcGatheredSdp(1,2,'asdf')` and must now transfer the SDP string to the peer. | After some time the client receives `rpcGatheredSdp(2,1,'qwer')` and must now transfer the SDP string to the peer. |
+| 10 | After some time the client receives `onSdpGathered(1,2,'asdf')` and must now transfer the SDP string to the peer. | After some time the client receives `onSdpGathered(2,1,'qwer')` and must now transfer the SDP string to the peer. |
 | 11 | The client must set the transferred SDP for the peer using `setSdp(2, 'qwer')`. | The client must set the transferred SDP for the peer using `setSdp(1, 'asdf')`. |
-| 12 | The client received multiple `rpcIceStateChanged(...)` notifications which would finally show the `'Ready'` state, which should also let the game connect to the peer. | The client received multiple `rpcIceStateChanged(...)` notifications which would finally show the `'Ready'` state, which should also let the game connect to the peer. |
+| 12 | The client received multiple `onPeerStateChanged(...)` notifications which would finally show the `'Ready'` state, which should also let the game connect to the peer. | The client received multiple `onPeerStateChanged(...)` notifications which would finally show the `'Ready'` state, which should also let the game connect to the peer. |
 
 ## Building `faf-ice-adapter`
 `faf-ice-adapter` is using [libnice](https://nice.freedesktop.org/wiki/), a glib-based [ICE](https://en.wikipedia.org/wiki/Interactive_Connectivity_Establishment) implementation.

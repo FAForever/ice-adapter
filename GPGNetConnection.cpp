@@ -86,8 +86,7 @@ bool GPGNetConnection::onRead(Glib::IOCondition /*condition*/)
       mServer->onCloseConnection(this);
       return false;
     }
-    BOOST_LOG_TRIVIAL(trace) << "received:" << std::string(mBuffer.data() + mBufferEnd,
-                                                           receiveCount);
+    BOOST_LOG_TRIVIAL(trace) << "received " << receiveCount << " GPGNet bytes";
     mBufferEnd += receiveCount;
 
     parseMessages();

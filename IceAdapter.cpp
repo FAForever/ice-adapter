@@ -448,7 +448,7 @@ std::shared_ptr<PeerRelay> IceAdapter::createPeerRelay(int remotePlayerId, int& 
     gatheredSdpParams.append(mOptions.localPlayerId);
     gatheredSdpParams.append(remotePlayerId);
     gatheredSdpParams.append(sdp);
-    mRpcServer->sendRequest("onGatheredSdp",
+    mRpcServer->sendRequest("onSdpGathered",
                             gatheredSdpParams);
   });
 
@@ -458,7 +458,7 @@ std::shared_ptr<PeerRelay> IceAdapter::createPeerRelay(int remotePlayerId, int& 
     iceStateParams.append(mOptions.localPlayerId);
     iceStateParams.append(remotePlayerId);
     iceStateParams.append(stateToString(state));
-    mRpcServer->sendRequest("onIceStateChanged",
+    mRpcServer->sendRequest("onPeerStateChanged",
                             iceStateParams);
   });
    mRelays[remotePlayerId] = result;
