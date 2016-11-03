@@ -95,14 +95,23 @@ void JsonRpcTcpServer::sendRequest(std::string const& method,
   {
     id = mCurrentId++;
   }
-  for(auto session: mSessions)
+  for (auto it = mSessions.begin(), end = mSessions.end(); it != end; ++it)
   {
-    session->sendRequest(method,
+    BOOST_LOG_TRIVIAL(trace) << "sending " << method;
+    if (!(*it)->sendRequest(method,
                          paramsArray,
-                         id);
-    if (resultCb)
+                         id))
     {
-      mCurrentRequests[id] = resultCb;
+      it = mSessions.erase(it);
+      BOOST_LOG_TRIVIAL(error) << "sending " << method << " failed";
+    }
+    else
+    {
+      BOOST_LOG_TRIVIAL(trace) << "done";
+      if (resultCb)
+      {
+        mCurrentRequests[id] = resultCb;
+      }
     }
   }
 }

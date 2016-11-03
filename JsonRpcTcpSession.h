@@ -16,7 +16,7 @@ public:
                     Glib::RefPtr<Gio::Socket> socket);
   virtual ~JsonRpcTcpSession();
 
-  void sendRequest(std::string const& method,
+  bool sendRequest(std::string const& method,
                    Json::Value const& paramsArray,
                    int id = -1);
 protected:

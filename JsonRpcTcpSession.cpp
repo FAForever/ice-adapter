@@ -26,7 +26,7 @@ JsonRpcTcpSession::~JsonRpcTcpSession()
   BOOST_LOG_TRIVIAL(trace) << "~JsonRpcSession()";
 }
 
-void JsonRpcTcpSession::sendRequest(std::string const& method,
+bool JsonRpcTcpSession::sendRequest(std::string const& method,
                                     Json::Value const& paramsArray,
                                     int id)
 {
@@ -39,8 +39,18 @@ void JsonRpcTcpSession::sendRequest(std::string const& method,
     request["id"] = id;
   }
   std::string requestString = Json::FastWriter().write(request);
-  mSocket->send(requestString.c_str(),
-                requestString.size());
+  try
+  {
+    mSocket->send(requestString.c_str(),
+                  requestString.size());
+
+  }
+  catch (const Glib::Error& e)
+  {
+    BOOST_LOG_TRIVIAL(error) << "mSocket->send: " << e.code() << ": " << e.what();
+    return false;
+  }
+  return true;
 }
 
 bool JsonRpcTcpSession::onRead(Glib::IOCondition condition)
