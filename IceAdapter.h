@@ -19,6 +19,15 @@ namespace Json
   class Value;
 }
 
+enum class IceAdapterTaskState
+{
+  NoTask,
+  ShouldJoinGame,
+  SentJoinGame,
+  ShouldHostGame,
+  SentHostGame
+};
+
 /*! \brief The main controller class
  *
  *  IceAdapter opens the JsonRpcTcpServer to be controlled
@@ -87,6 +96,8 @@ protected:
 
   void connectRpcMethods();
 
+  void tryExecuteTask();
+
   std::shared_ptr<PeerRelay> createPeerRelay(int remotePlayerId, int& portResult);
 
   IceAdapterOptions mOptions;
@@ -105,4 +116,6 @@ protected:
 
   int mCurrentRelayPort;
   std::map<int, std::shared_ptr<PeerRelay>> mRelays;
+
+  IceAdapterTaskState mTaskState;
 };

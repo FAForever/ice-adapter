@@ -14,7 +14,8 @@ IceAdapter::IceAdapter(IceAdapterOptions const& options,
                        Glib::RefPtr<Glib::MainLoop> mainloop):
   mOptions(options),
   mMainloop(mainloop),
-  mCurrentRelayPort(mOptions.relayUdpPortStart)
+  mCurrentRelayPort(mOptions.relayUdpPortStart),
+  mTaskState(IceAdapterTaskState::NoTask)
 {
   mRpcServer    = std::make_shared<JsonRpcTcpServer>(mOptions.rpcPort);
   mGPGNetServer = std::make_shared<GPGNetServer>(mOptions.gpgNetPort);
@@ -47,53 +48,26 @@ IceAdapter::IceAdapter(IceAdapterOptions const& options,
 
 void IceAdapter::hostGame(std::string const& map)
 {
-  if (!mHostGameMap.empty())
+  if (mTaskState != IceAdapterTaskState::NoTask)
   {
-    throw std::runtime_error(std::string("already hosting map ") + mHostGameMap);
-  }
-  if (!mJoinGameRemotePlayerLogin.empty())
-  {
-    throw std::runtime_error(std::string("already joining game of ") + mJoinGameRemotePlayerLogin);
+    throw std::runtime_error(std::string("joinGame/hostGame may only called once per game connection session. Wait for the game to disconnect."));
   }
   mHostGameMap = map;
-
-  mGPGNetServer->sendCreateLobby(InitMode::NormalLobby,
-                                 mOptions.gameUdpPort,
-                                 mOptions.localPlayerLogin,
-                                 mOptions.localPlayerId,
-                                 1);
+  mTaskState = IceAdapterTaskState::ShouldHostGame;
+  tryExecuteTask();
 }
 
 void IceAdapter::joinGame(std::string const& remotePlayerLogin,
                           int remotePlayerId)
 {
-  if (!mHostGameMap.empty())
+  if (mTaskState != IceAdapterTaskState::NoTask)
   {
-    throw std::runtime_error(std::string("already hosting map ") + mHostGameMap);
-  }
-  if (!mJoinGameRemotePlayerLogin.empty())
-  {
-    throw std::runtime_error(std::string("already joining game of ") + mJoinGameRemotePlayerLogin);
+    throw std::runtime_error(std::string("joinGame/hostGame may only called once per game connection session. Wait for the game to disconnect."));
   }
   mJoinGameRemotePlayerLogin = remotePlayerLogin;
   mJoinGameRemotePlayerId = remotePlayerId;
-
-  mGPGNetServer->sendCreateLobby(InitMode::NormalLobby,
-                                 mOptions.gameUdpPort,
-                                 mOptions.localPlayerLogin,
-                                 mOptions.localPlayerId,
-                                 1);
-
-  int relayPort;
-  auto relay = createPeerRelay(remotePlayerId,
-                               relayPort);
-
-  if (relay)
-  {
-    mGPGNetServer->sendJoinGame(std::string("127.0.0.1:") + std::to_string(relayPort),
-                                remotePlayerLogin,
-                                remotePlayerId);
-  }
+  mTaskState = IceAdapterTaskState::ShouldJoinGame;
+  tryExecuteTask();
 }
 
 void IceAdapter::connectToPeer(std::string const& remotePlayerLogin,
@@ -225,13 +199,15 @@ void IceAdapter::onGpgNetMessage(GPGNetMessage const& message)
     if (message.chunks.size() == 1)
     {
       mGPGNetGameState = message.chunks[0].asString();
-      if (message.chunks[0].asString() == "Lobby")
+      if (mGPGNetGameState == "Idle")
       {
-        if (!mHostGameMap.empty())
-        {
-          mGPGNetServer->sendHostGame(mHostGameMap);
-        }
+        mGPGNetServer->sendCreateLobby(InitMode::NormalLobby,
+                                       mOptions.gameUdpPort,
+                                       mOptions.localPlayerLogin,
+                                       mOptions.localPlayerId,
+                                       1);
       }
+      tryExecuteTask();
     }
   }
   Json::Value rpcParams(Json::arrayValue);
@@ -260,6 +236,7 @@ void IceAdapter::onGpgConnectionStateChanged(ConnectionState const& s)
     mJoinGameRemotePlayerLogin = "";
     mRelays.clear();
     mGPGNetGameState = "";
+    mTaskState = IceAdapterTaskState::NoTask;
   }
   else
   {
@@ -422,6 +399,43 @@ void IceAdapter::connectRpcMethods()
   {
     result = status();
   });
+}
+
+
+void IceAdapter::tryExecuteTask()
+{
+  switch (mTaskState)
+  {
+    case IceAdapterTaskState::NoTask:
+      return;
+    case IceAdapterTaskState::ShouldJoinGame:
+      if (mGPGNetGameState == "Lobby")
+      {
+        int relayPort;
+        auto relay = createPeerRelay(mJoinGameRemotePlayerId,
+                                     relayPort);
+
+        if (relay)
+        {
+          mGPGNetServer->sendJoinGame(std::string("127.0.0.1:") + std::to_string(relayPort),
+                                      mJoinGameRemotePlayerLogin,
+                                      mJoinGameRemotePlayerId);
+        }
+      }
+      mTaskState = IceAdapterTaskState::SentJoinGame;
+      break;
+    case IceAdapterTaskState::SentJoinGame:
+      return;
+    case IceAdapterTaskState::ShouldHostGame:
+      if (mGPGNetGameState == "Lobby")
+      {
+        mGPGNetServer->sendHostGame(mHostGameMap);
+      }
+      mTaskState = IceAdapterTaskState::SentHostGame;
+      break;
+    case IceAdapterTaskState::SentHostGame:
+      return;
+  }
 }
 
 std::shared_ptr<PeerRelay> IceAdapter::createPeerRelay(int remotePlayerId, int& portResult)
