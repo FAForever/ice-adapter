@@ -113,8 +113,8 @@ All current dependencies are
 ### Cross compile for Windows
 The easy way I used to build the static Windows exe is the remarkable [MXE project](https://github.com/mxe/mxe). These build instructions should work on Linux:
 ```
-git clone https://github.com/muellni/mxe.git mxe
-cd mxe && git checkout package_libnice
+git clone https://github.com/mxe/mxe.git mxe
+cd mxe
 make MXE_TARGETS=i686-w64-mingw32.static MXE_PLUGIN_DIRS=plugins/gcc6 JOBS=8 -j4 libnice jsoncpp boost glibmm
 cd ..
 git clone https://github.com/FAForever/ice-adapter.git ice-adapter && cd ice-adapter
