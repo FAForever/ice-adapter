@@ -27,13 +27,8 @@ pkg_search_module(JSON REQUIRED jsoncpp)
 include_directories(${NICE_INCLUDE_DIRS})
 include_directories(${JSON_INCLUDE_DIRS})
 
-find_package(Boost REQUIRED COMPONENTS log program_options system)
+find_package(Boost REQUIRED COMPONENTS log program_options thread system)
 
-if(NOT MINGW)
-  add_definitions(-DBOOST_LOG_DYN_LINK)
-endif()
-
-add_definitions(-DBOOST_SYSTEM_NO_DEPRECATED)
 add_custom_target(docs SOURCES README.md LICENSE)
 
 pkg_search_module(GIOMM REQUIRED giomm-2.4)
@@ -51,18 +46,19 @@ add_executable(faf-ice-adapter
   main.cpp
   PeerRelay.cpp
 )
+
 target_link_libraries(faf-ice-adapter
   ${GIOMM_LIBRARIES}
   ${Boost_LIBRARIES}
   ${JSON_LIBRARIES}
   ${NICE_LIBRARIES}
-  pthread
 )
 
+target_compile_definitions(faf-ice-adapter PRIVATE BOOST_SYSTEM_NO_DEPRECATED)
+
 if(NOT MINGW)
-  target_link_libraries(faf-ice-adapter
-    pthread
-  )
+  target_link_libraries(faf-ice-adapter pthread)
+  target_compile_definitions(faf-ice-adapter PRIVATE BOOST_LOG_DYN_LINK)
 endif()
 
 # Strip exe to reduce file size
