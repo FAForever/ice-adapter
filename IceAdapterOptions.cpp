@@ -8,8 +8,7 @@
 
 namespace po = boost::program_options;
 
-IceAdapterOptions::IceAdapterOptions():
-  relayUdpPortStart(7240)
+IceAdapterOptions::IceAdapterOptions()
 {
 }
 

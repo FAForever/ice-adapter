@@ -13,7 +13,6 @@ IceAdapter::IceAdapter(IceAdapterOptions const& options,
                        Glib::RefPtr<Glib::MainLoop> mainloop):
   mOptions(options),
   mMainloop(mainloop),
-  mCurrentRelayPort(mOptions.relayUdpPortStart),
   mTaskState(IceAdapterTaskState::NoTask)
 {
   mRpcServer    = std::make_shared<JsonRpcTcpServer>(mOptions.rpcPort);
@@ -138,7 +137,6 @@ Json::Value IceAdapter::status() const
     options["rpc_port"]             = mOptions.rpcPort;
     options["gpgnet_port"]          = mOptions.gpgNetPort;
     options["game_udp_port"]        = mOptions.gameUdpPort;
-    options["relay_udp_port_start"] = mOptions.relayUdpPortStart;
     options["stun_host"]            = std::string(mOptions.stunHost);
     options["turn_host"]            = std::string(mOptions.turnHost);
     options["turn_user"]            = std::string(mOptions.turnUser);
@@ -440,15 +438,14 @@ void IceAdapter::tryExecuteTask()
 
 std::shared_ptr<PeerRelay> IceAdapter::createPeerRelay(int remotePlayerId, int& portResult)
 {
-  portResult = mCurrentRelayPort++;
   auto result = std::make_shared<PeerRelay>(mMainloop,
-                                            portResult,
                                             mOptions.gameUdpPort,
                                             remotePlayerId,
                                             mStunIp,
                                             mTurnIp,
                                             mOptions.turnUser,
                                             mOptions.turnPass);
+  portResult = result->port();
 
   Json::Value needSdpParams(Json::arrayValue);
   needSdpParams.append(mOptions.localPlayerId);

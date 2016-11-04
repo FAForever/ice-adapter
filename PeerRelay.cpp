@@ -4,7 +4,6 @@
 #include "logging.h"
 
 PeerRelay::PeerRelay(Glib::RefPtr<Glib::MainLoop> mainloop,
-                     int port,
                      int gamePort,
                      int peerId,
                      std::string const& stunIp,
@@ -12,9 +11,9 @@ PeerRelay::PeerRelay(Glib::RefPtr<Glib::MainLoop> mainloop,
                      std::string const& turnUser,
                      std::string const& turnPassword):
   mMainloop(mainloop),
-  mPeerId(peerId)
+  mPeerId(peerId),
+  mLocalGameUdpPort(0)
 {
-  mLocalGameUdpPort = port;
   mIceAgent = std::make_shared<IceAgent>(mainloop->gobj(),
                                          true,
                                          stunIp,
@@ -44,8 +43,19 @@ PeerRelay::PeerRelay(Glib::RefPtr<Glib::MainLoop> mainloop,
 
   auto srcAddress = Gio::InetSocketAddress::create(
         Gio::InetAddress::create_loopback(Gio::SOCKET_FAMILY_IPV4),
-        port);
+        mLocalGameUdpPort);
   mLocalSocket->bind(srcAddress, false);
+
+  auto isockaddr = Glib::RefPtr<Gio::InetSocketAddress>::cast_dynamic(mLocalSocket->get_local_address());
+  if (isockaddr)
+  {
+    mLocalGameUdpPort = isockaddr->get_port();
+    FAF_LOG_TRACE << "PeerRelay for player " << peerId << " listening on port " << mLocalGameUdpPort;
+  }
+  else
+  {
+    FAF_LOG_ERROR << "!isockaddr";
+  }
 
   Gio::signal_socket().connect(
         sigc::mem_fun(this, &PeerRelay::onGameReceive),
@@ -84,6 +94,11 @@ int PeerRelay::localGameUdpPort() const
 std::shared_ptr<IceAgent> PeerRelay::iceAgent() const
 {
   return mIceAgent;
+}
+
+int PeerRelay::port() const
+{
+  return mLocalGameUdpPort;
 }
 
 Glib::ustring

@@ -114,7 +114,6 @@ protected:
 
   std::string mGPGNetGameState;
 
-  int mCurrentRelayPort;
   std::map<int, std::shared_ptr<PeerRelay>> mRelays;
 
   IceAdapterTaskState mTaskState;

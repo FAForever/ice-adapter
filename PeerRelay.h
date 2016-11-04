@@ -13,7 +13,6 @@ class PeerRelay
 {
 public:
   PeerRelay(Glib::RefPtr<Glib::MainLoop> mainloop,
-            int port,
             int gamePort,
             int peerId,
             std::string const& stunIp,
@@ -31,6 +30,8 @@ public:
   int localGameUdpPort() const;
 
   std::shared_ptr<IceAgent> iceAgent() const;
+
+  int port() const;
 
 protected:
   bool onGameReceive(Glib::IOCondition condition);
