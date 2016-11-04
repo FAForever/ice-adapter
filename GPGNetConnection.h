@@ -1,6 +1,7 @@
 #pragma once
 
 #include <string>
+#include <array>
 #include <vector>
 
 #include <giomm.h>
@@ -52,9 +53,9 @@ protected:
   void debugOutputMessage(GPGNetMessage const& msg);
 
   Glib::RefPtr<Gio::Socket> mSocket;
-  std::array<char, 4096> mBuffer;
+  std::array<char, 4096> mReadBuffer;
+  std::vector<char> mMessage;
 
   /* points to the end of mBuffer */
-  unsigned int mBufferEnd;
   GPGNetServer* mServer;
 };

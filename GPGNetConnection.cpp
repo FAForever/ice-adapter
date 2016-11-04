@@ -6,7 +6,6 @@
 GPGNetConnection::GPGNetConnection(GPGNetServer* server,
                                    Glib::RefPtr<Gio::Socket> socket)
   : mSocket(socket),
-    mBufferEnd(0),
     mServer(server)
 {
   FAF_LOG_TRACE << "GPGNetConnection()";
@@ -74,27 +73,39 @@ void GPGNetConnection::sendMessage(GPGNetMessage const& msg)
 
 bool GPGNetConnection::onRead(Glib::IOCondition /*condition*/)
 {
+  auto doRead = [this]()
+  {
+    try
+    {
+      auto receiveCount = mSocket->receive(mReadBuffer.data(),
+                                           mReadBuffer.size());
+      mMessage.insert(mMessage.end(), mReadBuffer.begin(), mReadBuffer.begin() + receiveCount);
+      return receiveCount;
+    }
+    catch (const Glib::Error& e)
+    {
+      FAF_LOG_ERROR << "mSocket->receive: " << e.code() << ": " << e.what();
+      return 0;
+    }
+  };
+
   try
   {
-    auto receiveCount = mSocket->receive(mBuffer.data() + mBufferEnd,
-                                       mBuffer.size() - mBufferEnd);
-
+    auto receiveCount = doRead();
     if (receiveCount == 0)
     {
       //FAF_LOG_ERROR << "receiveCount == 0";
       mServer->onCloseConnection(this);
       return false;
     }
-    FAF_LOG_TRACE << "received " << receiveCount << " GPGNet bytes";
-    mBufferEnd += receiveCount;
+    while (receiveCount == mReadBuffer.size())
+    {
+      receiveCount = doRead();
+    }
+
+    FAF_LOG_TRACE << "received " << mMessage.size() << " GPGNet bytes";
 
     parseMessages();
-
-    if (mBufferEnd >= mBuffer.size())
-    {
-      FAF_LOG_ERROR << "buffer full!";
-      mBufferEnd = 0;
-    }
   }
   catch (std::exception& e)
   {
@@ -107,51 +118,56 @@ bool GPGNetConnection::onRead(Glib::IOCondition /*condition*/)
 
 void GPGNetConnection::parseMessages()
 {
-  int bufferPos = 0;
+  auto it = mMessage.begin();
 
-  while(bufferPos < mBufferEnd)
+  auto bytesLeft = [this, it]()
+  {
+    return mMessage.end() - it;
+  };
+
+  while(it != mMessage.end())
   {
     int32_t headerLength;
-    if (mBufferEnd <= sizeof(int32_t))
+    if (bytesLeft() <= sizeof(int32_t))
     {
       return;
     }
-    headerLength = *reinterpret_cast<int32_t*>(mBuffer.data() + bufferPos);
-    bufferPos += sizeof(int32_t);
-    if ((mBufferEnd - bufferPos) < headerLength)
+    headerLength = *reinterpret_cast<int32_t*>(&*it);
+    it += sizeof(int32_t);
+    if (bytesLeft() < headerLength)
     {
       return;
     }
 
     GPGNetMessage message;
-    message.header = std::string(mBuffer.data() + bufferPos, headerLength);
-    bufferPos += headerLength;
+    message.header = std::string(&*it, headerLength);
+    it += headerLength;
 
     int32_t chunkCount;
-    if ((mBufferEnd - bufferPos) < sizeof(int32_t))
+    if (bytesLeft() < sizeof(int32_t))
     {
       return;
     }
-    chunkCount = *reinterpret_cast<int32_t*>(mBuffer.data() + bufferPos);
-    bufferPos += sizeof (int32_t);
+    chunkCount = *reinterpret_cast<int32_t*>(&*it);
+    it += sizeof (int32_t);
     message.chunks.resize(chunkCount);
 
     for (int chunkIndex = 0; chunkIndex < chunkCount; ++chunkIndex)
     {
       int8_t type;
-      if ((mBufferEnd - bufferPos) < sizeof(int8_t))
+      if (bytesLeft() < sizeof(int8_t))
       {
         return;
       }
-      type = *reinterpret_cast<int8_t*>(mBuffer.data() + bufferPos);
-      bufferPos += sizeof(int8_t);
+      type = *reinterpret_cast<int8_t*>(&*it);
+      it += sizeof(int8_t);
       int32_t length;
-      if ((mBufferEnd - bufferPos) < sizeof(int32_t))
+      if (bytesLeft() < sizeof(int32_t))
       {
         return;
       }
-      length = *reinterpret_cast<int32_t*>(mBuffer.data() + bufferPos);
-      bufferPos += sizeof(int32_t);
+      length = *reinterpret_cast<int32_t*>(&*it);
+      it += sizeof(int32_t);
 
       // Special-case for int (which uses the length field to hold the payload).
       if (type == 0)
@@ -166,12 +182,12 @@ void GPGNetConnection::parseMessages()
         return;
       }
 
-      if ((mBufferEnd - bufferPos) < length)
+      if (bytesLeft() < length)
       {
         return;
       }
-      message.chunks[chunkIndex] = std::string(mBuffer.data() + bufferPos, length);
-      bufferPos += length;
+      message.chunks[chunkIndex] = std::string(&*it, length);
+      it += length;
     }
 
     debugOutputMessage(message);
@@ -184,18 +200,8 @@ void GPGNetConnection::parseMessages()
   }
   /* Now move the remaining bytes in the buffer to the start
    * of the buffer */
-  if (bufferPos > 0 &&
-      bufferPos <= mBufferEnd)
-  {
-    std::copy(mBuffer.data() + bufferPos,
-              mBuffer.data() + mBufferEnd,
-              mBuffer.data());
-    mBufferEnd -= bufferPos;
-    if (mBufferEnd > 0)
-    {
-      FAF_LOG_DEBUG << "mBufferEnd: " << mBufferEnd;
-    }
-  }
+  FAF_LOG_TRACE << "erasing " << it - mMessage.begin() << " bytes just read";
+  mMessage.erase(mMessage.begin(), it);
 }
 
 void GPGNetConnection::debugOutputMessage(GPGNetMessage const& msg)
