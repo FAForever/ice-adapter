@@ -23,6 +23,7 @@ PeerRelay::PeerRelay(Glib::RefPtr<Glib::MainLoop> mainloop,
 
   mIceAgent->setReceiveCallback([this](IceAgent* agent, std::string const& message)
   {
+    FAF_LOG_TRACE << "relaying " << message.size() << " bytes from peer to game";
     mLocalSocket->send_to(mGameAddress,
                           message.c_str(),
                           message.size());
@@ -123,7 +124,7 @@ bool PeerRelay::onGameReceive(Glib::IOCondition condition)
   auto size = mLocalSocket->receive_from(address,
                                          buffer,
                                          4096);
-  FAF_LOG_TRACE << "onReceive " << size << " from " << socket_address_to_string(address) << ": " << buffer;
+  FAF_LOG_TRACE << "relaying " << size << " bytes from game to peer";
   if (mIceAgent &&
       mIceAgent->isConnected())
   {
