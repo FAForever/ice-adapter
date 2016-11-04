@@ -3,7 +3,8 @@
 #include <cstdlib>
 
 #include <boost/program_options.hpp>
-#include <boost/log/trivial.hpp>
+
+#include "logging.h"
 
 namespace po = boost::program_options;
 
@@ -30,6 +31,7 @@ IceAdapterOptions IceAdapterOptions::init(int argc, char *argv[])
         ("turn-host,t",   po::value<std::string>(&result.turnHost)->default_value("dev.faforever.com"), "set the TURN hostname")
         ("turn-user,u",   po::value<std::string>(&result.turnUser)->default_value(""),                  "set the TURN username")
         ("turn-pass,x",   po::value<std::string>(&result.turnPass)->default_value(""),                  "set the TURN password")
+        ("log-file",      po::value<std::string>(&result.logFile)->default_value(""),                   "set a verbose log file")
       ;
 
       try
@@ -39,7 +41,7 @@ IceAdapterOptions IceAdapterOptions::init(int argc, char *argv[])
 
         if (vm.count("help"))
         {
-            BOOST_LOG_TRIVIAL(error) << desc;
+            FAF_LOG_ERROR << desc;
             std::exit(1);
         }
 
@@ -50,24 +52,24 @@ IceAdapterOptions IceAdapterOptions::init(int argc, char *argv[])
       }
       catch(std::exception& e)
       {
-        BOOST_LOG_TRIVIAL(error) << "Error: " << e.what() << "\n" << desc;
+        FAF_LOG_ERROR << "Error: " << e.what() << "\n" << desc;
         std::exit(1);
 
       }
       catch(...)
       {
-        BOOST_LOG_TRIVIAL(error) << "Unknown error!" << "\n" << desc;
+        FAF_LOG_ERROR << "Unknown error!" << "\n" << desc;
         std::exit(1);
       }
   }
   catch(std::exception& e)
   {
-      BOOST_LOG_TRIVIAL(error) << "Error: " << e.what();
+      FAF_LOG_ERROR << "Error: " << e.what();
       std::exit(1);
   }
   catch(...)
   {
-      BOOST_LOG_TRIVIAL(error) << "Unknown error!";
+      FAF_LOG_ERROR << "Unknown error!";
       std::exit(1);
   }
   return result;

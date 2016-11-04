@@ -78,6 +78,7 @@ faf-ice-adapter usage:
   -t [ --turn-host ] arg (=dev.faforever.com) set the TURN hostname
   -u [ --turn-user ] arg                set the TURN username
   -x [ --turn-pass ] arg                set the TURN password
+  --log-file arg                        set a verbose log file
 ```
 
 ## Example usage sequence

@@ -1,9 +1,9 @@
 #include "JsonRpcTcpServer.h"
 
 #include <sigc++/sigc++.h>
-#include <boost/log/trivial.hpp>
 
 #include "JsonRpcTcpSession.h"
+#include "logging.h"
 
 namespace sigc {
   SIGC_FUNCTORS_DEDUCE_RESULT_TYPE_WITH_DECLTYPE
@@ -22,7 +22,7 @@ JsonRpcTcpServer::JsonRpcTcpServer(int port):
                                    port);
   mListenSocket->bind(srcAddress, false);
   mListenSocket->listen();
-  BOOST_LOG_TRIVIAL(trace) << "JsonRpcTcpServer listening on port " << port;
+  FAF_LOG_TRACE << "JsonRpcTcpServer listening on port " << port;
 
   Gio::signal_socket().connect([this](Glib::IOCondition condition)
   {
@@ -30,14 +30,14 @@ JsonRpcTcpServer::JsonRpcTcpServer(int port):
     auto session = std::make_shared<JsonRpcTcpSession>(this,
                                                        newSocket);
     mSessions.push_back(session);
-    BOOST_LOG_TRIVIAL(trace) << "new JsonRpcTcpSession created";
+    FAF_LOG_TRACE << "new JsonRpcTcpSession created";
     return true;
   }, mListenSocket, Glib::IO_IN);
 }
 
 JsonRpcTcpServer::~JsonRpcTcpServer()
 {
-  BOOST_LOG_TRIVIAL(trace) << "~JsonRpcTcpServer()";
+  FAF_LOG_TRACE << "~JsonRpcTcpServer()";
 }
 
 void JsonRpcTcpServer::setRpcCallback(std::string const& method,
@@ -47,11 +47,11 @@ void JsonRpcTcpServer::setRpcCallback(std::string const& method,
   if (mCallbacks.find(method) == mCallbacks.end())
   {
     mCallbacks.insert(std::make_pair(method, cb));
-    BOOST_LOG_TRIVIAL(trace) << "callback for " << method << " registered";
+    FAF_LOG_TRACE << "callback for " << method << " registered";
   }
   else
   {
-    BOOST_LOG_TRIVIAL(error) << "RPC callback for method '" << method << "' already registered";
+    FAF_LOG_ERROR << "RPC callback for method '" << method << "' already registered";
   }
 }
 
@@ -97,17 +97,17 @@ void JsonRpcTcpServer::sendRequest(std::string const& method,
   }
   for (auto it = mSessions.begin(), end = mSessions.end(); it != end; ++it)
   {
-    BOOST_LOG_TRIVIAL(trace) << "sending " << method;
+    FAF_LOG_TRACE << "sending " << method;
     if (!(*it)->sendRequest(method,
                          paramsArray,
                          id))
     {
       it = mSessions.erase(it);
-      BOOST_LOG_TRIVIAL(error) << "sending " << method << " failed";
+      FAF_LOG_ERROR << "sending " << method << " failed";
     }
     else
     {
-      BOOST_LOG_TRIVIAL(trace) << "done";
+      FAF_LOG_TRACE << "done";
       if (resultCb)
       {
         mCurrentRequests[id] = resultCb;
@@ -128,7 +128,7 @@ void JsonRpcTcpServer::onRpcRequest(std::string const& method,
   }
   else
   {
-    BOOST_LOG_TRIVIAL(error) << "RPC callback for method '" << method << "' not found";
+    FAF_LOG_ERROR << "RPC callback for method '" << method << "' not found";
     error = std::string("RPC callback for method '") + method + "' not found";
   }
 }
@@ -156,7 +156,7 @@ void JsonRpcTcpServer::onCloseSession(JsonRpcTcpSession* session)
     if (it->get() == session)
     {
       mSessions.erase(it);
-      BOOST_LOG_TRIVIAL(trace) << "session removed";
+      FAF_LOG_TRACE << "session removed";
       //delete session;
       return;
     }

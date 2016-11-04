@@ -3,10 +3,10 @@
 #include <stdexcept>
 #include <cstring>
 
-#include <boost/log/trivial.hpp>
-
 #include <agent.h>
 #include <nice.h>
+
+#include "logging.h"
 
 std::string stateToString(IceAgentState const& s)
 {
@@ -149,7 +149,7 @@ IceAgent::IceAgent(GMainLoop* mainloop,
                    "new-selected-pair-full",
                    G_CALLBACK(cb_new_selected_pair_full),
                    this);
-  BOOST_LOG_TRIVIAL(trace) << "IceAgent()";
+  FAF_LOG_TRACE << "IceAgent()";
 
 }
 
@@ -174,7 +174,7 @@ IceAgent::~IceAgent()
   {
     g_object_unref(mAgent);
   }
-  BOOST_LOG_TRIVIAL(trace) << "~IceAgent()";
+  FAF_LOG_TRACE << "~IceAgent()";
 }
 
 void IceAgent::gatherCandidates()
@@ -213,7 +213,7 @@ void IceAgent::setRemoteSdp(std::string const& sdpBase64)
   int res = nice_agent_parse_remote_sdp(mAgent, mRemoteSdp64.c_str());
   if (res <= 0)
   {
-    BOOST_LOG_TRIVIAL(error) << "res " << res;
+    FAF_LOG_ERROR << "res " << res;
     throw std::runtime_error("nice_agent_parse_remote_sdp() failed");
   }
   mHasRemoteSdp = true;
@@ -294,7 +294,7 @@ void IceAgent::onCandidateGatheringDone()
   {
     mGatheringDoneCallback(this, mSdp64);
   }
-  BOOST_LOG_TRIVIAL(trace) << "SDP:\n" << mSdp;
+  FAF_LOG_TRACE << "SDP:\n" << mSdp;
 }
 
 void IceAgent::onComponentStateChanged(unsigned int state)
@@ -306,23 +306,23 @@ void IceAgent::onComponentStateChanged(unsigned int state)
       mState = IceAgentState::Disconnected;
       break;
     case NICE_COMPONENT_STATE_GATHERING:
-      BOOST_LOG_TRIVIAL(trace) << "NICE_COMPONENT_STATE_GATHERING";
+      FAF_LOG_TRACE << "NICE_COMPONENT_STATE_GATHERING";
       mState = IceAgentState::Gathering;
       break;
     case NICE_COMPONENT_STATE_CONNECTING:
-      BOOST_LOG_TRIVIAL(trace) << "NICE_COMPONENT_STATE_CONNECTING";
+      FAF_LOG_TRACE << "NICE_COMPONENT_STATE_CONNECTING";
       mState = IceAgentState::Connecting;
       break;
     case NICE_COMPONENT_STATE_CONNECTED:
-      BOOST_LOG_TRIVIAL(trace) << "NICE_COMPONENT_STATE_CONNECTED";
+      FAF_LOG_TRACE << "NICE_COMPONENT_STATE_CONNECTED";
       mState = IceAgentState::Connected;
       break;
     case NICE_COMPONENT_STATE_READY:
-      BOOST_LOG_TRIVIAL(trace) << "NICE_COMPONENT_STATE_READY";
+      FAF_LOG_TRACE << "NICE_COMPONENT_STATE_READY";
       mState = IceAgentState::Ready;
       break;
     case NICE_COMPONENT_STATE_FAILED:
-      BOOST_LOG_TRIVIAL(error) << "NICE_COMPONENT_STATE_FAILED";
+      FAF_LOG_ERROR << "NICE_COMPONENT_STATE_FAILED";
       mState = IceAgentState::Failed;
       break;
   }

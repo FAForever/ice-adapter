@@ -1,7 +1,5 @@
 #include "IceAdapter.h"
 
-#include <boost/log/trivial.hpp>
-
 #include <json/json.h>
 
 #include "GPGNetServer.h"
@@ -9,6 +7,7 @@
 #include "JsonRpcTcpServer.h"
 #include "PeerRelay.h"
 #include "IceAgent.h"
+#include "logging.h"
 
 IceAdapter::IceAdapter(IceAdapterOptions const& options,
                        Glib::RefPtr<Glib::MainLoop> mainloop):
@@ -89,14 +88,14 @@ void IceAdapter::disconnectFromPeer(int remotePlayerId)
   auto relayIt = mRelays.find(remotePlayerId);
   if (relayIt == mRelays.end())
   {
-    BOOST_LOG_TRIVIAL(error) << "no relay for remote peer " << remotePlayerId << " found";
+    FAF_LOG_ERROR << "no relay for remote peer " << remotePlayerId << " found";
     std::string errorMsg("no relay for remote peer ");
     errorMsg += std::to_string(remotePlayerId);
     errorMsg += " found. Please call joinGame() or connectToPeer() first";
     throw std::runtime_error(errorMsg);
   }
   mGPGNetServer->sendDisconnectFromPeer(remotePlayerId);
-  mRelays.erase(relayIt);
+  /*TODO: kill Relay mRelays.erase(relayIt); */
 }
 
 void IceAdapter::setSdp(int remotePlayerId, std::string const& sdp64)
@@ -104,7 +103,7 @@ void IceAdapter::setSdp(int remotePlayerId, std::string const& sdp64)
   auto relayIt = mRelays.find(remotePlayerId);
   if (relayIt == mRelays.end())
   {
-    BOOST_LOG_TRIVIAL(error) << "no relay for remote peer " << remotePlayerId << " found";
+    FAF_LOG_ERROR << "no relay for remote peer " << remotePlayerId << " found";
     std::string errorMsg("no relay for remote peer ");
     errorMsg += std::to_string(remotePlayerId);
     errorMsg += " found. Please call joinGame() or connectToPeer() first";
@@ -112,7 +111,7 @@ void IceAdapter::setSdp(int remotePlayerId, std::string const& sdp64)
   }
   if(!relayIt->second->iceAgent())
   {
-    BOOST_LOG_TRIVIAL(error) << "!relayIt->second->iceAgent()";
+    FAF_LOG_ERROR << "!relayIt->second->iceAgent()";
     throw std::runtime_error("!relayIt->second->iceAgent()");
   }
   if(relayIt->second->iceAgent()->isConnected())
@@ -144,6 +143,7 @@ Json::Value IceAdapter::status() const
     options["turn_host"]            = std::string(mOptions.turnHost);
     options["turn_user"]            = std::string(mOptions.turnUser);
     options["turn_pass"]            = std::string(mOptions.turnPass);
+    options["log_file"]             = std::string(mOptions.logFile);
     result["options"] = options;
   }
   /* GPGNet */
@@ -230,7 +230,7 @@ void IceAdapter::onGpgConnectionStateChanged(ConnectionState const& s)
                           params);
   if (s == ConnectionState::Disconnected)
   {
-    BOOST_LOG_TRIVIAL(trace) << "game disconnected";
+    FAF_LOG_TRACE << "game disconnected";
 
     mHostGameMap = "";
     mJoinGameRemotePlayerLogin = "";
@@ -240,7 +240,7 @@ void IceAdapter::onGpgConnectionStateChanged(ConnectionState const& s)
   }
   else
   {
-    BOOST_LOG_TRIVIAL(trace) << "game connected";
+    FAF_LOG_TRACE << "game connected";
   }
 }
 

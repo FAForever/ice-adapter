@@ -1,8 +1,7 @@
 #include "GPGNetConnection.h"
 
-#include <boost/log/trivial.hpp>
-
 #include "GPGNetServer.h"
+#include "logging.h"
 
 GPGNetConnection::GPGNetConnection(GPGNetServer* server,
                                    Glib::RefPtr<Gio::Socket> socket)
@@ -10,7 +9,7 @@ GPGNetConnection::GPGNetConnection(GPGNetServer* server,
     mBufferEnd(0),
     mServer(server)
 {
-  BOOST_LOG_TRIVIAL(trace) << "GPGNetConnection()";
+  FAF_LOG_TRACE << "GPGNetConnection()";
 
   try
   {
@@ -23,13 +22,13 @@ GPGNetConnection::GPGNetConnection(GPGNetServer* server,
   }
   catch (std::exception& e)
   {
-    BOOST_LOG_TRIVIAL(error) << "error in GPGNetConnection: " << e.what();
+    FAF_LOG_ERROR << "error in GPGNetConnection: " << e.what();
   }
 }
 
 GPGNetConnection::~GPGNetConnection()
 {
-  BOOST_LOG_TRIVIAL(trace) << "~GPGNetConnection()";
+  FAF_LOG_TRACE << "~GPGNetConnection()";
 }
 
 void GPGNetConnection::sendMessage(GPGNetMessage const& msg)
@@ -67,7 +66,7 @@ void GPGNetConnection::sendMessage(GPGNetMessage const& msg)
       }
         break;
       default:
-        BOOST_LOG_TRIVIAL(error) << "Unsupported Json chunk type " << chunk.type();
+        FAF_LOG_ERROR << "Unsupported Json chunk type " << chunk.type();
         break;
     }
   }
@@ -82,24 +81,24 @@ bool GPGNetConnection::onRead(Glib::IOCondition /*condition*/)
 
     if (receiveCount == 0)
     {
-      //BOOST_LOG_TRIVIAL(error) << "receiveCount == 0";
+      //FAF_LOG_ERROR << "receiveCount == 0";
       mServer->onCloseConnection(this);
       return false;
     }
-    BOOST_LOG_TRIVIAL(trace) << "received " << receiveCount << " GPGNet bytes";
+    FAF_LOG_TRACE << "received " << receiveCount << " GPGNet bytes";
     mBufferEnd += receiveCount;
 
     parseMessages();
 
     if (mBufferEnd >= mBuffer.size())
     {
-      BOOST_LOG_TRIVIAL(error) << "buffer full!";
+      FAF_LOG_ERROR << "buffer full!";
       mBufferEnd = 0;
     }
   }
   catch (std::exception& e)
   {
-    BOOST_LOG_TRIVIAL(error) << "error in receive: " << e.what();
+    FAF_LOG_ERROR << "error in receive: " << e.what();
     return true;
   }
 
@@ -163,7 +162,7 @@ void GPGNetConnection::parseMessages()
 
       if (type != 1)
       {
-        BOOST_LOG_TRIVIAL(error) << "GPGNetMessage type " << static_cast<int>(type) << " not supported";
+        FAF_LOG_ERROR << "GPGNetMessage type " << static_cast<int>(type) << " not supported";
         return;
       }
 
@@ -194,20 +193,20 @@ void GPGNetConnection::parseMessages()
     mBufferEnd -= bufferPos;
     if (mBufferEnd > 0)
     {
-      BOOST_LOG_TRIVIAL(debug) << "mBufferEnd: " << mBufferEnd;
+      FAF_LOG_DEBUG << "mBufferEnd: " << mBufferEnd;
     }
   }
 }
 
 void GPGNetConnection::debugOutputMessage(GPGNetMessage const& msg)
 {
-  BOOST_LOG_TRIVIAL(trace) << "GPGNetMessage " <<
+  FAF_LOG_TRACE << "GPGNetMessage " <<
                               msg.header <<
                               " containing " <<
                               msg.chunks.size() <<
                               " chunks:";
   for(auto const& chunk : msg.chunks)
   {
-    BOOST_LOG_TRIVIAL(trace) << "\t" << chunk;
+    FAF_LOG_TRACE << "\t" << chunk;
   }
 }

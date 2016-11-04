@@ -3,9 +3,9 @@
 #include <type_traits>
 
 #include <sigc++/sigc++.h>
-#include <boost/log/trivial.hpp>
 
 #include "GPGNetConnection.h"
+#include "logging.h"
 
 namespace sigc {
   SIGC_FUNCTORS_DEDUCE_RESULT_TYPE_WITH_DECLTYPE
@@ -29,11 +29,11 @@ GPGNetServer::GPGNetServer(int port):
   if (isockaddr)
   {
     mPort = isockaddr->get_port();
-    BOOST_LOG_TRIVIAL(trace) << "GPGNetServer listening on port " << mPort;
+    FAF_LOG_TRACE << "GPGNetServer listening on port " << mPort;
   }
   else
   {
-    BOOST_LOG_TRIVIAL(error) << "!isockaddr";
+    FAF_LOG_ERROR << "!isockaddr";
   }
 
   Gio::signal_socket().connect([this](Glib::IOCondition condition)
@@ -42,13 +42,13 @@ GPGNetServer::GPGNetServer(int port):
     {
       if (mConnection)
       {
-        BOOST_LOG_TRIVIAL(error) << "simultaneous GPGNetConnections are not supported";
+        FAF_LOG_ERROR << "simultaneous GPGNetConnections are not supported";
         return true;
       }
       auto newSocket = mListenSocket->accept();
       mConnection = std::make_shared<GPGNetConnection>(this,
                                                        newSocket);
-      BOOST_LOG_TRIVIAL(trace) << "new GPGNetConnection created";
+      FAF_LOG_TRACE << "new GPGNetConnection created";
 
       for (auto cb : mConnectionStateCallbacks)
       {
@@ -57,7 +57,7 @@ GPGNetServer::GPGNetServer(int port):
     }
     catch (std::exception& e)
     {
-      BOOST_LOG_TRIVIAL(error) << "error in connecting: " << e.what();
+      FAF_LOG_ERROR << "error in connecting: " << e.what();
       return true;
     }
     return true;
@@ -66,14 +66,14 @@ GPGNetServer::GPGNetServer(int port):
 
 GPGNetServer::~GPGNetServer()
 {
-  BOOST_LOG_TRIVIAL(trace) << "~GPGNetServer()";
+  FAF_LOG_TRACE << "~GPGNetServer()";
 }
 
 void GPGNetServer::sendMessage(GPGNetMessage const& msg)
 {
   if (!mConnection)
   {
-    BOOST_LOG_TRIVIAL(error) << "no GPGNetConnection";
+    FAF_LOG_ERROR << "no GPGNetConnection";
     return;
   }
   mConnection->sendMessage(msg);

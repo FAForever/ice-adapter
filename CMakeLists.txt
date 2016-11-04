@@ -43,6 +43,7 @@ add_executable(faf-ice-adapter
   GPGNetServer.cpp
   GPGNetConnection.cpp
   GPGNetMessage.h
+  logging.cpp
   main.cpp
   PeerRelay.cpp
 )

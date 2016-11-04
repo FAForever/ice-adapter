@@ -1,8 +1,7 @@
 #include "PeerRelay.h"
 
-#include <boost/log/trivial.hpp>
-
 #include "IceAgent.h"
+#include "logging.h"
 
 PeerRelay::PeerRelay(Glib::RefPtr<Glib::MainLoop> mainloop,
                      int port,
@@ -55,12 +54,12 @@ PeerRelay::PeerRelay(Glib::RefPtr<Glib::MainLoop> mainloop,
 
   mGameAddress = Gio::InetSocketAddress::create(Gio::InetAddress::create("127.0.0.1"),
                                                 gamePort);
-  BOOST_LOG_TRIVIAL(trace) << "PeerRelay " << mPeerId << " constructed";
+  FAF_LOG_TRACE << "PeerRelay " << mPeerId << " constructed";
 }
 
 PeerRelay::~PeerRelay()
 {
-  BOOST_LOG_TRIVIAL(trace) << "PeerRelay " << mPeerId << " destructed";
+  FAF_LOG_TRACE << "PeerRelay " << mPeerId << " destructed";
 }
 
 void PeerRelay::gatherCandidates(CandidateGatheringDoneCallback cb)
@@ -109,7 +108,7 @@ bool PeerRelay::onGameReceive(Glib::IOCondition condition)
   auto size = mLocalSocket->receive_from(address,
                                          buffer,
                                          4096);
-  BOOST_LOG_TRIVIAL(trace) << "onReceive " << size << " from " << socket_address_to_string(address) << ": " << buffer;
+  FAF_LOG_TRACE << "onReceive " << size << " from " << socket_address_to_string(address) << ": " << buffer;
   if (mIceAgent &&
       mIceAgent->isConnected())
   {
@@ -118,7 +117,7 @@ bool PeerRelay::onGameReceive(Glib::IOCondition condition)
   }
   else
   {
-    BOOST_LOG_TRIVIAL(error) << "mIceAgent not ready";
+    FAF_LOG_ERROR << "mIceAgent not ready";
   }
   return true;
 }

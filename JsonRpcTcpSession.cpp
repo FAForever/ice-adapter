@@ -1,8 +1,7 @@
 #include "JsonRpcTcpSession.h"
 
-#include <boost/log/trivial.hpp>
-
 #include "JsonRpcTcpServer.h"
+#include "logging.h"
 
 
 JsonRpcTcpSession::JsonRpcTcpSession(JsonRpcTcpServer* server,
@@ -11,7 +10,7 @@ JsonRpcTcpSession::JsonRpcTcpSession(JsonRpcTcpServer* server,
     mBufferEnd(0),
     mServer(server)
 {
-  BOOST_LOG_TRIVIAL(trace) << "JsonRpcSession()";
+  FAF_LOG_TRACE << "JsonRpcSession()";
 
   mSocket->set_blocking(false);
 
@@ -23,7 +22,7 @@ JsonRpcTcpSession::JsonRpcTcpSession(JsonRpcTcpServer* server,
 
 JsonRpcTcpSession::~JsonRpcTcpSession()
 {
-  BOOST_LOG_TRIVIAL(trace) << "~JsonRpcSession()";
+  FAF_LOG_TRACE << "~JsonRpcSession()";
 }
 
 bool JsonRpcTcpSession::sendRequest(std::string const& method,
@@ -47,7 +46,7 @@ bool JsonRpcTcpSession::sendRequest(std::string const& method,
   }
   catch (const Glib::Error& e)
   {
-    BOOST_LOG_TRIVIAL(error) << "mSocket->send: " << e.code() << ": " << e.what();
+    FAF_LOG_ERROR << "mSocket->send: " << e.code() << ": " << e.what();
     return false;
   }
   return true;
@@ -60,11 +59,11 @@ bool JsonRpcTcpSession::onRead(Glib::IOCondition condition)
 
   if (numReceive == 0)
   {
-    BOOST_LOG_TRIVIAL(error) << "numReceive == 0";
+    FAF_LOG_ERROR << "numReceive == 0";
     mServer->onCloseSession(this);
     return false;
   }
-  BOOST_LOG_TRIVIAL(trace) << "received:" << std::string(mBuffer.data() + mBufferEnd,
+  FAF_LOG_TRACE << "received:" << std::string(mBuffer.data() + mBufferEnd,
                                                          numReceive);
   mBufferEnd += numReceive;
   Json::Value jsonMessage;
@@ -79,10 +78,10 @@ bool JsonRpcTcpSession::onRead(Glib::IOCondition condition)
       Json::Value response = processRequest(jsonMessage);
 
       std::string responseString = Json::FastWriter().write(response);
-      BOOST_LOG_TRIVIAL(trace) << "sending response:" << responseString;
+      FAF_LOG_TRACE << "sending response:" << responseString;
       auto numSent = mSocket->send(responseString.c_str(),
                                    responseString.size());
-      BOOST_LOG_TRIVIAL(trace) << numSent << " bytes sent";
+      FAF_LOG_TRACE << numSent << " bytes sent";
     }
     else if (jsonMessage.isMember("error") ||
              jsonMessage.isMember("result"))
@@ -97,7 +96,7 @@ bool JsonRpcTcpSession::onRead(Glib::IOCondition condition)
   }
   if (mBufferEnd >= mBuffer.size())
   {
-    BOOST_LOG_TRIVIAL(error) << "buffer full!";
+    FAF_LOG_ERROR << "buffer full!";
     mBufferEnd = 0;
   }
   return true;
