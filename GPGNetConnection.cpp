@@ -85,7 +85,7 @@ bool GPGNetConnection::onRead(Glib::IOCondition /*condition*/)
     catch (const Glib::Error& e)
     {
       FAF_LOG_ERROR << "mSocket->receive: " << e.code() << ": " << e.what();
-      return 0;
+      return gssize(0);
     }
   };
 
