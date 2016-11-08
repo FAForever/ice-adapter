@@ -3,42 +3,33 @@ os: linux
 sudo: required
 compiler: gcc
 env:
-  - MXE_TARGET=i686-w64-mingw32.static
+- MXE_TARGET=i686-w64-mingw32.static
 install:
-  - echo "deb http://pkg.mxe.cc/repos/apt/debian wheezy main" | sudo tee /etc/apt/sources.list.d/mxeapt.list
-  - sudo apt-key adv --keyserver x-hkp://keys.gnupg.net --recv-keys D43A795B73B16ABE9643FE1AFD8FFF16DB45C6AB
-  - sudo apt-get update
-  - sudo apt-get --yes install
-    mxe-$MXE_TARGET-jsoncpp
-    mxe-$MXE_TARGET-glib
-    mxe-$MXE_TARGET-glibmm
-    mxe-$MXE_TARGET-boost
+- echo "deb http://pkg.mxe.cc/repos/apt/debian wheezy main" | sudo tee /etc/apt/sources.list.d/mxeapt.list
+- sudo apt-key adv --keyserver x-hkp://keys.gnupg.net --recv-keys D43A795B73B16ABE9643FE1AFD8FFF16DB45C6AB
+- sudo apt-get update
+- sudo apt-get --yes install mxe-$MXE_TARGET-jsoncpp mxe-$MXE_TARGET-glib mxe-$MXE_TARGET-glibmm
+  mxe-$MXE_TARGET-boost
 script:
-  - export LIBNICE_VERSION=0.1.13
-  - export MXE_DIR=/usr/lib/mxe
-  - export PATH=/usr/lib/mxe/usr/bin:$PATH
-  - wget https://nice.freedesktop.org/releases/libnice-$LIBNICE_VERSION.tar.gz
-  - tar xzf libnice-$LIBNICE_VERSION.tar.gz
-  - cd libnice-$LIBNICE_VERSION
-  - ./configure
-    --prefix=/usr/lib/mxe/usr/$MXE_TARGET
-    --host=$MXE_TARGET
-    PKG_CONFIG=/usr/lib/mxe/usr/bin/$MXE_TARGET-pkg-config
-    CC=/usr/lib/mxe/usr/bin/$MXE_TARGET-gcc
-  - make -j2
-  - sudo "PATH=/usr/lib/mxe/usr/bin:$PATH" make install
-  - cd ..
-  - mkdir build && cd build
-  - $MXE_DIR/usr/bin/$MXE_TARGET-cmake
-    -DCMAKE_BUILD_TYPE=Release
-    ..
-  - make -j8
-  - cd ..
+- export LIBNICE_VERSION=0.1.13
+- export MXE_DIR=/usr/lib/mxe
+- export PATH=/usr/lib/mxe/usr/bin:$PATH
+- wget https://nice.freedesktop.org/releases/libnice-$LIBNICE_VERSION.tar.gz
+- tar xzf libnice-$LIBNICE_VERSION.tar.gz
+- cd libnice-$LIBNICE_VERSION
+- "./configure --prefix=/usr/lib/mxe/usr/$MXE_TARGET --host=$MXE_TARGET PKG_CONFIG=/usr/lib/mxe/usr/bin/$MXE_TARGET-pkg-config
+  CC=/usr/lib/mxe/usr/bin/$MXE_TARGET-gcc"
+- make -j2
+- sudo "PATH=/usr/lib/mxe/usr/bin:$PATH" make install
+- cd ..
+- mkdir build && cd build
+- "$MXE_DIR/usr/bin/$MXE_TARGET-cmake -DCMAKE_BUILD_TYPE=Release .."
+- make -j8
+- cd ..
 deploy:
   provider: releases
   api_key:
-    secure: WhOx05Op3wMQaCxCzjMfLX75z3xyElczH6lAFKltpWyRoacYgfFW0Z73he1f0AUCcXbuFB/oxlpIPwQNxv5xisJBoDDgcz0FWxe0Dig8KooVcvp5OAhL44qWpIH5fkFRSHZ+zNdR3mmmGVd17dKmRxvMdTqUxp4dYtZfRTMKDzZt/2+IqAHizUmBlZsLzyjeLyMQcKzNlpuh71hGo73LiaU6pCKdp46GSWOkJpMoSTI0jlym6viVkEjskjU5umY+TPZ39ud3BxjuUtDpMo7ph3j+2rK080m5Vj5n33aHoOKUW3fyC1vOEz1pyVHc2jXd9A8UhYg7RXK2RPbr9vet9rmM2Y/29UV6RGy3BfpR9rc+Phrj9hyloJ6x2m3Sy7TZZw0/d2zkj/+gkY30bHklhxHipDBT5K3qdZwWEVCdSaO9ucI4WAXKvYXXIxv+dcFjW0HL3vrxZO5eD+pPHw2Q3n2bzJ8pjBuxyHJ3WW/f73tlargXXS6VsN8YPpp/BmBzEAGTHGv7bvB6CTrdgZiJ8EDsWaILXObzYwUKa/fMZ/KlX+JQmSlXdJAUoRdegBq+9YC7teJbZbzksEQtvHbz46gmdO+qV9r+D3evPobUUHlSp6Hy0egp+d1OHPeAOd42yjmuJEIcvGgPGSAab3nsxvjZPYmgiQ8dvw4iYlSIHOY=
-  file: "./build/faf-ice-adapter.exe"
-  skip_cleanup: true
+    secure: dXe34Fx7IZJHnCDr1POgDI2Klm+R+PSh/r7oPFZwAN3A2Rgwmj5zLD3EeFIOUNqsB2ROtqzInhRAuHvPsEauPqSk2cgoWNQA3BpemgiXvaVGsMXsEFl05bURcC1ViWsI0DNGJSyLGlWphXV1LmqBXMcbUwv2dv4hVBU3ZR3FYVtd2dYgq1Ee3FRy1ZjTbTF495F4kEtYbQYYaq8jpW+cn5LTATu0enRZ/TC4b9AmgoTMYcjarw8DOZW59jogHFJYoTAdjklhyzpDdhuFS7ASkedX/ZsGYKbl9cllHBPo8hjxLGtLWbclHN2qob6n7QT4oa6k7pEnw2/TCjglKB4cuG0vhmtexNKFD4UMLdqxIqaSj2tsIyopXSf/qjwq9PMdxlY3Po+v1I/BdcT6U4c14wDpUE+ouyO5yhTF3zDJidJNnu8B0BgbVENuvax06Mw6/ho7Tt8YUANQ6h0RrrU71TBmG430S2hdOct2Fu9HNs+9zPGyX97lGPEVkYflaAtN83//oWijdxvh52UsRYdyu9n6rTdOr6CCeNY2TH7qe0kVTGZECCSW4fZ+/gNkFk5Xg2kx4R+jm0PsYEaFLVzZsWR0RnbJVFYZiBiWPABKAA3DtesRdL0DPI6VkvJx1bKJ9Ltwtu7fH6CVAQrHaL0gI7Bsk5t6ZwMONMBO8uAgOuA=
+  file: faf-ice-adapter.exe
   on:
-    tags: true
+    repo: FAForever/ice-adapter
