@@ -2,6 +2,8 @@ language: cpp
 os: linux
 sudo: required
 compiler: gcc
+env:
+  - MXE_TARGET=i686-w64-mingw32.static PATH=/usr/lib/mxe/usr/bin:$PATH
 install:
   - echo "deb http://pkg.mxe.cc/repos/apt/debian wheezy main" | sudo tee /etc/apt/sources.list.d/mxeapt.list
   - sudo apt-key adv --keyserver x-hkp://keys.gnupg.net --recv-keys D43A795B73B16ABE9643FE1AFD8FFF16DB45C6AB
@@ -14,8 +16,6 @@ install:
 script:
   - export LIBNICE_VERSION=0.1.13
   - export MXE_DIR=/usr/lib/mxe
-  - export MXE_TARGET=i686-w64-mingw32.static
-  - export PATH=/usr/lib/mxe/usr/bin:$PATH
   - wget https://nice.freedesktop.org/releases/libnice-$LIBNICE_VERSION.tar.gz
   - tar xzf libnice-$LIBNICE_VERSION.tar.gz
   - cd libnice-$LIBNICE_VERSION
