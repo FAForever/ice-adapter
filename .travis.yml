@@ -14,6 +14,7 @@ install:
   - sudo apt-get --yes install
     mxe-$MXE_TARGET-jsoncpp
     mxe-$MXE_TARGET-glib
+    mxe-$MXE_TARGET-glibmm
     mxe-$MXE_TARGET-boost
 script:
   - wget https://nice.freedesktop.org/releases/libnice-$LIBNICE_VERSION.tar.gz
