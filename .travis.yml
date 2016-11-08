@@ -26,7 +26,7 @@ script:
     PKG_CONFIG=/usr/lib/mxe/usr/bin/$MXE_TARGET-pkg-config
     CC=/usr/lib/mxe/usr/bin/$MXE_TARGET-gcc
   - make -j2
-  - sudo make install
+  - sudo "PATH=/usr/lib/mxe/usr/bin:$PATH" make install
   - cd ..
   - mkdir build && cd build
   - $MXE_DIR/usr/bin/$MXE_TARGET-cmake
