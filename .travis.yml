@@ -20,7 +20,11 @@ script:
   - wget https://nice.freedesktop.org/releases/libnice-$LIBNICE_VERSION.tar.gz
   - tar xzf libnice-$LIBNICE_VERSION.tar.gz
   - cd libnice-$LIBNICE_VERSION
-  - ./configure --prefix=/usr/lib/mxe/usr/$MXE_TARGET --host=$MXE_TARGET PKG_CONFIG=/usr/lib/mxe/usr/bin/$MXE_TARGET-pkg-config
+  - ./configure
+    --prefix=/usr/lib/mxe/usr/$MXE_TARGET
+    --host=$MXE_TARGET
+    PKG_CONFIG=/usr/lib/mxe/usr/bin/$MXE_TARGET-pkg-config
+    CC=/usr/lib/mxe/usr/bin/$MXE_TARGET-gcc
   - make -j2
   - sudo make install
   - cd ..
