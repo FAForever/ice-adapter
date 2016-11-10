@@ -49,15 +49,16 @@ void logging_init()
 void logging_init_log_file(std::string const& log_file)
 {
   boost::log::add_file_log (
-      boost::log::keywords::file_name = log_file,
-      boost::log::keywords::format = (
-       boost::log::expressions::stream
+    boost::log::keywords::file_name = log_file,
+    boost::log::keywords::format = (
+      boost::log::expressions::stream
         << boost::log::expressions::format_date_time<boost::posix_time::ptime>("TimeStamp", "%Y-%m-%d_%H:%M:%S.%f")
         << ": <" << boost::log::trivial::severity << "> "
         << '['   << boost::log::expressions::attr<std::string>("Function") << '@'
                  << boost::log::expressions::attr<std::string>("File")
                  << ':' << boost::log::expressions::attr<int>("Line") << "] "
         << boost::log::expressions::smessage
-      )
-     );
+      ),
+    boost::log::keywords::auto_flush = true
+    );
 }
