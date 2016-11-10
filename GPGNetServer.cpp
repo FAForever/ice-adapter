@@ -73,8 +73,7 @@ void GPGNetServer::sendMessage(GPGNetMessage const& msg)
 {
   if (!mConnection)
   {
-    FAF_LOG_ERROR << "no GPGNetConnection";
-    return;
+    throw std::runtime_error(std::string("No GPGNetConnection. Wait for the game to connect first."));
   }
   mConnection->sendMessage(msg);
 }
