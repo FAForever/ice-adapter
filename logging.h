@@ -34,4 +34,5 @@ void logging_init_log_file(std::string const& log_file);
 #define FAF_LOG_TRACE CUSTOM_LOG(logger(), trace)
 #define FAF_LOG_DEBUG CUSTOM_LOG(logger(), debug)
 #define FAF_LOG_INFO CUSTOM_LOG(logger(), info)
+#define FAF_LOG_WARN CUSTOM_LOG(logger(), warning)
 #define FAF_LOG_ERROR CUSTOM_LOG(logger(), error)
