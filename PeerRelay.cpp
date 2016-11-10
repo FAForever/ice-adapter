@@ -6,12 +6,14 @@
 PeerRelay::PeerRelay(Glib::RefPtr<Glib::MainLoop> mainloop,
                      int gamePort,
                      int peerId,
+                     std::string const& peerLogin,
                      std::string const& stunIp,
                      std::string const& turnIp,
                      std::string const& turnUser,
                      std::string const& turnPassword):
   mMainloop(mainloop),
   mPeerId(peerId),
+  mPeerLogin(peerLogin),
   mLocalGameUdpPort(0)
 {
   mIceAgent = std::make_shared<IceAgent>(mainloop->gobj(),
@@ -100,6 +102,11 @@ std::shared_ptr<IceAgent> PeerRelay::iceAgent() const
 int PeerRelay::port() const
 {
   return mLocalGameUdpPort;
+}
+
+std::string const& PeerRelay::peerLogin() const
+{
+  return mPeerLogin;
 }
 
 Glib::ustring

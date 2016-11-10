@@ -98,7 +98,9 @@ protected:
 
   void tryExecuteTask();
 
-  std::shared_ptr<PeerRelay> createPeerRelay(int remotePlayerId, int& portResult);
+  std::shared_ptr<PeerRelay> createPeerRelay(int remotePlayerId,
+                                             std::string const& remotePlayerLogin,
+                                             int& portResult);
 
   IceAdapterOptions mOptions;
   std::shared_ptr<JsonRpcTcpServer> mRpcServer;

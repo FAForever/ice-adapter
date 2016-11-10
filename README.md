@@ -47,6 +47,7 @@ The internal server was tested against [bjsonrpc](https://github.com/deavid/bjso
 "relays" : [/* An array of relay information*/
   {
     "remote_player_id" : /*int: The ID of the remote player*/
+    "remote_player_login" : /*string: The name of the remote player*/
     "local_game_udp_port" : /*int: The UDP port opened for the game to connect to*/
     "ice_agent": {/*Information about the IceAgent for this peer */
       "state": /*string: The connection state*/

@@ -15,6 +15,7 @@ public:
   PeerRelay(Glib::RefPtr<Glib::MainLoop> mainloop,
             int gamePort,
             int peerId,
+            std::string const& peerLogin,
             std::string const& stunIp,
             std::string const& turnIp,
             std::string const& turnUser,
@@ -33,11 +34,14 @@ public:
 
   int port() const;
 
+  std::string const& peerLogin() const;
+
 protected:
   bool onGameReceive(Glib::IOCondition condition);
   Glib::RefPtr<Glib::MainLoop> mMainloop;
   Glib::RefPtr<Gio::Socket> mLocalSocket;
   int mPeerId;
+  std::string mPeerLogin;
   int mLocalGameUdpPort;
   std::shared_ptr<IceAgent> mIceAgent;
   Glib::RefPtr<Gio::SocketAddress> mGameAddress;

@@ -73,6 +73,7 @@ void IceAdapter::connectToPeer(std::string const& remotePlayerLogin,
 {
   int relayPort;
   auto relay = createPeerRelay(remotePlayerId,
+                               remotePlayerLogin,
                                relayPort);
   if (relay)
   {
@@ -170,6 +171,7 @@ Json::Value IceAdapter::status() const
     {
       Json::Value relay;
       relay["remote_player_id"] = it->first;
+      relay["remote_player_login"] = it->second->peerLogin();
       relay["local_game_udp_port"] = it->second->localGameUdpPort();
 
       if (it->second->iceAgent())
@@ -411,6 +413,7 @@ void IceAdapter::tryExecuteTask()
       {
         int relayPort;
         auto relay = createPeerRelay(mJoinGameRemotePlayerId,
+                                     mJoinGameRemotePlayerLogin,
                                      relayPort);
 
         if (relay)
@@ -436,11 +439,14 @@ void IceAdapter::tryExecuteTask()
   }
 }
 
-std::shared_ptr<PeerRelay> IceAdapter::createPeerRelay(int remotePlayerId, int& portResult)
+std::shared_ptr<PeerRelay> IceAdapter::createPeerRelay(int remotePlayerId,
+                                                       std::string const& remotePlayerLogin,
+                                                       int& portResult)
 {
   auto result = std::make_shared<PeerRelay>(mMainloop,
                                             mOptions.gameUdpPort,
                                             remotePlayerId,
+                                            remotePlayerLogin,
                                             mStunIp,
                                             mTurnIp,
                                             mOptions.turnUser,
