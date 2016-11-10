@@ -7,7 +7,6 @@
 JsonRpcTcpSession::JsonRpcTcpSession(JsonRpcTcpServer* server,
                                      Glib::RefPtr<Gio::Socket> socket)
   : mSocket(socket),
-    mBufferEnd(0),
     mServer(server)
 {
   FAF_LOG_TRACE << "JsonRpcSession()";
@@ -54,50 +53,68 @@ bool JsonRpcTcpSession::sendRequest(std::string const& method,
 
 bool JsonRpcTcpSession::onRead(Glib::IOCondition condition)
 {
-  auto numReceive = mSocket->receive(mBuffer.data() + mBufferEnd,
-                                     mBuffer.size() - mBufferEnd);
-
-  if (numReceive == 0)
+  auto doRead = [this]()
   {
-    FAF_LOG_ERROR << "numReceive == 0";
-    mServer->onCloseSession(this);
-    return false;
-  }
-  FAF_LOG_TRACE << "received:" << std::string(mBuffer.data() + mBufferEnd,
-                                                         numReceive);
-  mBufferEnd += numReceive;
-  Json::Value jsonMessage;
-  Json::Reader r;
-  if (r.parse(mBuffer.data(),
-              mBuffer.data() + mBufferEnd,
-              jsonMessage))
-  {
-    numReceive = 0;
-    if (jsonMessage.isMember("method"))
+    try
     {
-      Json::Value response = processRequest(jsonMessage);
-
-      std::string responseString = Json::FastWriter().write(response);
-      FAF_LOG_TRACE << "sending response:" << responseString;
-      auto numSent = mSocket->send(responseString.c_str(),
-                                   responseString.size());
-      FAF_LOG_TRACE << numSent << " bytes sent";
+      auto receiveCount = mSocket->receive(mReadBuffer.data(),
+                                           mReadBuffer.size());
+      mMessage.insert(mMessage.end(), mReadBuffer.begin(), mReadBuffer.begin() + receiveCount);
+      return receiveCount;
     }
-    else if (jsonMessage.isMember("error") ||
-             jsonMessage.isMember("result"))
+    catch (const Glib::Error& e)
     {
-      processResponse(jsonMessage);
+      FAF_LOG_ERROR << "mSocket->receive: " << e.code() << ": " << e.what();
+      return gssize(0);
     }
-    mBufferEnd = 0;
-  }
-  else
+  };
+
+  try
   {
-    BOOST_LOG_TRIVIAL(warning) << "problems parsing";
+    auto receiveCount = doRead();
+    if (receiveCount == 0)
+    {
+      //FAF_LOG_ERROR << "receiveCount == 0";
+      mServer->onCloseSession(this);
+      return false;
+    }
+    while (receiveCount == mReadBuffer.size())
+    {
+      receiveCount = doRead();
+    }
+
+    Json::Value jsonMessage;
+    Json::Reader r;
+    if (r.parse(mMessage.data(),
+                mMessage.data() + mMessage.size(),
+                jsonMessage))
+    {
+      mMessage.clear();
+      if (jsonMessage.isMember("method"))
+      {
+        Json::Value response = processRequest(jsonMessage);
+
+        std::string responseString = Json::FastWriter().write(response);
+        FAF_LOG_TRACE << "sending response:" << responseString;
+        auto numSent = mSocket->send(responseString.c_str(),
+                                     responseString.size());
+        FAF_LOG_TRACE << numSent << " bytes sent";
+      }
+      else if (jsonMessage.isMember("error") ||
+               jsonMessage.isMember("result"))
+      {
+        processResponse(jsonMessage);
+      }
+    }
+    else
+    {
+      BOOST_LOG_TRIVIAL(warning) << "problems parsing";
+    }
   }
-  if (mBufferEnd >= mBuffer.size())
+  catch (std::exception& e)
   {
-    FAF_LOG_ERROR << "buffer full!";
-    mBufferEnd = 0;
+    FAF_LOG_ERROR << "error in receive: " << e.what();
+    return true;
   }
   return true;
 }
@@ -123,6 +140,8 @@ Json::Value JsonRpcTcpSession::processRequest(Json::Value const& request)
     response["error"]["message"] = "'method' parameter must be a string";
     return response;
   }
+
+  FAF_LOG_DEBUG << "dispatching JSRONRPC method '" << request["method"].asString() << "'";
 
   Json::Value params(Json::arrayValue);
   if (request.isMember("params") &&

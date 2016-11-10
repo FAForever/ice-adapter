@@ -28,7 +28,7 @@ protected:
             Json::Value id);
 
   Glib::RefPtr<Gio::Socket> mSocket;
-  std::array<char, 4096> mBuffer;
-  unsigned int mBufferEnd;
+  std::array<char, 4096> mReadBuffer;
+  std::vector<char> mMessage;
   JsonRpcTcpServer* mServer;
 };

@@ -472,7 +472,7 @@ std::shared_ptr<PeerRelay> IceAdapter::createPeerRelay(int remotePlayerId, int& 
     mRpcServer->sendRequest("onPeerStateChanged",
                             iceStateParams);
   });
-   mRelays[remotePlayerId] = result;
 
-   return result;
+  mRelays[remotePlayerId] = result;
+  return result;
 }
