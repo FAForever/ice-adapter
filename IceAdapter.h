@@ -68,6 +68,14 @@ public:
   void connectToPeer(std::string const& remotePlayerLogin,
                      int remotePlayerId);
 
+  /** \brief Calls ICE restart
+   *   \see https://nice.freedesktop.org/libnice/NiceAgent.html#nice-agent-restart
+   *   \see https://tools.ietf.org/html/rfc5245#section-9.1.1.1
+   *   \see https://tools.ietf.org/html/rfc5245#section-9.2.1.1
+       \param remotePlayerId:    ID of the player to restart ICE with
+      */
+  void reconnectToPeer(int remotePlayerId);
+
   /** \brief Tell the game to disconnect from a remote peer
    *         Will remove the Relay.
        \param remotePlayerId:    ID of the player to disconnect from

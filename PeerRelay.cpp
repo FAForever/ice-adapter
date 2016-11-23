@@ -10,34 +10,21 @@ PeerRelay::PeerRelay(Glib::RefPtr<Glib::MainLoop> mainloop,
                      std::string const& stunIp,
                      std::string const& turnIp,
                      std::string const& turnUser,
-                     std::string const& turnPassword):
+                     std::string const& turnPassword,
+                     CandidateGatheringDoneCallback gatherDoneCb,
+                     IceAgentStateCallback stateCb):
   mMainloop(mainloop),
   mPeerId(peerId),
   mPeerLogin(peerLogin),
-  mLocalGameUdpPort(0)
+  mStunIp(stunIp),
+  mTurnIp(turnIp),
+  mTurnUser(turnUser),
+  mTurnPassword(turnPassword),
+  mLocalGameUdpPort(0),
+  mCandidateGatheringDoneCallback(gatherDoneCb),
+  mIceAgentStateCallback(stateCb)
 {
-  mIceAgent = std::make_shared<IceAgent>(mainloop->gobj(),
-                                         true,
-                                         stunIp,
-                                         turnIp,
-                                         turnUser,
-                                         turnPassword);
-
-  mIceAgent->setReceiveCallback([this](IceAgent* agent, std::string const& message)
-  {
-    FAF_LOG_TRACE << "relaying " << message.size() << " bytes from peer to game";
-    mLocalSocket->send_to(mGameAddress,
-                          message.c_str(),
-                          message.size());
-  });
-
-  mIceAgent->setStateCallback([this](IceAgent* agent, IceAgentState const& state)
-  {
-    if (mIceAgentStateCallback)
-    {
-      mIceAgentStateCallback(this, state);
-    }
-  });
+  createAgent();
 
   mLocalSocket = Gio::Socket::create(Gio::SOCKET_FAMILY_IPV4,
                                 Gio::SOCKET_TYPE_DATAGRAM,
@@ -75,20 +62,6 @@ PeerRelay::~PeerRelay()
   FAF_LOG_TRACE << "PeerRelay " << mPeerId << " destructed";
 }
 
-void PeerRelay::gatherCandidates(CandidateGatheringDoneCallback cb)
-{
-  mIceAgent->setCandidateGatheringDoneCallback([this, cb](IceAgent* agent, std::string const& sdp)
-  {
-    cb(this, sdp);
-  });
-  mIceAgent->gatherCandidates();
-}
-
-void PeerRelay::setIceAgentStateCallback(IceAgentStateCallback cb)
-{
-  mIceAgentStateCallback = cb;
-}
-
 int PeerRelay::localGameUdpPort() const
 {
   return mLocalGameUdpPort;
@@ -107,6 +80,64 @@ int PeerRelay::port() const
 std::string const& PeerRelay::peerLogin() const
 {
   return mPeerLogin;
+}
+
+
+void PeerRelay::reconnect()
+{
+  /*
+  std::string oldSdp;
+  if (mIceAgent &&
+      mIceAgent->hasRemoteSdp())
+  {
+    oldSdp = mIceAgent->remoteSdp64();
+  }
+  */
+  createAgent();
+  /*
+  if (!oldSdp.empty())
+  {
+    mIceAgent->setRemoteSdp(oldSdp);
+  }
+  */
+}
+
+void PeerRelay::createAgent()
+{
+  mIceAgent.reset();
+  mIceAgent = std::make_shared<IceAgent>(mMainloop->gobj(),
+                                         true,
+                                         mStunIp,
+                                         mTurnIp,
+                                         mTurnUser,
+                                         mTurnPassword);
+
+  mIceAgent->setReceiveCallback([this](IceAgent* agent, std::string const& message)
+  {
+    FAF_LOG_TRACE << "relaying " << message.size() << " bytes from peer to game";
+    mLocalSocket->send_to(mGameAddress,
+                          message.c_str(),
+                          message.size());
+  });
+
+  mIceAgent->setStateCallback([this](IceAgent* agent, IceAgentState const& state)
+  {
+    if (mIceAgentStateCallback)
+    {
+      mIceAgentStateCallback(this, state);
+    }
+  });
+
+  mIceAgent->setCandidateGatheringDoneCallback([this](IceAgent*, std::string const& sdp)
+  {
+    if (mCandidateGatheringDoneCallback)
+    {
+      mCandidateGatheringDoneCallback(this, sdp);
+    }
+  });
+
+  mIceAgent->gatherCandidates();
+
 }
 
 Glib::ustring
@@ -131,7 +162,7 @@ bool PeerRelay::onGameReceive(Glib::IOCondition condition)
   auto size = mLocalSocket->receive_from(address,
                                          buffer,
                                          4096);
-  FAF_LOG_TRACE << "relaying " << size << " bytes from game to peer";
+  //FAF_LOG_TRACE << "relaying " << size << " bytes from game to peer";
   if (mIceAgent &&
       mIceAgent->isConnected())
   {
