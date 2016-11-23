@@ -34,21 +34,31 @@ add_custom_target(docs SOURCES README.md LICENSE)
 pkg_search_module(GIOMM REQUIRED giomm-2.4)
 include_directories(${GIOMM_INCLUDE_DIRS})
 
+add_library(fafice
+  STATIC
+    IceAdapter.cpp
+    IceAdapterOptions.cpp
+    IceAgent.cpp
+    JsonRpcTcpServer.cpp
+    JsonRpcTcpSession.cpp
+    GPGNetServer.cpp
+    GPGNetConnection.cpp
+    GPGNetMessage.h
+    logging.cpp
+    PeerRelay.cpp
+)
+
+add_library(fafice-test
+  STATIC
+    test/GPGNetClient.cpp
+)
+
 add_executable(faf-ice-adapter
-  IceAdapter.cpp
-  IceAdapterOptions.cpp
-  IceAgent.cpp
-  JsonRpcTcpServer.cpp
-  JsonRpcTcpSession.cpp
-  GPGNetServer.cpp
-  GPGNetConnection.cpp
-  GPGNetMessage.h
-  logging.cpp
   main.cpp
-  PeerRelay.cpp
 )
 
 target_link_libraries(faf-ice-adapter
+  fafice
   ${GIOMM_LIBRARIES}
   ${Boost_LIBRARIES}
   ${JSON_LIBRARIES}
@@ -58,8 +68,8 @@ target_link_libraries(faf-ice-adapter
 target_compile_definitions(faf-ice-adapter PRIVATE BOOST_SYSTEM_NO_DEPRECATED)
 
 if(NOT MINGW)
-  target_link_libraries(faf-ice-adapter pthread)
-  target_compile_definitions(faf-ice-adapter PRIVATE BOOST_LOG_DYN_LINK)
+  target_link_libraries(fafice pthread)
+  target_compile_definitions(fafice PUBLIC BOOST_LOG_DYN_LINK)
 endif()
 
 # Strip exe to reduce file size
