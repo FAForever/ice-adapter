@@ -109,7 +109,7 @@ void IceAdapter::disconnectFromPeer(int remotePlayerId)
     throw std::runtime_error(errorMsg);
   }
   mGPGNetServer->sendDisconnectFromPeer(remotePlayerId);
-  /*TODO: kill Relay mRelays.erase(relayIt); */
+  mRelays.erase(relayIt);
 }
 
 void IceAdapter::setSdp(int remotePlayerId, std::string const& sdp64)
@@ -516,26 +516,6 @@ std::shared_ptr<PeerRelay> IceAdapter::createPeerRelay(int remotePlayerId,
   needSdpParams.append(remotePlayerId);
   mRpcServer->sendRequest("onNeedSdp",
                           needSdpParams);
-
-  result->gatherCandidates([this, remotePlayerId](PeerRelay* relay, std::string const& sdp)
-  {
-    Json::Value gatheredSdpParams(Json::arrayValue);
-    gatheredSdpParams.append(mOptions.localPlayerId);
-    gatheredSdpParams.append(remotePlayerId);
-    gatheredSdpParams.append(sdp);
-    mRpcServer->sendRequest("onSdpGathered",
-                            gatheredSdpParams);
-  });
-
-  result->setIceAgentStateCallback([this, remotePlayerId](PeerRelay* relay, IceAgentState const& state)
-  {
-    Json::Value iceStateParams(Json::arrayValue);
-    iceStateParams.append(mOptions.localPlayerId);
-    iceStateParams.append(remotePlayerId);
-    iceStateParams.append(stateToString(state));
-    mRpcServer->sendRequest("onPeerStateChanged",
-                            iceStateParams);
-  });
 
   mRelays[remotePlayerId] = result;
   return result;
