@@ -2,6 +2,8 @@
 
 #include <string>
 #include <vector>
+#include <functional>
+
 #include <json/json.h>
 
 struct GPGNetMessage
@@ -16,5 +18,5 @@ struct GPGNetMessage
        \returns The number of bytes read from the buffer on success
                 Or 0 on failure
       */
-  static int parse(char* start, int maxSize, GPGNetMessage& result);
+  static void parse(std::vector<char>& buffer, std::function<void (GPGNetMessage const&)> cb);
 };

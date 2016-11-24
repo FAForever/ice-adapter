@@ -118,90 +118,11 @@ bool GPGNetConnection::onRead(Glib::IOCondition /*condition*/)
 
 void GPGNetConnection::parseMessages()
 {
-  auto it = mMessage.begin();
-
-  auto bytesLeft = [this, it]()
+  GPGNetMessage::parse(mMessage, [this](GPGNetMessage const& msg)
   {
-    return mMessage.end() - it;
-  };
-
-  while(it != mMessage.end())
-  {
-    int32_t headerLength;
-    if (bytesLeft() <= sizeof(int32_t))
-    {
-      return;
-    }
-    headerLength = *reinterpret_cast<int32_t*>(&*it);
-    it += sizeof(int32_t);
-    if (bytesLeft() < headerLength)
-    {
-      return;
-    }
-
-    GPGNetMessage message;
-    message.header = std::string(&*it, headerLength);
-    it += headerLength;
-
-    int32_t chunkCount;
-    if (bytesLeft() < sizeof(int32_t))
-    {
-      return;
-    }
-    chunkCount = *reinterpret_cast<int32_t*>(&*it);
-    it += sizeof (int32_t);
-    message.chunks.resize(chunkCount);
-
-    for (int chunkIndex = 0; chunkIndex < chunkCount; ++chunkIndex)
-    {
-      int8_t type;
-      if (bytesLeft() < sizeof(int8_t))
-      {
-        return;
-      }
-      type = *reinterpret_cast<int8_t*>(&*it);
-      it += sizeof(int8_t);
-      int32_t length;
-      if (bytesLeft() < sizeof(int32_t))
-      {
-        return;
-      }
-      length = *reinterpret_cast<int32_t*>(&*it);
-      it += sizeof(int32_t);
-
-      // Special-case for int (which uses the length field to hold the payload).
-      if (type == 0)
-      {
-        message.chunks[chunkIndex] = length;
-        continue;
-      }
-
-      if (type != 1)
-      {
-        FAF_LOG_ERROR << "GPGNetMessage type " << static_cast<int>(type) << " not supported";
-        return;
-      }
-
-      if (bytesLeft() < length)
-      {
-        return;
-      }
-      message.chunks[chunkIndex] = std::string(&*it, length);
-      it += length;
-    }
-
-    debugOutputMessage(message);
-    mServer->onGPGNetMessage(message);
-
-#if 0
-    /* TODO: stop copying the buffer to pos 0,
-     * and move the start pos */
-#endif
-  }
-  /* Now move the remaining bytes in the buffer to the start
-   * of the buffer */
-  FAF_LOG_TRACE << "erasing " << it - mMessage.begin() << " bytes just read";
-  mMessage.erase(mMessage.begin(), it);
+    debugOutputMessage(msg);
+    mServer->onGPGNetMessage(msg);
+  });
 }
 
 void GPGNetConnection::debugOutputMessage(GPGNetMessage const& msg)

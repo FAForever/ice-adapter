@@ -43,7 +43,7 @@ add_library(fafice
     JsonRpcTcpSession.cpp
     GPGNetServer.cpp
     GPGNetConnection.cpp
-    GPGNetMessage.h
+    GPGNetMessage.cpp
     logging.cpp
     PeerRelay.cpp
 )
