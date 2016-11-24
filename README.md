@@ -112,8 +112,8 @@ To circumvent mixing of mainloops, the remaining networking part of `faf-ice-ada
 All current dependencies are
 - libnice for ICE
 - jsoncpp for JSON
-- boost for logging (totally negotiable, since boost is not a leightwight dependency)
-- giomm for TCP/UDP servers
+- boost for logging and program options (totally negotiable, since boost is not a lightweight dependency)
+- giomm for network sockets
 
 ### Cross compile for Windows
 The easy way I used to build the static Windows exe is the remarkable [MXE project](https://github.com/mxe/mxe). These build instructions should work on Linux:
@@ -125,7 +125,7 @@ cd ..
 git clone https://github.com/FAForever/ice-adapter.git ice-adapter && cd ice-adapter
 mkdir build && cd build
 ../../mxe/usr/bin/i686-w64-mingw32.static-cmake ..
-make -8
+make
 ```
 
 ### From Windows
