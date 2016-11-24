@@ -4,25 +4,22 @@
 #include "logging.h"
 
 PeerRelay::PeerRelay(Glib::RefPtr<Glib::MainLoop> mainloop,
-                     int gamePort,
                      int peerId,
                      std::string const& peerLogin,
                      std::string const& stunIp,
                      std::string const& turnIp,
-                     std::string const& turnUser,
-                     std::string const& turnPassword,
                      CandidateGatheringDoneCallback gatherDoneCb,
-                     IceAgentStateCallback stateCb):
+                     IceAgentStateCallback stateCb,
+                     IceAdapterOptions const& options):
   mMainloop(mainloop),
   mPeerId(peerId),
   mPeerLogin(peerLogin),
   mStunIp(stunIp),
   mTurnIp(turnIp),
-  mTurnUser(turnUser),
-  mTurnPassword(turnPassword),
   mLocalGameUdpPort(0),
   mCandidateGatheringDoneCallback(gatherDoneCb),
-  mIceAgentStateCallback(stateCb)
+  mIceAgentStateCallback(stateCb),
+  mOptions(options)
 {
   createAgent();
 
@@ -33,7 +30,7 @@ PeerRelay::PeerRelay(Glib::RefPtr<Glib::MainLoop> mainloop,
 
   auto srcAddress = Gio::InetSocketAddress::create(
         Gio::InetAddress::create_loopback(Gio::SOCKET_FAMILY_IPV4),
-        mLocalGameUdpPort);
+        static_cast<guint16>(mLocalGameUdpPort));
   mLocalSocket->bind(srcAddress, false);
 
   auto isockaddr = Glib::RefPtr<Gio::InetSocketAddress>::cast_dynamic(mLocalSocket->get_local_address());
@@ -53,7 +50,7 @@ PeerRelay::PeerRelay(Glib::RefPtr<Glib::MainLoop> mainloop,
         Glib::IO_IN);
 
   mGameAddress = Gio::InetSocketAddress::create(Gio::InetAddress::create("127.0.0.1"),
-                                                gamePort);
+                                                static_cast<guint16>(mOptions.gameUdpPort));
   FAF_LOG_TRACE << "PeerRelay " << mPeerId << " constructed";
 }
 
@@ -109,8 +106,7 @@ void PeerRelay::createAgent()
                                          true,
                                          mStunIp,
                                          mTurnIp,
-                                         mTurnUser,
-                                         mTurnPassword);
+                                         mOptions);
 
   mIceAgent->setReceiveCallback([this](IceAgent* agent, std::string const& message)
   {

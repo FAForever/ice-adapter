@@ -6,6 +6,7 @@
 typedef struct _NiceAgent NiceAgent;
 typedef struct _GMainLoop GMainLoop;
 typedef struct _NiceCandidate NiceCandidate;
+class IceAdapterOptions;
 
 enum class IceAgentState
 {
@@ -27,8 +28,7 @@ public:
            bool controlling,
            std::string const& stunIp,
            std::string const& turnIp,
-           std::string const& turnUser,
-           std::string const& turnPassword);
+           IceAdapterOptions const& options);
   virtual ~IceAgent();
 
   void gatherCandidates();

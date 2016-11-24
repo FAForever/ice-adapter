@@ -5,6 +5,8 @@
 
 #include <giomm.h>
 
+#include "IceAdapterOptions.h"
+
 /* Forward declarations */
 class IceAgent;
 enum class IceAgentState;
@@ -16,15 +18,13 @@ public:
   typedef std::function<void (PeerRelay*, IceAgentState const&)> IceAgentStateCallback;
 
   PeerRelay(Glib::RefPtr<Glib::MainLoop> mainloop,
-            int gamePort,
             int peerId,
             std::string const& peerLogin,
             std::string const& stunIp,
             std::string const& turnIp,
-            std::string const& turnUser,
-            std::string const& turnPassword,
             CandidateGatheringDoneCallback gatherDoneCb,
-            IceAgentStateCallback stateCb
+            IceAgentStateCallback stateCb,
+            IceAdapterOptions const& options
             );
   virtual ~PeerRelay();
 
@@ -47,11 +47,10 @@ protected:
   std::string mPeerLogin;
   std::string mStunIp;
   std::string mTurnIp;
-  std::string mTurnUser;
-  std::string mTurnPassword;
   int mLocalGameUdpPort;
   std::shared_ptr<IceAgent> mIceAgent;
   Glib::RefPtr<Gio::SocketAddress> mGameAddress;
   CandidateGatheringDoneCallback mCandidateGatheringDoneCallback;
   IceAgentStateCallback mIceAgentStateCallback;
+  IceAdapterOptions mOptions;
 };

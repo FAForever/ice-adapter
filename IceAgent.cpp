@@ -6,6 +6,7 @@
 #include <agent.h>
 #include <nice.h>
 
+#include "IceAdapterOptions.h"
 #include "logging.h"
 
 std::string stateToString(IceAgentState const& s)
@@ -79,11 +80,10 @@ IceAgent::IceAgent(GMainLoop* mainloop,
                    bool controlling,
                    std::string const& stunIp,
                    std::string const& turnIp,
-                   std::string const& turnUser,
-                   std::string const& turnPassword):
+                   IceAdapterOptions const& options):
   mAgent(nullptr),
-  mTurnUser(turnUser),
-  mTurnPassword(turnPassword),
+  mTurnUser(options.turnUser),
+  mTurnPassword(options.turnPass),
   mSdp(nullptr),
   mSdp64(nullptr),
   mHasRemoteSdp(false),
@@ -100,6 +100,7 @@ IceAgent::IceAgent(GMainLoop* mainloop,
   g_object_set(mAgent, "stun-server", stunIp.c_str(), nullptr);
   g_object_set(mAgent, "stun-server-port", 3478, nullptr);
   g_object_set(mAgent, "controlling-mode", controlling, nullptr);
+  g_object_set(mAgent, "upnp", options.useUpnp, nullptr);
 
   mStreamId = nice_agent_add_stream(mAgent, 1);
   if (mStreamId == 0)
@@ -114,6 +115,21 @@ IceAgent::IceAgent(GMainLoop* mainloop,
                             mTurnUser.c_str(),
                             mTurnPassword.c_str(),
                             NICE_RELAY_TYPE_TURN_UDP);
+
+  if (options.iceLocalPortMin > 0)
+  {
+    int maxPort = options.iceLocalPortMin + 20;
+    if (options.iceLocalPortMax > options.iceLocalPortMin)
+    {
+      maxPort = options.iceLocalPortMax;
+    }
+    nice_agent_set_port_range(mAgent,
+                              mStreamId,
+                              1,
+                              static_cast<guint>(options.iceLocalPortMin),
+                              static_cast<guint>(maxPort));
+  }
+
   /* crashes?
   nice_agent_set_relay_info(mAgent,
                             streamId,
@@ -150,7 +166,6 @@ IceAgent::IceAgent(GMainLoop* mainloop,
                    G_CALLBACK(cb_new_selected_pair_full),
                    this);
   FAF_LOG_TRACE << "IceAgent()";
-
 }
 
 IceAgent::~IceAgent()

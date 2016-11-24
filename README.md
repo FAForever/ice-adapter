@@ -69,17 +69,20 @@ The first two commandline arguments `--id` and `--login` must be specified like 
 The full commandline help text is:
 ```
 faf-ice-adapter usage:
-  --help                                produce help message
-  -i [ --id ] arg                       set the ID of the local player
-  -l [ --login ] arg                    set the login of the local player, e.g. "Rhiza"
-  -p [ --rpc-port ] arg (=7236)         set the port of internal JSON-RPC server
-  -g [ --gpgnet-port ] arg (=7237)      set the port of internal GPGNet server
-  -o [ --lobby-port ] arg (=7238)       set the port the game lobby should use for incoming UDP packets from the PeerRelay
-  -s [ --stun-host ] arg (=dev.faforever.com) set the STUN hostname
-  -t [ --turn-host ] arg (=dev.faforever.com) set the TURN hostname
-  -u [ --turn-user ] arg                set the TURN username
-  -x [ --turn-pass ] arg                set the TURN password
-  --log-file arg                        set a verbose log file
+--help                               produce help message
+--id arg                             set the ID of the local player
+--login arg                          set the login of the local player, e.g. "Rhiza"
+--rpc-port arg (=7236)               set the port of internal JSON-RPC server
+--ice-port-min arg (=-1)             start of port range to use for ICE local host candidates
+--ice-port-max arg (=-1)             end of port range to use for ICE local host candidates
+--upnp arg (=1)                      use UPNP for NAT router port configuration
+--gpgnet-port arg (=7237)            set the port of internal GPGNet server
+--lobby-port arg (=7238)             set the port the game lobby should use for incoming UDP packets from the PeerRelay
+--stun-host arg (=dev.faforever.com) set the STUN hostname
+--turn-host arg (=dev.faforever.com) set the TURN hostname
+--turn-user arg                      set the TURN username
+--turn-pass arg                      set the TURN password
+--log-file arg                       set a verbose log file
 ```
 
 ## Example usage sequence

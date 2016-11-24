@@ -500,15 +500,13 @@ std::shared_ptr<PeerRelay> IceAdapter::createPeerRelay(int remotePlayerId,
   };
 
   auto result = std::make_shared<PeerRelay>(mMainloop,
-                                            mOptions.gameUdpPort,
                                             remotePlayerId,
                                             remotePlayerLogin,
                                             mStunIp,
                                             mTurnIp,
-                                            mOptions.turnUser,
-                                            mOptions.turnPass,
                                             gatherDoneCb,
-                                            stateCb);
+                                            stateCb,
+                                            mOptions);
   portResult = result->port();
 
   Json::Value needSdpParams(Json::arrayValue);
