@@ -115,6 +115,14 @@ IceAgent::IceAgent(GMainLoop* mainloop,
                             mTurnUser.c_str(),
                             mTurnPassword.c_str(),
                             NICE_RELAY_TYPE_TURN_UDP);
+  nice_agent_set_relay_info(mAgent,
+                            mStreamId,
+                            1,
+                            turnIp.c_str(),
+                            3478,
+                            mTurnUser.c_str(),
+                            mTurnPassword.c_str(),
+                            NICE_RELAY_TYPE_TURN_TCP);
 
   if (options.iceLocalPortMin > 0)
   {
