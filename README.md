@@ -31,6 +31,7 @@ The internal server was tested against [bjsonrpc](https://github.com/deavid/bjso
 #### Status structure
 ```
 {
+"version" : /* string: faf-ice-adapter version */
 "options" : /* The commandline options */
 "gpgnet" : { /* The GPGNet state */
   "local_port" : /*int: The port the game should connect to via /gpgnet 127.0.0.1:port*/

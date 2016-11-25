@@ -15,6 +15,7 @@ IceAdapter::IceAdapter(IceAdapterOptions const& options,
   mMainloop(mainloop),
   mTaskState(IceAdapterTaskState::NoTask)
 {
+  FAF_LOG_INFO << "ICE adapter version " << FAF_VERSION_STRING << " initializing";
   mRpcServer    = std::make_shared<JsonRpcTcpServer>(mOptions.rpcPort);
   mGPGNetServer = std::make_shared<GPGNetServer>(mOptions.gpgNetPort);
   mGPGNetServer->addGpgMessageCallback(std::bind(&IceAdapter::onGpgNetMessage,
@@ -143,6 +144,7 @@ void IceAdapter::sendToGpgNet(GPGNetMessage const& message)
 Json::Value IceAdapter::status() const
 {
   Json::Value result;
+  result["version"] = FAF_VERSION_STRING;
   /* options */
   {
     Json::Value options;
@@ -150,6 +152,9 @@ Json::Value IceAdapter::status() const
     options["player_id"]            = mOptions.localPlayerId;
     options["player_login"]         = std::string(mOptions.localPlayerLogin);
     options["rpc_port"]             = mOptions.rpcPort;
+    options["ice_local_port_min"]   = mOptions.iceLocalPortMin;
+    options["ice_local_port_max"]   = mOptions.iceLocalPortMax;
+    options["use_upnp"]             = mOptions.useUpnp;
     options["gpgnet_port"]          = mOptions.gpgNetPort;
     options["game_udp_port"]        = mOptions.gameUdpPort;
     options["stun_host"]            = std::string(mOptions.stunHost);

@@ -18,6 +18,18 @@ endif()
 
 #set(CMAKE_CXX_FLAGS_DEBUG "${CMAKE_CXX_FLAGS_DEBUG} -pedantic -Wall -Wextra -Wcast-align -Wcast-qual -Wctor-dtor-privacy -Wdisabled-optimization -Wformat=2 -Winit-self -Wlogical-op -Wmissing-include-dirs -Wnoexcept -Wold-style-cast -Woverloaded-virtual -Wredundant-decls -Wshadow -Wsign-promo -Wstrict-null-sentinel -Wstrict-overflow=5 -Wswitch-default -Wundef -Wno-unused")
 
+find_package(Git)
+if(GIT_FOUND)
+  execute_process(
+    COMMAND ${GIT_EXECUTABLE} describe --tags
+    OUTPUT_VARIABLE FAF_VERSION_STRING
+    WORKING_DIRECTORY ${PROJECT_SOURCE_DIR}
+    )
+  string(STRIP ${FAF_VERSION_STRING} FAF_VERSION_STRING)
+else()
+  set(FAF_VERSION_STRING  "unknown")
+endif()
+
 if(NOT PKGCONFIG_FOUND)
   find_package(PkgConfig REQUIRED)
 endif()
@@ -47,6 +59,7 @@ add_library(fafice
     logging.cpp
     PeerRelay.cpp
 )
+target_compile_definitions(fafice PRIVATE FAF_VERSION_STRING="${FAF_VERSION_STRING}")
 
 add_library(fafice-test
   STATIC
