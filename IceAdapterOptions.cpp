@@ -18,7 +18,7 @@ IceAdapterOptions IceAdapterOptions::init(int argc, char *argv[])
 
   try
   {
-      po::options_description desc("faf-ice-adapter usage");
+      po::options_description desc(std::string("faf-ice-adapter ") + FAF_VERSION_STRING + " usage");
       desc.add_options()
         ("help",           "produce help message")
         ("id",           po::value<int>(&result.localPlayerId)->required(),                            "set the ID of the local player")
