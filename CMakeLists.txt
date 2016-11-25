@@ -86,8 +86,10 @@ if(NOT MINGW)
 endif()
 
 # Strip exe to reduce file size
-add_custom_command(TARGET faf-ice-adapter
-  POST_BUILD
-  COMMAND ${CMAKE_STRIP} -s "$<TARGET_FILE:faf-ice-adapter>"
-  COMMENT "Stripping executable $<TARGET_FILE_NAME:faf-ice-adapter>"
-  )
+if (NOT CMAKE_BUILD_TYPE STREQUAL "Debug")
+  add_custom_command(TARGET faf-ice-adapter
+    POST_BUILD
+    COMMAND ${CMAKE_STRIP} -s "$<TARGET_FILE:faf-ice-adapter>"
+    COMMENT "Stripping executable $<TARGET_FILE_NAME:faf-ice-adapter>"
+    )
+endif()
