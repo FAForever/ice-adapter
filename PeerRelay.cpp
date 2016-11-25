@@ -59,6 +59,18 @@ PeerRelay::~PeerRelay()
   FAF_LOG_TRACE << "PeerRelay " << mPeerId << " destructed";
 }
 
+void PeerRelay::setPeer(int peerId,
+                        std::string const& peerLogin)
+{
+  mPeerId = peerId;
+  mPeerLogin = peerLogin;
+}
+
+int PeerRelay::peerId() const
+{
+  return mPeerId;
+}
+
 int PeerRelay::localGameUdpPort() const
 {
   return mLocalGameUdpPort;
@@ -67,11 +79,6 @@ int PeerRelay::localGameUdpPort() const
 std::shared_ptr<IceAgent> PeerRelay::iceAgent() const
 {
   return mIceAgent;
-}
-
-int PeerRelay::port() const
-{
-  return mLocalGameUdpPort;
 }
 
 std::string const& PeerRelay::peerLogin() const

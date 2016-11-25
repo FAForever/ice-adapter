@@ -5,6 +5,7 @@ An [ICE](https://en.wikipedia.org/wiki/Interactive_Connectivity_Establishment) a
 ## JSONRPC Protocol
 The `faf-ice-adapter` is controlled using a bi-directional [JSON-RPC](http://www.jsonrpc.org/specification) interface over TCP.
 The internal server was tested against [bjsonrpc](https://github.com/deavid/bjsonrpc).
+Not that all JSON messages are newline terminated.
 
 ### Methods (client ➠ faf-ice-adapter)
 
@@ -17,7 +18,8 @@ The internal server was tested against [bjsonrpc](https://github.com/deavid/bjso
 | disconnectFromPeer | remotePlayerId (int)| "ok" | Create a PeerRelay and tell the game to connect to the remote peer. |
 | setSdp | remotePlayerId (int), sdp64 (string) | "ok" | Set the remote SDP to the PeerRelay to establish a connection. |
 | sendToGpgNet | header (string), chunks (array) | "ok" | Send an arbitrary message to the game. |
-| status | header (string), chunks (array) | [status structure](#Status structure) | Polls the current status of the `faf-ice-adapter`. |
+| status | | [status structure](#Status structure) | Polls the current status of the `faf-ice-adapter`. |
+| reserveRelays | count (int) | "ok" | Reserve `count` peers. Note that all currently running and reserved relays are already count as reserved. |
 
 ### Notifications (faf-ice-adapter ➠ client )
 | Name | Parameters | Description |

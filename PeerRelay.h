@@ -28,11 +28,14 @@ public:
             );
   virtual ~PeerRelay();
 
+  void setPeer(int peerId,
+               std::string const& peerLogin);
+
+  int peerId() const;
+
   int localGameUdpPort() const;
 
   std::shared_ptr<IceAgent> iceAgent() const;
-
-  int port() const;
 
   std::string const& peerLogin() const;
 

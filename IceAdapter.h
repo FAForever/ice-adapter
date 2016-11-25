@@ -2,7 +2,7 @@
 
 #include <string>
 #include <memory>
-#include <vector>
+#include <queue>
 
 #include <glibmm.h>
 
@@ -68,11 +68,7 @@ public:
   void connectToPeer(std::string const& remotePlayerLogin,
                      int remotePlayerId);
 
-  /** \brief Calls ICE restart
-   *   \see https://nice.freedesktop.org/libnice/NiceAgent.html#nice-agent-restart
-   *   \see https://tools.ietf.org/html/rfc5245#section-9.1.1.1
-   *   \see https://tools.ietf.org/html/rfc5245#section-9.2.1.1
-       \param remotePlayerId:    ID of the player to restart ICE with
+  /** \brief Not sure yet
       */
   void reconnectToPeer(int remotePlayerId);
 
@@ -98,6 +94,12 @@ public:
        \returns The status as JSON structure
       */
   Json::Value status() const;
+
+  /** \brief Reserves relays for future use
+   *         Note that all currently running relays are already count as reserved
+       \param count: The accumulated number of reserved relays
+      */
+  void reserveRelays(int count);
 protected:
   void onGpgNetMessage(GPGNetMessage const& message);
   void onGpgConnectionStateChanged(ConnectionState const& s);
@@ -105,6 +107,10 @@ protected:
   void connectRpcMethods();
 
   void tryExecuteTask();
+
+  std::shared_ptr<PeerRelay> createPeerRelayOrUseReserved(int remotePlayerId,
+                                                          std::string const& remotePlayerLogin,
+                                                          int& portResult);
 
   std::shared_ptr<PeerRelay> createPeerRelay(int remotePlayerId,
                                              std::string const& remotePlayerLogin,
@@ -125,6 +131,7 @@ protected:
   std::string mGPGNetGameState;
 
   std::map<int, std::shared_ptr<PeerRelay>> mRelays;
+  std::queue<std::shared_ptr<PeerRelay>> mReservedRelays;
 
   IceAdapterTaskState mTaskState;
 };
