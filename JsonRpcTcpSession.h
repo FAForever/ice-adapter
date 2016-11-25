@@ -29,6 +29,6 @@ protected:
 
   Glib::RefPtr<Gio::Socket> mSocket;
   std::array<char, 4096> mReadBuffer;
-  std::vector<char> mMessage;
+  std::string mMessage;
   JsonRpcTcpServer* mServer;
 };

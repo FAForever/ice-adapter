@@ -1,5 +1,8 @@
 #include "JsonRpcTcpSession.h"
 
+#include <sstream>
+#include <streambuf>
+
 #include "JsonRpcTcpServer.h"
 #include "logging.h"
 
@@ -59,7 +62,9 @@ bool JsonRpcTcpSession::onRead(Glib::IOCondition condition)
     {
       auto receiveCount = mSocket->receive(mReadBuffer.data(),
                                            mReadBuffer.size());
-      mMessage.insert(mMessage.end(), mReadBuffer.begin(), mReadBuffer.begin() + receiveCount);
+      //mMessage.insert(mMessage.end(), mReadBuffer.begin(), mReadBuffer.begin() + receiveCount);
+      mMessage.append(mReadBuffer.data(),
+                      receiveCount);
       return receiveCount;
     }
     catch (const Glib::Error& e)
@@ -85,11 +90,24 @@ bool JsonRpcTcpSession::onRead(Glib::IOCondition condition)
 
     Json::Value jsonMessage;
     Json::Reader r;
-    if (r.parse(mMessage.data(),
-                mMessage.data() + mMessage.size(),
-                jsonMessage))
+
+    std::istringstream is(mMessage);
+    mMessage.clear();
+    while (true)
     {
-      mMessage.clear();
+      std::string doc;
+      std::getline(is, doc, '\n');
+      if (doc.empty())
+      {
+        break;
+      }
+      FAF_LOG_TRACE << "parsing JSON:" << doc;
+      if(!r.parse(doc, jsonMessage))
+      {
+        FAF_LOG_TRACE << "storing doc:" << doc;
+        mMessage = doc;
+        break;
+      }
       if (jsonMessage.isMember("method"))
       {
         Json::Value response = processRequest(jsonMessage);
@@ -98,17 +116,12 @@ bool JsonRpcTcpSession::onRead(Glib::IOCondition condition)
         FAF_LOG_TRACE << "sending response:" << responseString;
         auto numSent = mSocket->send(responseString.c_str(),
                                      responseString.size());
-        FAF_LOG_TRACE << numSent << " bytes sent";
       }
       else if (jsonMessage.isMember("error") ||
                jsonMessage.isMember("result"))
       {
         processResponse(jsonMessage);
       }
-    }
-    else
-    {
-      BOOST_LOG_TRIVIAL(warning) << "problems parsing";
     }
   }
   catch (std::exception& e)
