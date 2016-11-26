@@ -59,7 +59,7 @@ Not that all JSON messages are newline terminated.
       "remote_candidate": /*string: The remote connection information negotiated */
       "local_sdp": /*string: The unencoded local SDP*/
       "local_sdp64": /*string: The Base64 encoded local SDP*/
-      "remote_sdp64": /*string: The Base64 encoded remote SDP*/
+      "remote_sdp": /*string: The unencoded remote SDP*/
       }
     },
   ...
