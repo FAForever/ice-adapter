@@ -174,7 +174,7 @@ bool PeerRelay::onGameReceive(Glib::IOCondition condition)
   }
   else
   {
-    FAF_LOG_ERROR << "mIceAgent not ready";
+    FAF_LOG_DEBUG << "dropping " << size << " game bytes while waiting for ICE connection";
   }
   return true;
 }
