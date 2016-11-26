@@ -115,6 +115,7 @@ IceAgent::IceAgent(GMainLoop* mainloop,
                             mTurnUser.c_str(),
                             mTurnPassword.c_str(),
                             NICE_RELAY_TYPE_TURN_UDP);
+  /*
   nice_agent_set_relay_info(mAgent,
                             mStreamId,
                             1,
@@ -123,6 +124,7 @@ IceAgent::IceAgent(GMainLoop* mainloop,
                             mTurnUser.c_str(),
                             mTurnPassword.c_str(),
                             NICE_RELAY_TYPE_TURN_TCP);
+  */
 
   if (options.iceLocalPortMin > 0)
   {
@@ -227,13 +229,16 @@ void IceAgent::setStateCallback(StateCallback cb)
 
 void IceAgent::setRemoteSdp(std::string const& sdpBase64)
 {
-  mRemoteSdp64 = sdpBase64;
   gsize sdp_len;
-  char* sdp = reinterpret_cast<char*>(g_base64_decode(mRemoteSdp64.c_str(), &sdp_len));
-  mRemoteSdp64 = std::string(sdp, sdp_len);
-  g_free (sdp);
+  char* decoded_sdp = reinterpret_cast<char*>(g_base64_decode(sdpBase64.c_str(), &sdp_len));
+  if (!decoded_sdp)
+  {
+    throw std::runtime_error("g_base64_decode() failed");
+  }
+  mRemoteSdp = std::string(decoded_sdp, sdp_len);
+  g_free(decoded_sdp);
 
-  int res = nice_agent_parse_remote_sdp(mAgent, mRemoteSdp64.c_str());
+  int res = nice_agent_parse_remote_sdp(mAgent, mRemoteSdp.c_str());
   if (res <= 0)
   {
     FAF_LOG_ERROR << "res " << res;
@@ -298,9 +303,9 @@ std::string IceAgent::localSdp64() const
   }
 }
 
-std::string IceAgent::remoteSdp64() const
+std::string IceAgent::remoteSdp() const
 {
-  return mRemoteSdp64;
+  return mRemoteSdp;
 }
 
 IceAgentState IceAgent::state() const

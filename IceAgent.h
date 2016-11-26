@@ -52,7 +52,7 @@ public:
 
   std::string localSdp() const;
   std::string localSdp64() const;
-  std::string remoteSdp64() const;
+  std::string remoteSdp() const;
 
   IceAgentState state() const;
 
@@ -68,11 +68,11 @@ protected:
   std::string mTurnPassword;
   char* mSdp;
   char* mSdp64;
+  std::string mRemoteSdp;
   bool mHasRemoteSdp;
   bool mConnected;
   std::string mLocalCandidateInfo;
   std::string mRemoteCandidateInfo;
-  std::string mRemoteSdp64;
 
   CandidateGatheringDoneCallback mGatheringDoneCallback;
   ReceiveCallback mReceiveCallback;
