@@ -5,6 +5,8 @@
 #include "IceAdapterOptions.h"
 #include "logging.h"
 
+#include <nice.h>
+
 namespace sigc {
   SIGC_FUNCTORS_DEDUCE_RESULT_TYPE_WITH_DECLTYPE
 }
@@ -16,6 +18,8 @@ int main(int argc, char *argv[])
     Gio::init();
 
     logging_init();
+
+    nice_debug_disable(true);
 
     auto options = IceAdapterOptions::init(argc, argv);
 
