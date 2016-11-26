@@ -9,6 +9,8 @@
 #include "IceAgent.h"
 #include "logging.h"
 
+const int DUMMY_RESERVED_PLAYER_ID = -1;
+
 IceAdapter::IceAdapter(IceAdapterOptions const& options,
                        Glib::RefPtr<Glib::MainLoop> mainloop):
   mOptions(options),
@@ -202,7 +204,7 @@ Json::Value IceAdapter::status() const
         relay["ice_agent"]["remote_candidate"] = it->second->iceAgent()->remoteCandidateInfo();
         relay["ice_agent"]["local_sdp"] = it->second->iceAgent()->localSdp();
         relay["ice_agent"]["local_sdp64"] = it->second->iceAgent()->localSdp64();
-        relay["ice_agent"]["remote_sdp64"] = it->second->iceAgent()->remoteSdp64();
+        relay["ice_agent"]["remote_sdp"] = it->second->iceAgent()->remoteSdp();
       }
 
       relays.append(relay);
@@ -222,7 +224,7 @@ void IceAdapter::reserveRelays(int count)
   for (int i = 0; i < newRelays; ++i)
   {
     int relayPort;
-    auto relay = createPeerRelay(-1,
+    auto relay = createPeerRelay(DUMMY_RESERVED_PLAYER_ID,
                                  "",
                                  relayPort);
     if (relay)
@@ -534,7 +536,7 @@ std::shared_ptr<PeerRelay> IceAdapter::createPeerRelayOrUseReserved(int remotePl
                    remotePlayerLogin);
     portResult = relay->localGameUdpPort();
 
-    /* if we already gathered a SDP for this reserved relay, forward it */
+    /* if we already gathered a SDP for this reserved relay, forward it on next tick */
     Glib::signal_idle().connect_once([this, relay]()
     {
       Json::Value needSdpParams(Json::arrayValue);
@@ -552,7 +554,7 @@ std::shared_ptr<PeerRelay> IceAdapter::createPeerRelayOrUseReserved(int remotePl
         mRpcServer->sendRequest("onSdpGathered",
                                 gatheredSdpParams);
       }
-    },0);
+    }, 0);
     return relay;
   }
   else
@@ -571,7 +573,7 @@ std::shared_ptr<PeerRelay> IceAdapter::createPeerRelay(int remotePlayerId,
   auto gatherDoneCb = [this](PeerRelay* relay, std::string const& sdp)
   {
     /* Only non-reserved relays will be forwarded */
-    if (relay->peerId() >= 0)
+    if (relay->peerId() != DUMMY_RESERVED_PLAYER_ID)
     {
       Json::Value gatheredSdpParams(Json::arrayValue);
       gatheredSdpParams.append(mOptions.localPlayerId);
@@ -585,7 +587,7 @@ std::shared_ptr<PeerRelay> IceAdapter::createPeerRelay(int remotePlayerId,
   auto stateCb = [this](PeerRelay* relay, IceAgentState const& state)
   {
     /* Only non-reserved relays will be forwarded */
-    if (relay->peerId() >= 0)
+    if (relay->peerId() != DUMMY_RESERVED_PLAYER_ID)
     {
       Json::Value iceStateParams(Json::arrayValue);
       iceStateParams.append(mOptions.localPlayerId);
