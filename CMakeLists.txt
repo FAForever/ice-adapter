@@ -1,7 +1,6 @@
 cmake_minimum_required(VERSION 3.0)
 
 project(faf-ice-adapter
-  VERSION 0.1
   LANGUAGES CXX C
   )
 
@@ -18,33 +17,44 @@ endif()
 
 #set(CMAKE_CXX_FLAGS_DEBUG "${CMAKE_CXX_FLAGS_DEBUG} -pedantic -Wall -Wextra -Wcast-align -Wcast-qual -Wctor-dtor-privacy -Wdisabled-optimization -Wformat=2 -Winit-self -Wlogical-op -Wmissing-include-dirs -Wnoexcept -Wold-style-cast -Woverloaded-virtual -Wredundant-decls -Wshadow -Wsign-promo -Wstrict-null-sentinel -Wstrict-overflow=5 -Wswitch-default -Wundef -Wno-unused")
 
-find_package(Git)
-if(GIT_FOUND)
-  execute_process(
-    COMMAND ${GIT_EXECUTABLE} describe --tags
-    OUTPUT_VARIABLE FAF_VERSION_STRING
-    WORKING_DIRECTORY ${PROJECT_SOURCE_DIR}
-    )
-  string(STRIP ${FAF_VERSION_STRING} FAF_VERSION_STRING)
-else()
-  set(FAF_VERSION_STRING  "unknown")
+if(NOT FAF_VERSION_STRING)
+  find_package(Git)
+  if(GIT_FOUND)
+    execute_process(
+      COMMAND ${GIT_EXECUTABLE} describe --tags
+      OUTPUT_VARIABLE FAF_VERSION_STRING
+      WORKING_DIRECTORY ${PROJECT_SOURCE_DIR}
+      )
+    string(STRIP ${FAF_VERSION_STRING} FAF_VERSION_STRING)
+  else()
+    set(FAF_VERSION_STRING  "unknown")
+  endif()
 endif()
 
 if(NOT PKGCONFIG_FOUND)
   find_package(PkgConfig REQUIRED)
 endif()
-pkg_search_module(NICE REQUIRED nice)
-pkg_search_module(JSON REQUIRED jsoncpp)
 
-include_directories(${NICE_INCLUDE_DIRS})
-include_directories(${JSON_INCLUDE_DIRS})
+if(NOT (NICE_LIBRARIES AND NICE_INCLUDE_DIRS))
+  pkg_search_module(NICE REQUIRED nice)
+endif()
+
+if(NOT (JSON_LIBRARIES AND JSON_INCLUDE_DIRS))
+  pkg_search_module(JSON REQUIRED jsoncpp)
+endif()
+
+if(NOT (GIOMM_LIBRARIES AND GIOMM_INCLUDE_DIRS))
+  pkg_search_module(GIOMM REQUIRED giomm-2.4)
+endif()
 
 find_package(Boost REQUIRED COMPONENTS log program_options thread system)
 
-add_custom_target(docs SOURCES README.md LICENSE)
-
-pkg_search_module(GIOMM REQUIRED giomm-2.4)
+include_directories(${Boost_INCLUDE_DIRS})
+include_directories(${NICE_INCLUDE_DIRS})
+include_directories(${JSON_INCLUDE_DIRS})
 include_directories(${GIOMM_INCLUDE_DIRS})
+
+add_custom_target(docs SOURCES README.md LICENSE)
 
 add_library(fafice
   STATIC
