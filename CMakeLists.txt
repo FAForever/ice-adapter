@@ -64,10 +64,10 @@ add_library(fafice
     JsonRpcTcpServer.cpp
     JsonRpcTcpSession.cpp
     GPGNetServer.cpp
-    GPGNetConnection.cpp
     GPGNetMessage.cpp
     logging.cpp
     PeerRelay.cpp
+    TcpServer.cpp
 )
 target_compile_definitions(fafice PRIVATE FAF_VERSION_STRING="${FAF_VERSION_STRING}")
 

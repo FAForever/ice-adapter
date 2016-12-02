@@ -174,7 +174,7 @@ Json::Value IceAdapter::status() const
   {
     Json::Value gpgnet;
 
-    gpgnet["local_port"] = mGPGNetServer->port();
+    gpgnet["local_port"] = mGPGNetServer->listenPort();
     gpgnet["connected"] = mGPGNetServer->connectionState() == ConnectionState::Connected;
     gpgnet["game_state"] = mGPGNetGameState;
 

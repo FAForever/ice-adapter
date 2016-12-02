@@ -14,6 +14,9 @@ struct GPGNetMessage
   std::string header; /*!< Message type like "CreateLobby" or "ConnectToPeer" */
   std::vector<Json::Value> chunks; /*!< parameters */
 
+  std::string toBinary() const;
+  std::string toDebug() const;
+
   /** \brief Parse a GPGNetMessage from char*
        \param start: Start of the buffer
        \param maxSize: End of the buffer

@@ -1,10 +1,8 @@
 #pragma once
 
-#include <memory>
-#include <vector>
 #include <functional>
 
-#include <giomm.h>
+#include "TcpServer.h"
 
 namespace Json
 {
@@ -14,7 +12,6 @@ namespace Json
 namespace faf
 {
 
-class GPGNetConnection;
 struct GPGNetMessage;
 
 enum class InitMode : unsigned int
@@ -29,7 +26,7 @@ enum class ConnectionState
   Disconnected
 };
 
-class GPGNetServer
+class GPGNetServer : public TcpServer
 {
 public:
   /** \brief create a GPGNetServer instance
@@ -102,20 +99,16 @@ public:
   typedef std::function<void (ConnectionState const&)> ConnectionStateCallback;
   void addConnectionStateCallback(ConnectionStateCallback cb);
 
+  /** \brief Returns whether FA is connected
+      */
   ConnectionState connectionState() const;
-
-  guint16 port() const;
 protected:
-  void onCloseConnection(GPGNetConnection* connection);
-  void onGPGNetMessage(GPGNetMessage const& msg);
+  virtual bool parseMessage(std::vector<char>& msgBuffer);
+  void onConnected();
+  void onDisconnected();
 
-  friend GPGNetConnection;
-
-  Glib::RefPtr<Gio::Socket> mListenSocket;
-  std::shared_ptr<GPGNetConnection> mConnection;
   std::vector<GpgMessageCallback> mGPGNetMessageCallbacks;
   std::vector<ConnectionStateCallback> mConnectionStateCallbacks;
-  int mPort;
 };
 
 }

@@ -4,7 +4,7 @@
 
 #include <sigc++/sigc++.h>
 
-#include "GPGNetConnection.h"
+#include "GPGNetMessage.h"
 #include "logging.h"
 
 namespace sigc {
@@ -15,56 +15,9 @@ namespace faf
 {
 
 GPGNetServer::GPGNetServer(int port):
-  mPort(port)
+  TcpServer(port)
 {
-  mListenSocket = Gio::Socket::create(Gio::SOCKET_FAMILY_IPV4,
-                                      Gio::SOCKET_TYPE_STREAM,
-                                      Gio::SOCKET_PROTOCOL_DEFAULT);
-  mListenSocket->set_blocking(false);
-
-  auto srcAddress =
-    Gio::InetSocketAddress::create(Gio::InetAddress::create_loopback(Gio::SOCKET_FAMILY_IPV4),
-                                   mPort);
-  mListenSocket->bind(srcAddress, false);
-  mListenSocket->listen();
-
-  auto isockaddr = Glib::RefPtr<Gio::InetSocketAddress>::cast_dynamic(mListenSocket->get_local_address());
-  if (isockaddr)
-  {
-    mPort = isockaddr->get_port();
-    FAF_LOG_TRACE << "GPGNetServer listening on port " << mPort;
-  }
-  else
-  {
-    FAF_LOG_ERROR << "!isockaddr";
-  }
-
-  Gio::signal_socket().connect([this](Glib::IOCondition condition)
-  {
-    try
-    {
-      if (mConnection)
-      {
-        FAF_LOG_ERROR << "simultaneous GPGNetConnections are not supported";
-        return true;
-      }
-      auto newSocket = mListenSocket->accept();
-      mConnection = std::make_shared<GPGNetConnection>(this,
-                                                       newSocket);
-      FAF_LOG_TRACE << "new GPGNetConnection created";
-
-      for (auto cb : mConnectionStateCallbacks)
-      {
-        cb(ConnectionState::Connected);
-      }
-    }
-    catch (std::exception& e)
-    {
-      FAF_LOG_ERROR << "error in connecting: " << e.what();
-      return true;
-    }
-    return true;
-  }, mListenSocket, Glib::IO_IN);
+  FAF_LOG_TRACE << "GPGNetServer()";
 }
 
 GPGNetServer::~GPGNetServer()
@@ -74,11 +27,15 @@ GPGNetServer::~GPGNetServer()
 
 void GPGNetServer::sendMessage(GPGNetMessage const& msg)
 {
-  if (!mConnection)
+  if (mSessions.empty())
   {
     throw std::runtime_error(std::string("No GPGNetConnection. Wait for the game to connect first."));
   }
-  mConnection->sendMessage(msg);
+  for (auto it = mSessions.begin(), end = mSessions.end(); it != end; ++it)
+  {
+    (*it)->send(msg.toBinary());
+  }
+  FAF_LOG_TRACE << "sending " << msg.toDebug();
 }
 
 void GPGNetServer::sendCreateLobby(InitMode initMode,
@@ -178,7 +135,7 @@ void GPGNetServer::addConnectionStateCallback(ConnectionStateCallback cb)
 
 ConnectionState GPGNetServer::connectionState() const
 {
-  if (mConnection)
+  if (mSessions.size())
   {
     return ConnectionState::Connected;
   }
@@ -188,26 +145,32 @@ ConnectionState GPGNetServer::connectionState() const
   }
 }
 
-guint16 GPGNetServer::port() const
+bool GPGNetServer::parseMessage(std::vector<char>& msgBuffer)
 {
-  return mPort;
+  GPGNetMessage::parse(msgBuffer, [this](GPGNetMessage const& msg)
+  {
+    FAF_LOG_TRACE << "received " << msg.toDebug();
+    for (auto cb : mGPGNetMessageCallbacks)
+    {
+      cb(msg);
+    }
+  });
+  return false;
 }
 
-void GPGNetServer::onCloseConnection(GPGNetConnection* connection)
+void GPGNetServer::onConnected()
 {
-  mConnection.reset();
   for (auto cb : mConnectionStateCallbacks)
   {
-    cb(ConnectionState::Disconnected);
+    cb(ConnectionState::Connected);
   }
 }
 
-
-void GPGNetServer::onGPGNetMessage(GPGNetMessage const& msg)
+void GPGNetServer::onDisconnected()
 {
-  for (auto cb : mGPGNetMessageCallbacks)
+  for (auto cb : mConnectionStateCallbacks)
   {
-    cb(msg);
+    cb(ConnectionState::Disconnected);
   }
 }
 

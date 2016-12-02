@@ -1,9 +1,67 @@
 #include "GPGNetMessage.h"
 
+#include <cstdint>
+
 #include "logging.h"
 
 namespace faf
 {
+
+std::string GPGNetMessage::toBinary() const
+{
+  std::string result;
+  int32_t headerLength = this->header.size();
+  int32_t chunkCount = this->chunks.size();
+  result.append(reinterpret_cast<char*>(&headerLength), sizeof(headerLength));
+  result.append(this->header.c_str(), this->header.size());
+  result.append(reinterpret_cast<char*>(&chunkCount), sizeof(chunkCount));
+
+  for(const auto chunk : this->chunks)
+  {
+    int8_t typeCode;
+    switch (chunk.type())
+    {
+      case Json::intValue:
+      case Json::uintValue:
+      case Json::booleanValue:
+      {
+        typeCode = 0;
+        result.append(reinterpret_cast<char*>(&typeCode), sizeof(typeCode));
+        int32_t value = chunk.asInt();
+        result.append(reinterpret_cast<char*>(&value), sizeof(value));
+      }
+        break;
+      case Json::stringValue:
+      {
+        typeCode = 1;
+        result.append(reinterpret_cast<char*>(&typeCode), sizeof(typeCode));
+        auto string = chunk.asString();
+        int32_t stringLength = string.size();
+        result.append(reinterpret_cast<char*>(&stringLength), sizeof(stringLength));
+        result.append(string.c_str(), string.size());
+      }
+        break;
+      default:
+        FAF_LOG_ERROR << "Unsupported Json chunk type " << chunk.type();
+        break;
+    }
+  }
+  return result;
+}
+
+std::string GPGNetMessage::toDebug() const
+{
+  std::ostringstream os;
+  os << "GPGNetMessage <" <<
+        this->header <<
+        "> [";
+  for(auto const& chunk : this->chunks)
+  {
+    os<< chunk << ", ";
+  }
+  os << "]";
+  return os.str();
+}
 
 void GPGNetMessage::parse(std::vector<char>& buffer, std::function<void (GPGNetMessage const&)> cb)
 {
