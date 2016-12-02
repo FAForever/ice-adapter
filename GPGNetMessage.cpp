@@ -2,6 +2,9 @@
 
 #include "logging.h"
 
+namespace faf
+{
+
 void GPGNetMessage::parse(std::vector<char>& buffer, std::function<void (GPGNetMessage const&)> cb)
 {
   while(true)
@@ -76,5 +79,7 @@ void GPGNetMessage::parse(std::vector<char>& buffer, std::function<void (GPGNetM
      * of the buffer */
     buffer.erase(buffer.begin(), it);
   }
+
+}
 
 }

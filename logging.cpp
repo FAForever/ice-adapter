@@ -12,6 +12,30 @@
 #include <boost/log/support/date_time.hpp>
 #include <boost/log/utility/setup/common_attributes.hpp>
 
+#if (defined(__GNUC__) && !defined(__MINGW32__))
+#include <stdio.h>
+#include <execinfo.h>
+#include <signal.h>
+#include <stdlib.h>
+#include <unistd.h>
+
+namespace faf
+{
+
+void segfault_handler(int sig)
+{
+  void *array[10];
+  size_t size;
+
+  // get void*'s for all entries on the stack
+  size = backtrace(array, 10);
+
+  // print out all the frames to stderr
+  fprintf(stderr, "Error: signal %d:\n", sig);
+  backtrace_symbols_fd(array, size, STDERR_FILENO);
+  exit(1);
+}
+#endif
 
 std::string path_to_filename(std::string path)
 {
@@ -47,6 +71,10 @@ void logging_init()
         boost::log::keywords::auto_flush = true
                                            );
   boost::log::add_common_attributes();
+
+#if (defined(__GNUC__) && !defined(__MINGW32__))
+  signal(SIGSEGV, segfault_handler);
+#endif
 }
 
 void logging_init_log_file(std::string const& log_file)
@@ -64,4 +92,6 @@ void logging_init_log_file(std::string const& log_file)
       ),
     boost::log::keywords::auto_flush = true
     );
+}
+
 }

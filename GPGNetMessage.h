@@ -6,6 +6,9 @@
 
 #include <json/json.h>
 
+namespace faf
+{
+
 struct GPGNetMessage
 {
   std::string header; /*!< Message type like "CreateLobby" or "ConnectToPeer" */
@@ -20,3 +23,5 @@ struct GPGNetMessage
       */
   static void parse(std::vector<char>& buffer, std::function<void (GPGNetMessage const&)> cb);
 };
+
+}

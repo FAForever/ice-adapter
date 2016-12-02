@@ -10,6 +10,9 @@
 
 #include <json/json.h>
 
+namespace faf
+{
+
 class JsonRpcTcpSession;
 
 class JsonRpcTcpServer
@@ -47,3 +50,5 @@ protected:
   std::map<unsigned int, RpcRequestResult> mCurrentRequests;
   int mCurrentId;
 };
+
+}

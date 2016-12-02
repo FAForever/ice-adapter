@@ -11,6 +11,9 @@ namespace sigc {
   SIGC_FUNCTORS_DEDUCE_RESULT_TYPE_WITH_DECLTYPE
 }
 
+namespace faf
+{
+
 GPGNetServer::GPGNetServer(int port):
   mPort(port)
 {
@@ -206,4 +209,6 @@ void GPGNetServer::onGPGNetMessage(GPGNetMessage const& msg)
   {
     cb(msg);
   }
+}
+
 }

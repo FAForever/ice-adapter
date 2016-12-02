@@ -7,6 +7,9 @@
 
 #include "IceAdapterOptions.h"
 
+namespace faf
+{
+
 /* Forward declarations */
 class IceAgent;
 enum class IceAgentState;
@@ -57,3 +60,5 @@ protected:
   IceAgentStateCallback mIceAgentStateCallback;
   IceAdapterOptions mOptions;
 };
+
+}

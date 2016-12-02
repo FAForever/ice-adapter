@@ -9,6 +9,9 @@ namespace sigc {
   SIGC_FUNCTORS_DEDUCE_RESULT_TYPE_WITH_DECLTYPE
 }
 
+namespace faf
+{
+
 JsonRpcTcpServer::JsonRpcTcpServer(int port):
   mCurrentId(0)
 {
@@ -162,4 +165,6 @@ void JsonRpcTcpServer::onCloseSession(JsonRpcTcpSession* session)
     }
   }
   //mSessions.erase(std::remove(mSessions.begin(), mSessions.end(), session), mSessions.end());
+}
+
 }

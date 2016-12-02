@@ -8,6 +8,9 @@
 
 #include "GPGNetMessage.h"
 
+namespace faf
+{
+
 class GPGNetServer;
 
 /**
@@ -59,3 +62,5 @@ protected:
   /* points to the end of mBuffer */
   GPGNetServer* mServer;
 };
+
+}

@@ -3,6 +3,9 @@
 #include "IceAgent.h"
 #include "logging.h"
 
+namespace faf
+{
+
 PeerRelay::PeerRelay(Glib::RefPtr<Glib::MainLoop> mainloop,
                      int peerId,
                      std::string const& peerLogin,
@@ -177,4 +180,6 @@ bool PeerRelay::onGameReceive(Glib::IOCondition condition)
     FAF_LOG_DEBUG << "dropping " << size << " game bytes while waiting for ICE connection";
   }
   return true;
+}
+
 }

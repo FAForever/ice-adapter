@@ -9,6 +9,9 @@
 #include "IceAdapterOptions.h"
 #include "logging.h"
 
+namespace faf
+{
+
 std::string stateToString(IceAgentState const& s)
 {
   switch(s)
@@ -400,4 +403,6 @@ void IceAgent::onReceive(std::string const& msg)
     mReceiveCallback(this,
                      msg);
   }
+}
+
 }

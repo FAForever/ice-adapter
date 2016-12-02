@@ -7,6 +7,9 @@
 
 #include <json/json.h>
 
+namespace faf
+{
+
 class JsonRpcTcpServer;
 
 class JsonRpcTcpSession
@@ -32,3 +35,5 @@ protected:
   std::string mMessage;
   JsonRpcTcpServer* mServer;
 };
+
+}

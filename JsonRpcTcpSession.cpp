@@ -6,6 +6,8 @@
 #include "JsonRpcTcpServer.h"
 #include "logging.h"
 
+namespace faf
+{
 
 JsonRpcTcpSession::JsonRpcTcpSession(JsonRpcTcpServer* server,
                                      Glib::RefPtr<Gio::Socket> socket)
@@ -191,5 +193,7 @@ void JsonRpcTcpSession::processResponse(Json::Value const& response)
                            response.isMember("result") ? response["result"] : Json::Value(),
                            response.isMember("error") ? response["error"] : Json::Value());
   }
+
+}
 
 }

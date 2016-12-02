@@ -17,21 +17,21 @@ int main(int argc, char *argv[])
   {
     Gio::init();
 
-    logging_init();
+    faf::logging_init();
 
     nice_debug_disable(true);
 
-    auto options = IceAdapterOptions::init(argc, argv);
+    auto options = faf::IceAdapterOptions::init(argc, argv);
 
     if (!options.logFile.empty())
     {
-      logging_init_log_file(options.logFile);
+      faf::logging_init_log_file(options.logFile);
     }
 
     auto loop = Glib::MainLoop::create();
 
-    IceAdapter a(options,
-                 loop);
+    faf::IceAdapter a(options,
+                      loop);
     loop->run();
   }
   catch (const Gio::Error& e)

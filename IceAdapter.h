@@ -8,16 +8,20 @@
 
 #include "IceAdapterOptions.h"
 
+namespace Json
+{
+  class Value;
+}
+
+namespace faf
+{
+
 /* Forward declarations */
 class JsonRpcTcpServer;
 enum class ConnectionState;
 class GPGNetServer;
 class GPGNetMessage;
 class PeerRelay;
-namespace Json
-{
-  class Value;
-}
 
 enum class IceAdapterTaskState
 {
@@ -135,3 +139,5 @@ protected:
 
   IceAdapterTaskState mTaskState;
 };
+
+}

@@ -6,13 +6,16 @@
 
 #include <giomm.h>
 
-class GPGNetConnection;
-struct GPGNetMessage;
-
 namespace Json
 {
   class Value;
 }
+
+namespace faf
+{
+
+class GPGNetConnection;
+struct GPGNetMessage;
 
 enum class InitMode : unsigned int
 {
@@ -114,3 +117,5 @@ protected:
   std::vector<ConnectionStateCallback> mConnectionStateCallbacks;
   int mPort;
 };
+
+}

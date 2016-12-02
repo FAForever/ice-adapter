@@ -9,6 +9,9 @@
 #include "IceAgent.h"
 #include "logging.h"
 
+namespace faf
+{
+
 const int DUMMY_RESERVED_PLAYER_ID = -1;
 
 IceAdapter::IceAdapter(IceAdapterOptions const& options,
@@ -618,4 +621,6 @@ std::shared_ptr<PeerRelay> IceAdapter::createPeerRelay(int remotePlayerId,
   }
 
   return result;
+}
+
 }

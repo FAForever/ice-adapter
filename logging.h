@@ -5,12 +5,15 @@
 
 /* http://stackoverflow.com/questions/22095667/how-to-log-line-number-of-coder-in-boost-log-2-0 */
 
+namespace faf
+{
+
 #define CUSTOM_LOG(logger, sev) \
    BOOST_LOG_STREAM_WITH_PARAMS( \
       (logger), \
-         (set_get_attrib("File", path_to_filename(__FILE__))) \
-         (set_get_attrib("Function", path_to_filename(__func__))) \
-         (set_get_attrib("Line", __LINE__)) \
+         (faf::set_get_attrib("File", faf::path_to_filename(__FILE__))) \
+         (faf::set_get_attrib("Function", faf::path_to_filename(__func__))) \
+         (faf::set_get_attrib("Line", __LINE__)) \
          (::boost::log::keywords::severity = (boost::log::trivial::sev)) \
    )
 
@@ -31,8 +34,10 @@ boost::log::sources::severity_logger<boost::log::trivial::severity_level>& logge
 void logging_init();
 void logging_init_log_file(std::string const& log_file);
 
-#define FAF_LOG_TRACE CUSTOM_LOG(logger(), trace)
-#define FAF_LOG_DEBUG CUSTOM_LOG(logger(), debug)
-#define FAF_LOG_INFO CUSTOM_LOG(logger(), info)
-#define FAF_LOG_WARN CUSTOM_LOG(logger(), warning)
-#define FAF_LOG_ERROR CUSTOM_LOG(logger(), error)
+#define FAF_LOG_TRACE CUSTOM_LOG(faf::logger(), trace)
+#define FAF_LOG_DEBUG CUSTOM_LOG(faf::logger(), debug)
+#define FAF_LOG_INFO CUSTOM_LOG(faf::logger(), info)
+#define FAF_LOG_WARN CUSTOM_LOG(faf::logger(), warning)
+#define FAF_LOG_ERROR CUSTOM_LOG(faf::logger(), error)
+
+}

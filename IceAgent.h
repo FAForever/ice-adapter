@@ -6,6 +6,10 @@
 typedef struct _NiceAgent NiceAgent;
 typedef struct _GMainLoop GMainLoop;
 typedef struct _NiceCandidate NiceCandidate;
+
+namespace faf
+{
+
 class IceAdapterOptions;
 
 enum class IceAgentState
@@ -103,3 +107,5 @@ protected:
                            char*,
                            void*);
 };
+
+}

@@ -2,6 +2,9 @@
 
 #include <string>
 
+namespace faf
+{
+
 /*! \brief Options struct
  */
 class IceAdapterOptions
@@ -29,3 +32,5 @@ protected:
   IceAdapterOptions();
 
 };
+
+}

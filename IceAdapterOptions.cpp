@@ -8,6 +8,9 @@
 
 namespace po = boost::program_options;
 
+namespace faf
+{
+
 IceAdapterOptions::IceAdapterOptions()
 {
 }
@@ -72,4 +75,6 @@ IceAdapterOptions IceAdapterOptions::init(int argc, char *argv[])
       std::exit(1);
   }
   return result;
+}
+
 }

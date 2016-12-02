@@ -3,6 +3,9 @@
 #include "GPGNetServer.h"
 #include "logging.h"
 
+namespace faf
+{
+
 GPGNetConnection::GPGNetConnection(GPGNetServer* server,
                                    Glib::RefPtr<Gio::Socket> socket)
   : mSocket(socket),
@@ -136,4 +139,6 @@ void GPGNetConnection::debugOutputMessage(GPGNetMessage const& msg)
   {
     FAF_LOG_TRACE << "\t" << chunk;
   }
+}
+
 }
