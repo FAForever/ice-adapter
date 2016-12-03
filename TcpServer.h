@@ -11,6 +11,12 @@ namespace faf {
 
 class TcpServer;
 
+enum class ConnectionState
+{
+  AtleastOneConnection,
+  NoConnections
+};
+
 class TcpSession
 {
 public:
@@ -18,7 +24,7 @@ public:
              Glib::RefPtr<Gio::Socket> socket);
   virtual ~TcpSession();
 
-  void send(std::string const& msg);
+  bool send(std::string const& msg);
 protected:
   bool onRead(Glib::IOCondition condition);
 
@@ -36,18 +42,20 @@ public:
 
   int listenPort() const;
 
+  ConnectionState connectionState() const;
+
+  sigc::signal<void, ConnectionState> connectionChanged;
 protected:
-  virtual bool parseMessage(std::vector<char>& msgBuffer) = 0;
+  virtual void parseMessage(TcpSession* session, std::vector<char>& msgBuffer) = 0;
 
   void onCloseSession(TcpSession* session);
-
-  virtual void onConnected();
-  virtual void onDisconnected();
 
   Glib::RefPtr<Gio::Socket> mListenSocket;
   std::vector<std::shared_ptr<TcpSession>> mSessions;
 
   int mListenPort;
+
+  ConnectionState mConnState;
 
   friend TcpSession;
 };

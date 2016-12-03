@@ -26,9 +26,9 @@ IceAdapter::IceAdapter(IceAdapterOptions const& options,
   mGPGNetServer->addGpgMessageCallback(std::bind(&IceAdapter::onGpgNetMessage,
                                        this,
                                        std::placeholders::_1));
-  mGPGNetServer->addConnectionStateCallback(std::bind(&IceAdapter::onGpgConnectionStateChanged,
-                                                      this,
-                                                      std::placeholders::_1));
+  mGPGNetServer->connectionChanged.connect(std::bind(&IceAdapter::onGpgConnectionStateChanged,
+                                                     this,
+                                                     std::placeholders::_1));
   connectRpcMethods();
 
   auto resolver = Gio::Resolver::get_default();
@@ -175,7 +175,7 @@ Json::Value IceAdapter::status() const
     Json::Value gpgnet;
 
     gpgnet["local_port"] = mGPGNetServer->listenPort();
-    gpgnet["connected"] = mGPGNetServer->connectionState() == ConnectionState::Connected;
+    gpgnet["connected"] = mGPGNetServer->connectionState() == ConnectionState::AtleastOneConnection;
     gpgnet["game_state"] = mGPGNetGameState;
 
     if (!mHostGameMap.empty())
@@ -270,10 +270,10 @@ void IceAdapter::onGpgNetMessage(GPGNetMessage const& message)
 void IceAdapter::onGpgConnectionStateChanged(ConnectionState const& s)
 {
   Json::Value params(Json::arrayValue);
-  params.append(s == ConnectionState::Connected ? "Connected" : "Disconnected");
+  params.append(s == ConnectionState::AtleastOneConnection ? "Connected" : "Disconnected");
   mRpcServer->sendRequest("onConnectionStateChanged",
                           params);
-  if (s == ConnectionState::Disconnected)
+  if (s == ConnectionState::NoConnections)
   {
     FAF_LOG_TRACE << "game disconnected";
 

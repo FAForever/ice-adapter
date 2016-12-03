@@ -19,8 +19,6 @@
 #include <stdlib.h>
 #include <unistd.h>
 
-namespace faf
-{
 
 void segfault_handler(int sig)
 {
@@ -36,6 +34,9 @@ void segfault_handler(int sig)
   exit(1);
 }
 #endif
+
+namespace faf
+{
 
 std::string path_to_filename(std::string path)
 {

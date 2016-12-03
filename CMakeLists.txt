@@ -53,6 +53,7 @@ include_directories(${Boost_INCLUDE_DIRS})
 include_directories(${NICE_INCLUDE_DIRS})
 include_directories(${JSON_INCLUDE_DIRS})
 include_directories(${GIOMM_INCLUDE_DIRS})
+include_directories(${CMAKE_CURRENT_SOURCE_DIR})
 
 add_custom_target(docs SOURCES README.md LICENSE)
 
@@ -62,7 +63,6 @@ add_library(fafice
     IceAdapterOptions.cpp
     IceAgent.cpp
     JsonRpcTcpServer.cpp
-    JsonRpcTcpSession.cpp
     GPGNetServer.cpp
     GPGNetMessage.cpp
     logging.cpp

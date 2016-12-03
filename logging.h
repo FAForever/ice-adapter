@@ -1,5 +1,7 @@
 #pragma once
 
+#include <string>
+
 #include <boost/log/trivial.hpp>
 #include <boost/log/attributes.hpp>
 

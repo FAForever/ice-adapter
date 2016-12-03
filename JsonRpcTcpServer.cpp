@@ -1,41 +1,15 @@
 #include "JsonRpcTcpServer.h"
 
-#include <sigc++/sigc++.h>
-
-#include "JsonRpcTcpSession.h"
 #include "logging.h"
-
-namespace sigc {
-  SIGC_FUNCTORS_DEDUCE_RESULT_TYPE_WITH_DECLTYPE
-}
 
 namespace faf
 {
 
 JsonRpcTcpServer::JsonRpcTcpServer(int port):
+  TcpServer(port),
   mCurrentId(0)
 {
-  mListenSocket = Gio::Socket::create(Gio::SOCKET_FAMILY_IPV4,
-                                      Gio::SOCKET_TYPE_STREAM,
-                                      Gio::SOCKET_PROTOCOL_DEFAULT);
-  mListenSocket->set_blocking(false);
-
-  auto srcAddress =
-    Gio::InetSocketAddress::create(Gio::InetAddress::create_loopback(Gio::SOCKET_FAMILY_IPV4),
-                                   port);
-  mListenSocket->bind(srcAddress, false);
-  mListenSocket->listen();
-  FAF_LOG_TRACE << "JsonRpcTcpServer listening on port " << port;
-
-  Gio::signal_socket().connect([this](Glib::IOCondition condition)
-  {
-    auto newSocket = mListenSocket->accept();
-    auto session = std::make_shared<JsonRpcTcpSession>(this,
-                                                       newSocket);
-    mSessions.push_back(session);
-    FAF_LOG_TRACE << "new JsonRpcTcpSession created";
-    return true;
-  }, mListenSocket, Glib::IO_IN);
+  FAF_LOG_TRACE << "JsonRpcTcpServer()";
 }
 
 JsonRpcTcpServer::~JsonRpcTcpServer()
@@ -93,17 +67,23 @@ void JsonRpcTcpServer::sendRequest(std::string const& method,
     return;
   }
 
-  int id = -1;
+  Json::Value request;
+  request["jsonrpc"] = "2.0";
+  request["method"] = method;
+  request["params"] = paramsArray;
   if (resultCb)
   {
-    id = mCurrentId++;
+    mCurrentRequests[mCurrentId] = resultCb;
+    request["id"] = mCurrentId;
+    ++mCurrentId;
   }
+  std::string requestString = Json::FastWriter().write(request);
+
   for (auto it = mSessions.begin(), end = mSessions.end(); it != end; ++it)
   {
-    FAF_LOG_TRACE << "sending " << method;
-    if (!(*it)->sendRequest(method,
-                         paramsArray,
-                         id))
+    FAF_LOG_TRACE << "sending " << requestString;
+
+    if (!(*it)->send(requestString))
     {
       it = mSessions.erase(it);
       FAF_LOG_ERROR << "sending " << method << " failed";
@@ -111,18 +91,117 @@ void JsonRpcTcpServer::sendRequest(std::string const& method,
     else
     {
       FAF_LOG_TRACE << "done";
-      if (resultCb)
-      {
-        mCurrentRequests[id] = resultCb;
-      }
     }
   }
 }
 
+void JsonRpcTcpServer::parseMessage(TcpSession* session, std::vector<char>& msgBuffer)
+{
+  try
+  {
+    Json::Value jsonMessage;
+    Json::Reader r;
+
+    std::istringstream is(std::string(msgBuffer.data(), msgBuffer.size()));
+    msgBuffer.clear();
+    while (true)
+    {
+      std::string doc;
+      std::getline(is, doc, '\n');
+      if (doc.empty())
+      {
+        break;
+      }
+      FAF_LOG_TRACE << "parsing JSON:" << doc;
+      if(!r.parse(doc, jsonMessage))
+      {
+        FAF_LOG_TRACE << "storing doc:" << doc;
+        msgBuffer.insert(msgBuffer.end(),
+                        doc.c_str(),
+                        doc.c_str() + doc.size());
+        break;
+      }
+      if (jsonMessage.isMember("method"))
+      {
+        Json::Value response = processRequest(jsonMessage);
+
+        std::string responseString = Json::FastWriter().write(response);
+        FAF_LOG_TRACE << "sending response:" << responseString;
+        session->send(responseString);
+      }
+      else if (jsonMessage.isMember("error") ||
+               jsonMessage.isMember("result"))
+      {
+        if (jsonMessage.isMember("id"))
+        {
+          onRpcResponse(jsonMessage["id"],
+                        jsonMessage.isMember("result") ? jsonMessage["result"] : Json::Value(),
+                        jsonMessage.isMember("error") ? jsonMessage["error"] : Json::Value());
+        }
+      }
+    }
+  }
+  catch (std::exception& e)
+  {
+    FAF_LOG_ERROR << "error in receive: " << e.what();
+  }
+}
+
+Json::Value JsonRpcTcpServer::processRequest(Json::Value const& request)
+{
+  Json::Value response;
+  response["jsonrpc"] = "2.0";
+
+  if (request.isMember("id"))
+  {
+    response["id"] = request["id"];
+  }
+  if (!request.isMember("method"))
+  {
+    response["error"]["code"] = -1;
+    response["error"]["message"] = "missing 'method' parameter";
+    return response;
+  }
+  if (!request["method"].isString())
+  {
+    response["error"]["code"] = -1;
+    response["error"]["message"] = "'method' parameter must be a string";
+    return response;
+  }
+
+  FAF_LOG_DEBUG << "dispatching JSRONRPC method '" << request["method"].asString() << "'";
+
+  Json::Value params(Json::arrayValue);
+  if (request.isMember("params") &&
+      request["params"].isArray())
+  {
+    params = request["params"];
+  }
+
+  Json::Value result;
+  Json::Value error;
+  onRpcRequest(request["method"].asString(),
+               params,
+               result,
+               error);
+
+  /* TODO: Better check for valid error/result combination */
+  if (!result.isNull())
+  {
+    response["result"] = result;
+  }
+  else
+  {
+    response["error"] = error;
+  }
+
+  return response;
+}
+
 void JsonRpcTcpServer::onRpcRequest(std::string const& method,
-                             Json::Value const& paramsArray,
-                             Json::Value & result,
-                             Json::Value & error)
+                                    Json::Value const& paramsArray,
+                                    Json::Value & result,
+                                    Json::Value & error)
 {
   auto it = mCallbacks.find(method);
   if (it != mCallbacks.end())
@@ -149,22 +228,6 @@ void JsonRpcTcpServer::onRpcResponse(Json::Value const& id,
       mCurrentRequests.erase(reqIt);
     }
   }
-}
-
-void JsonRpcTcpServer::onCloseSession(JsonRpcTcpSession* session)
-//void JsonRpcTcpServer::onCloseSession(std::shared_ptr<JsonRpcTcpSession> session)
-{
-  for (auto it = mSessions.begin(), end = mSessions.end(); it != end; ++it)
-  {
-    if (it->get() == session)
-    {
-      mSessions.erase(it);
-      FAF_LOG_TRACE << "session removed";
-      //delete session;
-      return;
-    }
-  }
-  //mSessions.erase(std::remove(mSessions.begin(), mSessions.end(), session), mSessions.end());
 }
 
 }

@@ -1,15 +1,7 @@
 #include "GPGNetServer.h"
 
-#include <type_traits>
-
-#include <sigc++/sigc++.h>
-
 #include "GPGNetMessage.h"
 #include "logging.h"
-
-namespace sigc {
-  SIGC_FUNCTORS_DEDUCE_RESULT_TYPE_WITH_DECLTYPE
-}
 
 namespace faf
 {
@@ -128,24 +120,7 @@ void GPGNetServer::addGpgMessageCallback(GpgMessageCallback cb)
   mGPGNetMessageCallbacks.push_back(cb);
 }
 
-void GPGNetServer::addConnectionStateCallback(ConnectionStateCallback cb)
-{
-  mConnectionStateCallbacks.push_back(cb);
-}
-
-ConnectionState GPGNetServer::connectionState() const
-{
-  if (mSessions.size())
-  {
-    return ConnectionState::Connected;
-  }
-  else
-  {
-    return ConnectionState::Disconnected;
-  }
-}
-
-bool GPGNetServer::parseMessage(std::vector<char>& msgBuffer)
+void GPGNetServer::parseMessage(TcpSession* session, std::vector<char>& msgBuffer)
 {
   GPGNetMessage::parse(msgBuffer, [this](GPGNetMessage const& msg)
   {
@@ -155,23 +130,6 @@ bool GPGNetServer::parseMessage(std::vector<char>& msgBuffer)
       cb(msg);
     }
   });
-  return false;
-}
-
-void GPGNetServer::onConnected()
-{
-  for (auto cb : mConnectionStateCallbacks)
-  {
-    cb(ConnectionState::Connected);
-  }
-}
-
-void GPGNetServer::onDisconnected()
-{
-  for (auto cb : mConnectionStateCallbacks)
-  {
-    cb(ConnectionState::Disconnected);
-  }
 }
 
 }

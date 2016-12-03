@@ -10,12 +10,12 @@
 
 #include <json/json.h>
 
+#include "TcpServer.h"
+
 namespace faf
 {
 
-class JsonRpcTcpSession;
-
-class JsonRpcTcpServer
+class JsonRpcTcpServer : public TcpServer
 {
 public:
   JsonRpcTcpServer(int port);
@@ -33,6 +33,8 @@ public:
                    Json::Value const& paramsArray = Json::Value(Json::arrayValue),
                    RpcRequestResult resultCb = RpcRequestResult());
 protected:
+  virtual void parseMessage(TcpSession* session, std::vector<char>& msgBuffer);
+  Json::Value processRequest(Json::Value const& request);
   void onRpcRequest(std::string const& method,
                     Json::Value const& paramsArray,
                     Json::Value & result,
@@ -40,13 +42,8 @@ protected:
   void onRpcResponse(Json::Value const& id,
                      Json::Value const& result,
                      Json::Value const& error);
-  void onCloseSession(JsonRpcTcpSession* session);
 
-  friend JsonRpcTcpSession;
-
-  Glib::RefPtr<Gio::Socket> mListenSocket;
   std::map<std::string, RpcCallback> mCallbacks;
-  std::vector<std::shared_ptr<JsonRpcTcpSession>> mSessions;
   std::map<unsigned int, RpcRequestResult> mCurrentRequests;
   int mCurrentId;
 };

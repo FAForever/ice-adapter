@@ -20,12 +20,6 @@ enum class InitMode : unsigned int
   AutoLobby = 1
 };
 
-enum class ConnectionState
-{
-  Connected,
-  Disconnected
-};
-
 class GPGNetServer : public TcpServer
 {
 public:
@@ -96,19 +90,10 @@ public:
   typedef std::function<void (GPGNetMessage const&)> GpgMessageCallback;
   void addGpgMessageCallback(GpgMessageCallback cb);
 
-  typedef std::function<void (ConnectionState const&)> ConnectionStateCallback;
-  void addConnectionStateCallback(ConnectionStateCallback cb);
-
-  /** \brief Returns whether FA is connected
-      */
-  ConnectionState connectionState() const;
 protected:
-  virtual bool parseMessage(std::vector<char>& msgBuffer);
-  void onConnected();
-  void onDisconnected();
+  virtual void parseMessage(TcpSession* session, std::vector<char>& msgBuffer);
 
   std::vector<GpgMessageCallback> mGPGNetMessageCallbacks;
-  std::vector<ConnectionStateCallback> mConnectionStateCallbacks;
 };
 
 }

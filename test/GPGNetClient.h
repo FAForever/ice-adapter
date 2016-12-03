@@ -2,6 +2,8 @@
 
 #include <giomm.h>
 
+#include "GPGNetMessage.h"
+
 class GPGNetClient
 {
 public:

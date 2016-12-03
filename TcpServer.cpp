@@ -2,6 +2,10 @@
 
 #include "logging.h"
 
+namespace sigc {
+  SIGC_FUNCTORS_DEDUCE_RESULT_TYPE_WITH_DECLTYPE
+}
+
 namespace faf {
 
 TcpSession::TcpSession(TcpServer* server,
@@ -24,13 +28,15 @@ TcpSession::~TcpSession()
   FAF_LOG_TRACE << "~TcpSession()";
 }
 
-void TcpSession::send(std::string const& msg)
+bool TcpSession::send(std::string const& msg)
 {
   int bytesSent = mSocket->send(msg.c_str(), msg.size());
   if (bytesSent != msg.size())
   {
     FAF_LOG_ERROR << "only " << bytesSent << " of " << msg.size() << " bytes sent";
+    return false;
   }
+  return true;
 }
 
 bool TcpSession::onRead(Glib::IOCondition condition)
@@ -65,7 +71,7 @@ bool TcpSession::onRead(Glib::IOCondition condition)
     {
       receiveCount = doRead();
     }
-    while(mServer->parseMessage(mMessage)){};
+    mServer->parseMessage(this, mMessage);
   }
   catch (std::exception& e)
   {
@@ -75,7 +81,8 @@ bool TcpSession::onRead(Glib::IOCondition condition)
   return true;
 }
 
-TcpServer::TcpServer(int port)
+TcpServer::TcpServer(int port):
+  mConnState(ConnectionState::NoConnections)
 {
   mListenSocket = Gio::Socket::create(Gio::SOCKET_FAMILY_IPV4,
                                       Gio::SOCKET_TYPE_STREAM,
@@ -106,6 +113,8 @@ TcpServer::TcpServer(int port)
     auto session = std::make_shared<TcpSession>(this, newSocket);
     mSessions.push_back(session);
     FAF_LOG_TRACE << "new TcpSession created";
+    mConnState = ConnectionState::AtleastOneConnection;
+    this->connectionChanged.emit(mConnState);
     return true;
   }, mListenSocket, Glib::IO_IN);
 }
@@ -120,6 +129,11 @@ int TcpServer::listenPort() const
   return mListenPort;
 }
 
+ConnectionState TcpServer::connectionState() const
+{
+  return mConnState;
+}
+
 void TcpServer::onCloseSession(TcpSession* session)
 {
   mSessions.erase(
@@ -128,15 +142,13 @@ void TcpServer::onCloseSession(TcpSession* session)
           mSessions.end(),
           [session](std::shared_ptr<TcpSession> const& s){ return s.get() == session;}),
       mSessions.end());
+  if (mSessions.empty())
+  {
+    mConnState = ConnectionState::NoConnections;
+    this->connectionChanged.emit(mConnState);
+  }
   FAF_LOG_TRACE << "TcpSession removed";
 }
 
-void TcpServer::onConnected()
-{
-}
-
-void TcpServer::onDisconnected()
-{
-}
 
 } // namespace faf
