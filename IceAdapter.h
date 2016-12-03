@@ -106,7 +106,7 @@ public:
   void reserveRelays(int count);
 protected:
   void onGpgNetMessage(GPGNetMessage const& message);
-  void onGpgConnectionStateChanged(ConnectionState const& s);
+  void onGpgConnectionStateChanged();
 
   void connectRpcMethods();
 

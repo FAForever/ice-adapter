@@ -27,8 +27,7 @@ IceAdapter::IceAdapter(IceAdapterOptions const& options,
                                        this,
                                        std::placeholders::_1));
   mGPGNetServer->connectionChanged.connect(std::bind(&IceAdapter::onGpgConnectionStateChanged,
-                                                     this,
-                                                     std::placeholders::_1));
+                                                     this));
   connectRpcMethods();
 
   auto resolver = Gio::Resolver::get_default();
@@ -175,7 +174,7 @@ Json::Value IceAdapter::status() const
     Json::Value gpgnet;
 
     gpgnet["local_port"] = mGPGNetServer->listenPort();
-    gpgnet["connected"] = mGPGNetServer->connectionState() == ConnectionState::AtleastOneConnection;
+    gpgnet["connected"] = mGPGNetServer->sessionCount() > 0;
     gpgnet["game_state"] = mGPGNetGameState;
 
     if (!mHostGameMap.empty())
@@ -267,13 +266,13 @@ void IceAdapter::onGpgNetMessage(GPGNetMessage const& message)
                           rpcParams);
 }
 
-void IceAdapter::onGpgConnectionStateChanged(ConnectionState const& s)
+void IceAdapter::onGpgConnectionStateChanged()
 {
   Json::Value params(Json::arrayValue);
-  params.append(s == ConnectionState::AtleastOneConnection ? "Connected" : "Disconnected");
+  params.append(mRpcServer->sessionCount() > 0 ? "Connected" : "Disconnected");
   mRpcServer->sendRequest("onConnectionStateChanged",
                           params);
-  if (s == ConnectionState::NoConnections)
+  if (mRpcServer->sessionCount() == 0)
   {
     FAF_LOG_TRACE << "game disconnected";
 
@@ -299,7 +298,8 @@ void IceAdapter::connectRpcMethods()
   mRpcServer->setRpcCallback("quit",
                              [this](Json::Value const& paramsArray,
                                     Json::Value & result,
-                                    Json::Value & error)
+                                    Json::Value & error,
+                                    TcpSession* session)
   {
     result = "ok";
     mMainloop->quit();
@@ -308,7 +308,8 @@ void IceAdapter::connectRpcMethods()
   mRpcServer->setRpcCallback("hostGame",
                              [this](Json::Value const& paramsArray,
                              Json::Value & result,
-                             Json::Value & error)
+                             Json::Value & error,
+                             TcpSession* session)
   {
     if (paramsArray.size() < 1)
     {
@@ -329,7 +330,8 @@ void IceAdapter::connectRpcMethods()
   mRpcServer->setRpcCallback("joinGame",
                              [this](Json::Value const& paramsArray,
                              Json::Value & result,
-                             Json::Value & error)
+                             Json::Value & error,
+                             TcpSession* session)
   {
     if (paramsArray.size() < 2)
     {
@@ -350,7 +352,8 @@ void IceAdapter::connectRpcMethods()
   mRpcServer->setRpcCallback("connectToPeer",
                              [this](Json::Value const& paramsArray,
                              Json::Value & result,
-                             Json::Value & error)
+                             Json::Value & error,
+                             TcpSession* session)
   {
     if (paramsArray.size() < 2)
     {
@@ -371,7 +374,8 @@ void IceAdapter::connectRpcMethods()
   mRpcServer->setRpcCallback("reconnectToPeer",
                              [this](Json::Value const& paramsArray,
                              Json::Value & result,
-                             Json::Value & error)
+                             Json::Value & error,
+                             TcpSession* session)
   {
     if (paramsArray.size() < 1)
     {
@@ -392,7 +396,8 @@ void IceAdapter::connectRpcMethods()
   mRpcServer->setRpcCallback("disconnectFromPeer",
                              [this](Json::Value const& paramsArray,
                              Json::Value & result,
-                             Json::Value & error)
+                             Json::Value & error,
+                             TcpSession* session)
   {
     if (paramsArray.size() < 1)
     {
@@ -413,7 +418,8 @@ void IceAdapter::connectRpcMethods()
   mRpcServer->setRpcCallback("setSdp",
                              [this](Json::Value const& paramsArray,
                              Json::Value & result,
-                             Json::Value & error)
+                             Json::Value & error,
+                             TcpSession* session)
   {
     if (paramsArray.size() < 2)
     {
@@ -434,7 +440,8 @@ void IceAdapter::connectRpcMethods()
   mRpcServer->setRpcCallback("sendToGpgNet",
                              [this](Json::Value const& paramsArray,
                              Json::Value & result,
-                             Json::Value & error)
+                             Json::Value & error,
+                             TcpSession* session)
   {
     if (paramsArray.size() < 2 ||
         !paramsArray[1].isArray())
@@ -462,7 +469,8 @@ void IceAdapter::connectRpcMethods()
   mRpcServer->setRpcCallback("status",
                              [this](Json::Value const& paramsArray,
                              Json::Value & result,
-                             Json::Value & error)
+                             Json::Value & error,
+                             TcpSession* session)
   {
     result = status();
   });
@@ -470,7 +478,8 @@ void IceAdapter::connectRpcMethods()
   mRpcServer->setRpcCallback("reserveRelays",
                              [this](Json::Value const& paramsArray,
                              Json::Value & result,
-                             Json::Value & error)
+                             Json::Value & error,
+                             TcpSession* session)
   {
     if (paramsArray.size() < 1)
     {

@@ -34,6 +34,7 @@ void JsonRpcTcpServer::setRpcCallback(std::string const& method,
 
 void JsonRpcTcpServer::sendRequest(std::string const& method,
                                    Json::Value const& paramsArray,
+                                   TcpSession* session,
                                    RpcRequestResult resultCb)
 {
   if (!paramsArray.isArray())
@@ -81,6 +82,13 @@ void JsonRpcTcpServer::sendRequest(std::string const& method,
 
   for (auto it = mSessions.begin(), end = mSessions.end(); it != end; ++it)
   {
+    if (session)
+    {
+      if (it->get() != session)
+      {
+        continue;
+      }
+    }
     FAF_LOG_TRACE << "sending " << requestString;
 
     if (!(*it)->send(requestString))
@@ -123,7 +131,7 @@ void JsonRpcTcpServer::parseMessage(TcpSession* session, std::vector<char>& msgB
       }
       if (jsonMessage.isMember("method"))
       {
-        Json::Value response = processRequest(jsonMessage);
+        Json::Value response = processRequest(jsonMessage, session);
 
         std::string responseString = Json::FastWriter().write(response);
         FAF_LOG_TRACE << "sending response:" << responseString;
@@ -147,7 +155,7 @@ void JsonRpcTcpServer::parseMessage(TcpSession* session, std::vector<char>& msgB
   }
 }
 
-Json::Value JsonRpcTcpServer::processRequest(Json::Value const& request)
+Json::Value JsonRpcTcpServer::processRequest(Json::Value const& request, TcpSession* session)
 {
   Json::Value response;
   response["jsonrpc"] = "2.0";
@@ -183,7 +191,8 @@ Json::Value JsonRpcTcpServer::processRequest(Json::Value const& request)
   onRpcRequest(request["method"].asString(),
                params,
                result,
-               error);
+               error,
+               session);
 
   /* TODO: Better check for valid error/result combination */
   if (!result.isNull())
@@ -201,12 +210,13 @@ Json::Value JsonRpcTcpServer::processRequest(Json::Value const& request)
 void JsonRpcTcpServer::onRpcRequest(std::string const& method,
                                     Json::Value const& paramsArray,
                                     Json::Value & result,
-                                    Json::Value & error)
+                                    Json::Value & error,
+                                    TcpSession* session)
 {
   auto it = mCallbacks.find(method);
   if (it != mCallbacks.end())
   {
-    it->second(paramsArray, result, error);
+    it->second(paramsArray, result, error, session);
   }
   else
   {

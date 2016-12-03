@@ -13,8 +13,8 @@ class TcpServer;
 
 enum class ConnectionState
 {
-  AtleastOneConnection,
-  NoConnections
+  Connected,
+  Disconnected
 };
 
 class TcpSession
@@ -42,9 +42,9 @@ public:
 
   int listenPort() const;
 
-  ConnectionState connectionState() const;
+  int sessionCount() const;
 
-  sigc::signal<void, ConnectionState> connectionChanged;
+  sigc::signal<void, TcpSession*, ConnectionState> connectionChanged;
 protected:
   virtual void parseMessage(TcpSession* session, std::vector<char>& msgBuffer) = 0;
 
@@ -54,8 +54,6 @@ protected:
   std::vector<std::shared_ptr<TcpSession>> mSessions;
 
   int mListenPort;
-
-  ConnectionState mConnState;
 
   friend TcpSession;
 };

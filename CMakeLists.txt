@@ -74,6 +74,7 @@ target_compile_definitions(fafice PRIVATE FAF_VERSION_STRING="${FAF_VERSION_STRI
 add_library(fafice-test
   STATIC
     test/GPGNetClient.cpp
+    test/Testserver.cpp
 )
 
 add_executable(faf-ice-adapter

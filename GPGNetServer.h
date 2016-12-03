@@ -91,7 +91,7 @@ public:
   void addGpgMessageCallback(GpgMessageCallback cb);
 
 protected:
-  virtual void parseMessage(TcpSession* session, std::vector<char>& msgBuffer);
+  virtual void parseMessage(TcpSession* session, std::vector<char>& msgBuffer) override;
 
   std::vector<GpgMessageCallback> mGPGNetMessageCallbacks;
 };

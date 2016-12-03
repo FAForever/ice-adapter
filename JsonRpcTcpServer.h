@@ -23,7 +23,8 @@ public:
 
   typedef std::function<void (Json::Value const& paramsArray,
                               Json::Value & result,
-                              Json::Value & error)> RpcCallback;
+                              Json::Value & error,
+                              TcpSession* session)> RpcCallback;
   void setRpcCallback(std::string const& method,
                       RpcCallback cb);
 
@@ -31,14 +32,17 @@ public:
                               Json::Value const& error)> RpcRequestResult;
   void sendRequest(std::string const& method,
                    Json::Value const& paramsArray = Json::Value(Json::arrayValue),
+                   TcpSession* session = nullptr,
                    RpcRequestResult resultCb = RpcRequestResult());
+
 protected:
-  virtual void parseMessage(TcpSession* session, std::vector<char>& msgBuffer);
-  Json::Value processRequest(Json::Value const& request);
+  virtual void parseMessage(TcpSession* session, std::vector<char>& msgBuffer) override;
+  Json::Value processRequest(Json::Value const& request, TcpSession* session);
   void onRpcRequest(std::string const& method,
                     Json::Value const& paramsArray,
                     Json::Value & result,
-                    Json::Value & error);
+                    Json::Value & error,
+                    TcpSession* session);
   void onRpcResponse(Json::Value const& id,
                      Json::Value const& result,
                      Json::Value const& error);

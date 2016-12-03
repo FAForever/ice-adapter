@@ -81,8 +81,7 @@ bool TcpSession::onRead(Glib::IOCondition condition)
   return true;
 }
 
-TcpServer::TcpServer(int port):
-  mConnState(ConnectionState::NoConnections)
+TcpServer::TcpServer(int port)
 {
   mListenSocket = Gio::Socket::create(Gio::SOCKET_FAMILY_IPV4,
                                       Gio::SOCKET_TYPE_STREAM,
@@ -113,8 +112,7 @@ TcpServer::TcpServer(int port):
     auto session = std::make_shared<TcpSession>(this, newSocket);
     mSessions.push_back(session);
     FAF_LOG_TRACE << "new TcpSession created";
-    mConnState = ConnectionState::AtleastOneConnection;
-    this->connectionChanged.emit(mConnState);
+    this->connectionChanged.emit(session.get(), ConnectionState::Connected);
     return true;
   }, mListenSocket, Glib::IO_IN);
 }
@@ -129,9 +127,9 @@ int TcpServer::listenPort() const
   return mListenPort;
 }
 
-ConnectionState TcpServer::connectionState() const
+int TcpServer::sessionCount() const
 {
-  return mConnState;
+  return mSessions.size();
 }
 
 void TcpServer::onCloseSession(TcpSession* session)
@@ -142,11 +140,7 @@ void TcpServer::onCloseSession(TcpSession* session)
           mSessions.end(),
           [session](std::shared_ptr<TcpSession> const& s){ return s.get() == session;}),
       mSessions.end());
-  if (mSessions.empty())
-  {
-    mConnState = ConnectionState::NoConnections;
-    this->connectionChanged.emit(mConnState);
-  }
+  this->connectionChanged.emit(session, ConnectionState::Disconnected);
   FAF_LOG_TRACE << "TcpSession removed";
 }
 
