@@ -27,6 +27,7 @@ public:
   /** \brief Create an options object from cmd arguments
       */
   static IceAdapterOptions init(int argc, char *argv[]);
+  static IceAdapterOptions init(int id, std::string const& login);
 protected:
 
   IceAdapterOptions();

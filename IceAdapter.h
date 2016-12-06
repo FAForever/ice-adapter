@@ -17,7 +17,7 @@ namespace faf
 {
 
 /* Forward declarations */
-class JsonRpcTcpServer;
+class JsonRpcServer;
 enum class ConnectionState;
 class GPGNetServer;
 class GPGNetMessage;
@@ -121,7 +121,7 @@ protected:
                                              int& portResult);
 
   IceAdapterOptions mOptions;
-  std::shared_ptr<JsonRpcTcpServer> mRpcServer;
+  std::shared_ptr<JsonRpcServer> mRpcServer;
   std::shared_ptr<GPGNetServer> mGPGNetServer;
   Glib::RefPtr<Glib::MainLoop> mMainloop;
 

@@ -1,15 +1,25 @@
 #pragma once
 
-#include <giomm.h>
-
 #include "GPGNetMessage.h"
 
-class GPGNetClient
+#include <QtNetwork/QTcpSocket>
+
+namespace faf
 {
+
+class GPGNetClient : public QTcpSocket
+{
+  Q_OBJECT
 public:
   GPGNetClient();
-  void connect(int port);
+
+Q_SIGNALS:
+  void onGPGNetMessage(GPGNetMessage const& msg);
+
 protected:
-  bool onRead(Glib::IOCondition);
-  Glib::RefPtr<Gio::Socket> mSocket;
+  void onReadyRead();
+  void onConnected();
+  std::vector<char> mMessage;
 };
+
+}

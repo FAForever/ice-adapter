@@ -1,24 +1,41 @@
 #include "GPGNetClient.h"
 
-GPGNetClient::GPGNetClient():
-  mSocket(Gio::Socket::create(Gio::SOCKET_FAMILY_IPV4,
-                              Gio::SOCKET_TYPE_STREAM,
-                              Gio::SOCKET_PROTOCOL_DEFAULT))
+namespace faf
 {
-  mSocket->set_blocking(false);
-  Gio::signal_socket().connect(
-        sigc::mem_fun(this, &GPGNetClient::onRead),
-        mSocket,
-        Glib::IO_IN);
+
+GPGNetClient::GPGNetClient()
+{
+  connect(this,
+          &QTcpSocket::readyRead,
+          this,
+          &GPGNetClient::onReadyRead);
+
+  connect(this,
+          &QTcpSocket::connected,
+          this,
+          &GPGNetClient::onConnected);
 }
 
-void GPGNetClient::connect(int port)
+void GPGNetClient::onReadyRead()
 {
-  mSocket->connect(Gio::InetSocketAddress::create(
-                     Gio::InetAddress::create_loopback(Gio::SOCKET_FAMILY_IPV4), port));
+  auto data = this->readAll();
+  mMessage.insert(mMessage.end(),
+                  data.begin(),
+                  data.begin() + data.size());
+  GPGNetMessage::parse(mMessage, [this](GPGNetMessage const& msg)
+  {
+    onGPGNetMessage(msg);
+  });
 }
 
-bool GPGNetClient::onRead(Glib::IOCondition)
+void GPGNetClient::onConnected()
 {
+  GPGNetMessage msg;
+  msg.header = "GameState";
+  msg.chunks.push_back("Idle");
+
+  auto binMsg = msg.toBinary();
+  QTcpSocket::write(binMsg.c_str(), binMsg.size());
+}
 
 }

@@ -4,7 +4,7 @@
 
 #include "GPGNetServer.h"
 #include "GPGNetMessage.h"
-#include "JsonRpcTcpServer.h"
+#include "JsonRpcServer.h"
 #include "PeerRelay.h"
 #include "IceAgent.h"
 #include "logging.h"
@@ -21,7 +21,7 @@ IceAdapter::IceAdapter(IceAdapterOptions const& options,
   mTaskState(IceAdapterTaskState::NoTask)
 {
   FAF_LOG_INFO << "ICE adapter version " << FAF_VERSION_STRING << " initializing";
-  mRpcServer    = std::make_shared<JsonRpcTcpServer>(mOptions.rpcPort);
+  mRpcServer    = std::make_shared<JsonRpcServer>(mOptions.rpcPort);
   mGPGNetServer = std::make_shared<GPGNetServer>(mOptions.gpgNetPort);
   mGPGNetServer->addGpgMessageCallback(std::bind(&IceAdapter::onGpgNetMessage,
                                        this,
@@ -76,6 +76,7 @@ void IceAdapter::joinGame(std::string const& remotePlayerLogin,
 void IceAdapter::connectToPeer(std::string const& remotePlayerLogin,
                                int remotePlayerId)
 {
+  FAF_LOG_TRACE << "connectToPeer " << remotePlayerLogin << " " << remotePlayerId;
   int relayPort;
   auto relay = createPeerRelayOrUseReserved(remotePlayerId,
                                             remotePlayerLogin,
@@ -299,7 +300,7 @@ void IceAdapter::connectRpcMethods()
                              [this](Json::Value const& paramsArray,
                                     Json::Value & result,
                                     Json::Value & error,
-                                    TcpSession* session)
+                                    Socket* session)
   {
     result = "ok";
     mMainloop->quit();
@@ -309,7 +310,7 @@ void IceAdapter::connectRpcMethods()
                              [this](Json::Value const& paramsArray,
                              Json::Value & result,
                              Json::Value & error,
-                             TcpSession* session)
+                             Socket* session)
   {
     if (paramsArray.size() < 1)
     {
@@ -331,7 +332,7 @@ void IceAdapter::connectRpcMethods()
                              [this](Json::Value const& paramsArray,
                              Json::Value & result,
                              Json::Value & error,
-                             TcpSession* session)
+                             Socket* session)
   {
     if (paramsArray.size() < 2)
     {
@@ -353,7 +354,7 @@ void IceAdapter::connectRpcMethods()
                              [this](Json::Value const& paramsArray,
                              Json::Value & result,
                              Json::Value & error,
-                             TcpSession* session)
+                             Socket* session)
   {
     if (paramsArray.size() < 2)
     {
@@ -375,7 +376,7 @@ void IceAdapter::connectRpcMethods()
                              [this](Json::Value const& paramsArray,
                              Json::Value & result,
                              Json::Value & error,
-                             TcpSession* session)
+                             Socket* session)
   {
     if (paramsArray.size() < 1)
     {
@@ -397,7 +398,7 @@ void IceAdapter::connectRpcMethods()
                              [this](Json::Value const& paramsArray,
                              Json::Value & result,
                              Json::Value & error,
-                             TcpSession* session)
+                             Socket* session)
   {
     if (paramsArray.size() < 1)
     {
@@ -419,7 +420,7 @@ void IceAdapter::connectRpcMethods()
                              [this](Json::Value const& paramsArray,
                              Json::Value & result,
                              Json::Value & error,
-                             TcpSession* session)
+                             Socket* session)
   {
     if (paramsArray.size() < 2)
     {
@@ -441,7 +442,7 @@ void IceAdapter::connectRpcMethods()
                              [this](Json::Value const& paramsArray,
                              Json::Value & result,
                              Json::Value & error,
-                             TcpSession* session)
+                             Socket* session)
   {
     if (paramsArray.size() < 2 ||
         !paramsArray[1].isArray())
@@ -470,7 +471,7 @@ void IceAdapter::connectRpcMethods()
                              [this](Json::Value const& paramsArray,
                              Json::Value & result,
                              Json::Value & error,
-                             TcpSession* session)
+                             Socket* session)
   {
     result = status();
   });
@@ -479,7 +480,7 @@ void IceAdapter::connectRpcMethods()
                              [this](Json::Value const& paramsArray,
                              Json::Value & result,
                              Json::Value & error,
-                             TcpSession* session)
+                             Socket* session)
   {
     if (paramsArray.size() < 1)
     {

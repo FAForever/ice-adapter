@@ -4,7 +4,7 @@
 #include <set>
 #include <string>
 
-#include "JsonRpcTcpServer.h"
+#include "JsonRpcServer.h"
 
 namespace faf {
 
@@ -15,10 +15,11 @@ class Testserver
 public:
   Testserver();
 protected:
-  JsonRpcTcpServer mServer;
+  void sendGamelist(Socket* s = nullptr);
+  JsonRpcServer mServer;
   PlayerIdType mCurrentPlayerId;
-  std::map<PlayerIdType, TcpSession*> mPlayerSessions;
-  std::map<TcpSession*, PlayerIdType> mSessionPlayers;
+  std::map<PlayerIdType, Socket*> mPlayerSockets;
+  std::map<Socket*, PlayerIdType> mSocketPlayers;
   std::map<PlayerIdType, std::string> mPlayersHostedgames;
   std::map<std::string, std::set<PlayerIdType>> mGames;
 };

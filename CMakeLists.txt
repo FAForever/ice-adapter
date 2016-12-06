@@ -59,22 +59,25 @@ add_custom_target(docs SOURCES README.md LICENSE)
 
 add_library(fafice
   STATIC
+    GPGNetServer.cpp
+    GPGNetMessage.cpp
     IceAdapter.cpp
     IceAdapterOptions.cpp
     IceAgent.cpp
-    JsonRpcTcpServer.cpp
-    GPGNetServer.cpp
-    GPGNetMessage.cpp
+    JsonRpcProtocol.cpp
+    JsonRpcServer.cpp
     logging.cpp
     PeerRelay.cpp
+    Socket.cpp
     TcpServer.cpp
+    TcpSession.cpp
 )
 target_compile_definitions(fafice PRIVATE FAF_VERSION_STRING="${FAF_VERSION_STRING}")
-
-add_library(fafice-test
-  STATIC
-    test/GPGNetClient.cpp
-    test/Testserver.cpp
+target_link_libraries(fafice
+  ${GIOMM_LIBRARIES}
+  ${Boost_LIBRARIES}
+  ${JSON_LIBRARIES}
+  ${NICE_LIBRARIES}
 )
 
 add_executable(faf-ice-adapter
@@ -83,10 +86,6 @@ add_executable(faf-ice-adapter
 
 target_link_libraries(faf-ice-adapter
   fafice
-  ${GIOMM_LIBRARIES}
-  ${Boost_LIBRARIES}
-  ${JSON_LIBRARIES}
-  ${NICE_LIBRARIES}
 )
 
 target_compile_definitions(faf-ice-adapter PRIVATE BOOST_SYSTEM_NO_DEPRECATED)
@@ -103,4 +102,67 @@ if (NOT CMAKE_BUILD_TYPE STREQUAL "Debug")
     COMMAND ${CMAKE_STRIP} -s "$<TARGET_FILE:faf-ice-adapter>"
     COMMENT "Stripping executable $<TARGET_FILE_NAME:faf-ice-adapter>"
     )
+endif()
+
+option(FAF_BUILD_TEST "Create test UI" OFF)
+if(FAF_BUILD_TEST)
+  find_package(Qt5Widgets REQUIRED)
+  find_package(Qt5Network REQUIRED)
+
+  if(MINGW)
+    pkg_search_module(QT5W REQUIRED Qt5Widgets)
+    pkg_search_module(QT5N REQUIRED Qt5Network)
+    link_directories(${QT5W_LIBRARY_DIRS})
+    link_directories(${QT5N_LIBRARY_DIRS})
+    include_directories(${Qt5Widgets_INCLUDE_DIRS})
+    include_directories(${Qt5Network_INCLUDE_DIRS})
+    set(faf_test_lib_libs
+      Qt5::QWindowsIntegrationPlugin
+      libQt5PlatformSupport.a
+      ${QT5W_LIBRARIES}
+      ${QT5N_LIBRARIES})
+  else()
+    set(faf_test_lib_libs
+      Qt5::Widgets
+      Qt5::Network)
+  endif()
+
+  set(CMAKE_AUTOMOC ON)
+  qt5_wrap_ui(FAF_TEST_UIS_H test/Testclient.ui)
+  include_directories(${CMAKE_CURRENT_BINARY_DIR})
+
+  add_executable(faf-ice-testclient
+      ${FAF_TEST_UIS_H}
+      test/GPGNetClient.cpp
+      test/JsonRpcClient.cpp
+      test/Testclient.cpp
+      test/Testclient.ui
+  )
+  target_link_libraries(faf-ice-testclient
+    fafice
+    ${faf_test_lib_libs}
+  )
+  if (NOT CMAKE_BUILD_TYPE STREQUAL "Debug")
+    add_custom_command(TARGET faf-ice-testclient
+      POST_BUILD
+      COMMAND ${CMAKE_STRIP} -s "$<TARGET_FILE:faf-ice-testclient>"
+      COMMENT "Stripping executable $<TARGET_FILE_NAME:faf-ice-testclient>"
+      )
+  endif()
+
+  target_compile_definitions(faf-ice-testclient PRIVATE QT_NO_KEYWORDS)
+
+  add_executable(faf-ice-testserver
+      test/Testserver.cpp
+  )
+  target_link_libraries(faf-ice-testserver
+    fafice
+  )
+  if (NOT CMAKE_BUILD_TYPE STREQUAL "Debug")
+    add_custom_command(TARGET faf-ice-testserver
+      POST_BUILD
+      COMMAND ${CMAKE_STRIP} -s "$<TARGET_FILE:faf-ice-testserver>"
+      COMMENT "Stripping executable $<TARGET_FILE_NAME:faf-ice-testserver>"
+      )
+  endif()
 endif()

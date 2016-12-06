@@ -77,4 +77,12 @@ IceAdapterOptions IceAdapterOptions::init(int argc, char *argv[])
   return result;
 }
 
+IceAdapterOptions IceAdapterOptions::init(int id, std::string const& login)
+{
+  IceAdapterOptions result;
+  result.localPlayerId = id;
+  result.localPlayerLogin = login;
+  return result;
+}
+
 }

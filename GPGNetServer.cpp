@@ -1,6 +1,8 @@
 #include "GPGNetServer.h"
 
 #include "GPGNetMessage.h"
+#include "Socket.h"
+#include "TcpSession.h"
 #include "logging.h"
 
 namespace faf
@@ -120,7 +122,7 @@ void GPGNetServer::addGpgMessageCallback(GpgMessageCallback cb)
   mGPGNetMessageCallbacks.push_back(cb);
 }
 
-void GPGNetServer::parseMessage(TcpSession* session, std::vector<char>& msgBuffer)
+void GPGNetServer::parseMessage(Socket* session, std::vector<char>& msgBuffer)
 {
   GPGNetMessage::parse(msgBuffer, [this](GPGNetMessage const& msg)
   {
