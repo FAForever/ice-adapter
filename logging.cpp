@@ -67,7 +67,7 @@ void logging_init()
   );
   boost::log::add_console_log(
         std::cout,
-        boost::log::keywords::filter = boost::log::trivial::severity < boost::log::trivial::warning,
+        boost::log::keywords::filter = boost::log::trivial::severity < boost::log::trivial::warning && boost::log::trivial::severity >= boost::log::trivial::debug,
         boost::log::keywords::format = format,
         boost::log::keywords::auto_flush = true
                                            );

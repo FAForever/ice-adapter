@@ -6,10 +6,11 @@
 namespace faf
 {
 
-JsonRpcServer::JsonRpcServer(int port):
-  TcpServer(port)
+JsonRpcServer::JsonRpcServer(int port,
+                             bool loopback):
+  TcpServer(port, loopback)
 {
-  FAF_LOG_TRACE << "JsonRpcServer() port " << port;
+  FAF_LOG_INFO << "JsonRpcServer() listening on port " << port;
 }
 
 JsonRpcServer::~JsonRpcServer()

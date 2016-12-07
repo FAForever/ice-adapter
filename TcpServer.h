@@ -21,7 +21,7 @@ class TcpSession;
 class TcpServer
 {
 public:
-  TcpServer(int port);
+  TcpServer(int port, bool loopback = true);
   virtual ~TcpServer();
 
   int listenPort() const;

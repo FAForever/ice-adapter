@@ -12,7 +12,7 @@ namespace faf
 class JsonRpcServer : public TcpServer, public JsonRpcProtocol
 {
 public:
-  JsonRpcServer(int port);
+  JsonRpcServer(int port, bool loopback = true);
   virtual ~JsonRpcServer();
 
 protected:

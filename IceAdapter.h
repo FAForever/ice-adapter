@@ -68,9 +68,11 @@ public:
    *         The IceAdapter will send the client the SDP record via "rpcGatheredSdp" JSONRPC notification.
        \param remotePlayerLogin: Login name of the player to connect to
        \param remotePlayerId:    ID of the player to connect to
+       \param createOffer:       should the client create the offer or does it only answer
       */
   void connectToPeer(std::string const& remotePlayerLogin,
-                     int remotePlayerId);
+                     int remotePlayerId,
+                     bool createOffer);
 
   /** \brief Not sure yet
       */
@@ -85,9 +87,10 @@ public:
   /** \brief Sets the SDP record for the remote peer.
    *         This method assumes a previous call of joinGame or connectToPeer.
        \param remotePlayerId: ID of the remote player
-       \param sdp64:          Base64 encoded sdp record
+       \param type:           type of the SDP message
+       \param msg:            the SDP message
       */
-  void setSdp(int remotePlayerId, std::string const& sdp64);
+  void addSdpMessage(int remotePlayerId, std::string const& type, std::string const& msg);
 
   /** \brief Send an arbitrary GPGNet message to the game
        \param message: The GPGNet message
@@ -114,11 +117,13 @@ protected:
 
   std::shared_ptr<PeerRelay> createPeerRelayOrUseReserved(int remotePlayerId,
                                                           std::string const& remotePlayerLogin,
-                                                          int& portResult);
+                                                          int& portResult,
+                                                          bool createOffer);
 
   std::shared_ptr<PeerRelay> createPeerRelay(int remotePlayerId,
                                              std::string const& remotePlayerLogin,
-                                             int& portResult);
+                                             int& portResult,
+                                             bool createOffer);
 
   IceAdapterOptions mOptions;
   std::shared_ptr<JsonRpcServer> mRpcServer;

@@ -20,6 +20,17 @@ class Testclient;
 class Testclient : public QMainWindow
 {
   Q_OBJECT
+  enum Column_t
+  {
+    ColumnPlayer,
+    ColumnState,
+    ColumnPing,
+    ColumnConntime,
+    ColumnLocalCand,
+    ColumnRemoteCand,
+    ColumnLocalSdp,
+    ColumnRemoteSdp
+  };
 
 public:
   explicit Testclient(QWidget *parent = 0);
@@ -30,6 +41,7 @@ protected Q_SLOTS:
   void on_listWidget_games_itemClicked(QListWidgetItem *item);
 
 protected:
+  void connectRpcMethods();
   void updateStatus();
   void startIceAdapter();
   void onIceOutput();

@@ -1,7 +1,10 @@
 #include "Testclient.h"
 #include "ui_Testclient.h"
 
+#include <set>
+
 #include <QtCore/QVariant>
+#include <QtCore/QTimer>
 #include <QtNetwork/QTcpServer>
 
 #include <json/json.h>
@@ -16,81 +19,9 @@ Testclient::Testclient(QWidget *parent) :
 {
   mUi->setupUi(this);
 
-  mServerClient.setRpcCallback("onLogin",
-                               [this](Json::Value const& paramsArray,
-                                      Json::Value & result,
-                                      Json::Value & error,
-                                      Socket* socket)
-  {
-    FAF_LOG_DEBUG << "onlogin";
-    if (paramsArray.size() < 1)
-    {
-      error = "Need 1 parameter: playerId (int)";
-      return;
-    }
-    mPlayerId = paramsArray[0].asInt();
-    mPlayerLogin = QString("Player%1").arg(mPlayerId);
-    FAF_LOG_DEBUG << "logged in as " << mPlayerLogin.toStdString() << "(" << mPlayerId << ")";
-    startIceAdapter();
-  });
+  connectRpcMethods();
 
-  mServerClient.setRpcCallback("sendToIceAdapter", [this](Json::Value const& paramsArray,
-                               Json::Value & result,
-                               Json::Value & error,
-                               Socket* socket)
-  {
-    if (paramsArray.size() < 2)
-    {
-      error = "Need 1 parameter: method (string), params (array)";
-      return;
-    }
-    mIceClient.sendRequest(paramsArray[0].asString(),
-                           paramsArray[1]);
-  });
-
-  mServerClient.setRpcCallback("onGamelist", [this](Json::Value const& paramsArray,
-                               Json::Value & result,
-                               Json::Value & error,
-                               Socket* socket)
-  {
-    if (paramsArray.size() != 1)
-    {
-      error = "Need 1 parameter: gameObject";
-      return;
-    }
-    mUi->listWidget_games->clear();
-    auto members = paramsArray[0].getMemberNames();
-    for (auto it = members.begin(), end = members.end(); it != end; ++it)
-    {
-      auto item = new QListWidgetItem(QString::fromStdString(*it));
-      item->setData(Qt::UserRole, paramsArray[0][*it].asInt());
-      mUi->listWidget_games->addItem(item);
-    }
-  });
-
-  mIceClient.setRpcCallback("onConnectionStateChanged", [this](Json::Value const& paramsArray,
-                             Json::Value & result,
-                             Json::Value & error,
-                             Socket* socket)
-  {
-    updateStatus();
-  });
-  mIceClient.setRpcCallback("onGpgNetMessageReceived", [this](Json::Value const& paramsArray,
-                            Json::Value & result,
-                            Json::Value & error,
-                            Socket* socket)
-  {
-    updateStatus();
-  });
-  mIceClient.setRpcCallback("onPeerStateChanged", [this](Json::Value const& paramsArray,
-                            Json::Value & result,
-                            Json::Value & error,
-                            Socket* socket)
-  {
-    updateStatus();
-  });
-
-  mServerClient.connectToHost("localhost", 54321);
+  mServerClient.connectToHost("sikoragmbh.my-router.de", 54321);
 
   connect(&mIceAdapterProcess,
           &QProcess::readyReadStandardError,
@@ -138,6 +69,82 @@ void Testclient::on_listWidget_games_itemClicked(QListWidgetItem *item)
   }
 }
 
+void Testclient::connectRpcMethods()
+{
+  mServerClient.setRpcCallback("onLogin",
+                               [this](Json::Value const& paramsArray,
+                                      Json::Value & result,
+                                      Json::Value & error,
+                                      Socket* socket)
+  {
+    if (paramsArray.size() < 1)
+    {
+      error = "Need 1 parameter: playerId (int)";
+      return;
+    }
+    mPlayerId = paramsArray[0].asInt();
+    mPlayerLogin = QString("Player%1").arg(mPlayerId);
+    mUi->label_myId->setText(mPlayerLogin);
+    FAF_LOG_INFO << "logged in as " << mPlayerLogin.toStdString() << " (" << mPlayerId << ")";
+    startIceAdapter();
+  });
+  mServerClient.setRpcCallback("sendToIceAdapter", [this](Json::Value const& paramsArray,
+                               Json::Value & result,
+                               Json::Value & error,
+                               Socket* socket)
+  {
+    if (paramsArray.size() < 2)
+    {
+      error = "Need 1 parameter: method (string), params (array)";
+      return;
+    }
+    mIceClient.sendRequest(paramsArray[0].asString(),
+                           paramsArray[1]);
+  });
+  mServerClient.setRpcCallback("onGamelist", [this](Json::Value const& paramsArray,
+                               Json::Value & result,
+                               Json::Value & error,
+                               Socket* socket)
+  {
+    if (paramsArray.size() != 1)
+    {
+      error = "Need 1 parameter: gameObject";
+      return;
+    }
+    mUi->listWidget_games->clear();
+    auto members = paramsArray[0].getMemberNames();
+    for (auto it = members.begin(), end = members.end(); it != end; ++it)
+    {
+      auto item = new QListWidgetItem(QString::fromStdString(*it));
+      item->setData(Qt::UserRole, paramsArray[0][*it].asInt());
+      mUi->listWidget_games->addItem(item);
+    }
+  });
+
+  for(auto event: {"onConnectionStateChanged",
+                   "onGpgNetMessageReceived",
+                   "onPeerStateChanged",
+                   "onNeedSdp"})
+  {
+    mIceClient.setRpcCallback(event, [this](Json::Value const&,
+                               Json::Value &,
+                               Json::Value &,
+                               Socket*)
+    {
+      updateStatus();
+    });
+  }
+
+  mIceClient.setRpcCallback("onSdpMessage", [this](Json::Value const& paramsArray,
+                            Json::Value &,
+                            Json::Value &,
+                            Socket*)
+  {
+    mServerClient.sendRequest("sendSdpMessage",
+                              paramsArray);
+  });
+}
+
 void Testclient::updateStatus()
 {
   mIceClient.sendRequest("status",
@@ -146,11 +153,35 @@ void Testclient::updateStatus()
                          [this] (Json::Value const& result,
                                  Json::Value const& error)
   {
-    if (!mGpgClient.state() == QAbstractSocket::ConnectedState)
-      {
+    if (mGpgClient.state() != QAbstractSocket::ConnectedState)
+    {
       FAF_LOG_DEBUG << "connecting GPGNetClient to port " << result["gpgnet"]["local_port"].asInt();
       mGpgClient.connectToHost("localhost",
                                result["gpgnet"]["local_port"].asInt());
+    }
+
+    mUi->label_gameConnected->setText(result["gpgnet"]["connected"].asBool() ? "true" : "false");
+    mUi->label_gameState->setText(QString::fromStdString(result["gpgnet"]["game_state"].asString()));
+
+    mUi->tableWidget_players->setRowCount(result["relays"].size());
+    int row = 0;
+    for(Json::Value const& relayInfo: result["relays"])
+    {
+      mUi->tableWidget_players->setItem(row, ColumnPlayer,
+       new QTableWidgetItem(QString::fromStdString(relayInfo["remote_player_login"].asString())));
+      mUi->tableWidget_players->setItem(row, ColumnState,
+        new QTableWidgetItem(QString::fromStdString(relayInfo["ice_agent"]["state"].asString())));
+      mUi->tableWidget_players->setItem(row, ColumnLocalCand,
+        new QTableWidgetItem(QString::fromStdString(relayInfo["ice_agent"]["local_candidate"].asString())));
+      mUi->tableWidget_players->setItem(row, ColumnRemoteCand,
+        new QTableWidgetItem(QString::fromStdString(relayInfo["ice_agent"]["remote_candidate"].asString())));
+      mUi->tableWidget_players->setItem(row, ColumnLocalSdp,
+        new QTableWidgetItem(QString::fromStdString(relayInfo["local_sdp"]["remote_candidate"].asString())));
+      mUi->tableWidget_players->setItem(row, ColumnRemoteSdp,
+        new QTableWidgetItem(QString::fromStdString(relayInfo["remote_sdp"]["remote_candidate"].asString())));
+
+
+      ++row;
     }
 
   });
@@ -165,6 +196,10 @@ void Testclient::startIceAdapter()
     server.listen(QHostAddress::LocalHost, 0);
     rpcPort = server.serverPort();
   }
+  QString exeName = "./faf-ice-adapter";
+#if defined(__MINGW32__)
+    exeName = "faf-ice-adapter.exe";
+#endif
   mIceAdapterProcess.start("./faf-ice-adapter",
                            QStringList()
                            << "--id" << QString::number(mPlayerId)
@@ -173,13 +208,21 @@ void Testclient::startIceAdapter()
                            << "--gpgnet-port" << "0"
                            );
   mIceAdapterProcess.waitForReadyRead(1000);
-  mIceClient.connectToHost("localhost", rpcPort);
-  if (!mIceClient.waitForConnected(1000))
+  auto timer = new QTimer(this);
+  timer->setSingleShot(true);
+  connect(timer,
+          &QTimer::timeout,
+          [this, rpcPort]()
   {
-    FAF_LOG_ERROR << "Error connecting to icetest-server on port " << rpcPort << ": " << mIceClient.errorString().toStdString();
-    close();
-  }
-  updateStatus();
+    mIceClient.connectToHost("localhost", rpcPort);
+    connect(&mIceClient,
+            &QTcpSocket::connected,
+            [this]()
+    {
+      updateStatus();
+    });
+  });
+  timer->start(500);
 }
 
 void Testclient::onIceOutput()
@@ -208,6 +251,7 @@ void Testclient::changeEvent(QEvent *e)
 
 void Testclient::onGPGNetMessageFromIceAdapter(GPGNetMessage const& msg)
 {
+  FAF_LOG_TRACE << "received GPGNetMessage from ICEAdapter: " << msg.toDebug();
   if (msg.header == "CreateLobby")
   {
     GPGNetMessage msg;
@@ -229,6 +273,7 @@ int main(int argc, char *argv[])
   Q_IMPORT_PLUGIN (QWindowsIntegrationPlugin);
 #endif
   faf::logging_init();
+  faf::logging_init_log_file("faf-ice-testclient.log");
   QApplication a(argc, argv);
   faf::Testclient c;
   c.show();

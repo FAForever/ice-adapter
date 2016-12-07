@@ -69,6 +69,13 @@ void cb_new_selected_pair_full(NiceAgent *agent,
         );
 }
 
+void cb_new_candidate(NiceAgent *agent,
+                      NiceCandidate *candidate,
+                      gpointer data)
+{
+  static_cast<IceAgent*>(data)->onNewCandidate(candidate);
+}
+
 void cb_nice_recv(NiceAgent *agent,
                   guint stream_id,
                   guint component_id,
@@ -80,7 +87,7 @@ void cb_nice_recv(NiceAgent *agent,
 }
 
 IceAgent::IceAgent(GMainLoop* mainloop,
-                   bool controlling,
+                   bool offering,
                    std::string const& stunIp,
                    std::string const& turnIp,
                    IceAdapterOptions const& options):
@@ -90,6 +97,7 @@ IceAgent::IceAgent(GMainLoop* mainloop,
   mSdp(nullptr),
   mSdp64(nullptr),
   mHasRemoteSdp(false),
+  mOffering(offering),
   mStreamId(0),
   mState(IceAgentState::NeedRemoteSdp)
 {
@@ -102,7 +110,7 @@ IceAgent::IceAgent(GMainLoop* mainloop,
 
   g_object_set(mAgent, "stun-server", stunIp.c_str(), nullptr);
   g_object_set(mAgent, "stun-server-port", 3478, nullptr);
-  g_object_set(mAgent, "controlling-mode", controlling, nullptr);
+  g_object_set(mAgent, "controlling-mode", mOffering, nullptr);
   g_object_set(mAgent, "upnp", options.useUpnp, nullptr);
 
   mStreamId = nice_agent_add_stream(mAgent, 1);
@@ -178,7 +186,11 @@ IceAgent::IceAgent(GMainLoop* mainloop,
                    "new-selected-pair-full",
                    G_CALLBACK(cb_new_selected_pair_full),
                    this);
-  FAF_LOG_TRACE << "IceAgent()";
+  g_signal_connect(mAgent,
+                   "new-candidate-full",
+                   G_CALLBACK(cb_new_candidate),
+                   this);
+  FAF_LOG_TRACE << "IceAgent() offer " << mOffering;
 }
 
 IceAgent::~IceAgent()
@@ -213,11 +225,18 @@ void IceAgent::gatherCandidates()
   {
     throw std::runtime_error("nice_agent_gather_candidates() failed");
   }
+
+  auto sdp = nice_agent_generate_local_sdp(mAgent);
+  if (mSdpMessageCallback)
+  {
+    mSdpMessageCallback(this, "initialSdp", std::string(sdp));
+  }
+  g_free(sdp);
 }
 
-void IceAgent::setCandidateGatheringDoneCallback(CandidateGatheringDoneCallback cb)
+void IceAgent::setSdpMessageCallback(SdpMessageCallback cb)
 {
-  mGatheringDoneCallback = cb;
+  mSdpMessageCallback = cb;
 }
 
 void IceAgent::setReceiveCallback(ReceiveCallback cb)
@@ -230,24 +249,40 @@ void IceAgent::setStateCallback(StateCallback cb)
   mStateCallback = cb;
 }
 
-void IceAgent::setRemoteSdp(std::string const& sdpBase64)
+void IceAgent::addRemoteSdpMessage(std::string const& type, std::string const& msg)
 {
-  gsize sdp_len;
-  char* decoded_sdp = reinterpret_cast<char*>(g_base64_decode(sdpBase64.c_str(), &sdp_len));
-  if (!decoded_sdp)
+  if (type == "initialSdp")
   {
-    throw std::runtime_error("g_base64_decode() failed");
+    mHasRemoteSdp = true;
+    int res = nice_agent_parse_remote_sdp(mAgent, msg.c_str());
+    if (res <= 0)
+    {
+      FAF_LOG_ERROR << "res " << res;
+      throw std::runtime_error("nice_agent_parse_remote_sdp() failed");
+    }
+    if (!mOffering)
+    {
+      gatherCandidates();
+    }
   }
-  mRemoteSdp = std::string(decoded_sdp, sdp_len);
-  g_free(decoded_sdp);
+  else if (type == "newCandidate")
+  {
+    if (mState == IceAgentState::Ready)
+    {
+      return;
+    }
+    GSList *remote_candidates = NULL;
+    NiceCandidate* c = nice_agent_parse_remote_candidate_sdp(mAgent,
+                                                    mStreamId,
+                                                    msg.c_str());
+    if (c == NULL)
+    {
+      throw std::runtime_error("nice_agent_parse_remote_candidate_sdp() failed");
+    }
+    remote_candidates = g_slist_prepend(remote_candidates, c);
+    g_slist_free_full(remote_candidates, (GDestroyNotify)&nice_candidate_free);
+  }
 
-  int res = nice_agent_parse_remote_sdp(mAgent, mRemoteSdp.c_str());
-  if (res <= 0)
-  {
-    FAF_LOG_ERROR << "res " << res;
-    throw std::runtime_error("nice_agent_parse_remote_sdp() failed");
-  }
-  mHasRemoteSdp = true;
 }
 
 bool IceAgent::hasRemoteSdp() const
@@ -318,14 +353,16 @@ IceAgentState IceAgent::state() const
 
 void IceAgent::onCandidateGatheringDone()
 {
+  /*
   mSdp = nice_agent_generate_local_sdp(mAgent);
   mSdp64 = g_base64_encode(reinterpret_cast<unsigned char *>(mSdp),
                            strlen(mSdp));
-  if (mGatheringDoneCallback)
+  if (mSdpMessageCallback)
   {
-    mGatheringDoneCallback(this, mSdp64);
+    mSdpMessageCallback(this, mSdp64);
   }
   FAF_LOG_TRACE << "SDP:\n" << mSdp;
+  */
 }
 
 void IceAgent::onComponentStateChanged(unsigned int state)
@@ -382,7 +419,7 @@ std::string addrString(NiceAddress* a)
 {
   char result[NICE_ADDRESS_STRING_LEN] = {0};
   nice_address_to_string (a, result);
-  return std::string(result);
+  return std::string(result) + ":" + std::to_string(nice_address_get_port(a));
 }
 
 void IceAgent::onCandidateSelected(NiceCandidate* localCandidate,
@@ -394,6 +431,16 @@ void IceAgent::onCandidateSelected(NiceCandidate* localCandidate,
   mRemoteCandidateInfo += transportToString(remoteCandidate->transport);
   mRemoteCandidateInfo += " ";
   mRemoteCandidateInfo += addrString(&remoteCandidate->addr);
+}
+
+void IceAgent::onNewCandidate(NiceCandidate* localCandidate)
+{
+  auto candString = nice_agent_generate_local_candidate_sdp(mAgent, localCandidate);
+  if (mSdpMessageCallback)
+  {
+    mSdpMessageCallback(this, "newCandidate", std::string(candString));
+  }
+  g_free(candString);
 }
 
 void IceAgent::onReceive(std::string const& msg)

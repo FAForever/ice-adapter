@@ -11,16 +11,25 @@ namespace faf {
 
 
 
-TcpServer::TcpServer(int port)
+TcpServer::TcpServer(int port,
+                     bool loopback)
 {
   mListenSocket = Gio::Socket::create(Gio::SOCKET_FAMILY_IPV4,
                                       Gio::SOCKET_TYPE_STREAM,
                                       Gio::SOCKET_PROTOCOL_DEFAULT);
   mListenSocket->set_blocking(false);
 
+  Glib::RefPtr<Gio::InetAddress> listenAddress;
+  if (loopback)
+  {
+    listenAddress = Gio::InetAddress::create_loopback(Gio::SOCKET_FAMILY_IPV4);
+  }
+  else
+  {
+    listenAddress = Gio::InetAddress::create_any(Gio::SOCKET_FAMILY_IPV4);
+  }
   auto srcAddress =
-    Gio::InetSocketAddress::create(Gio::InetAddress::create_loopback(Gio::SOCKET_FAMILY_IPV4),
-                                   static_cast<guint16>(port));
+    Gio::InetSocketAddress::create(listenAddress, static_cast<guint16>(port));
 
   mListenSocket->bind(srcAddress, false);
   mListenSocket->listen();

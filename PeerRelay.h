@@ -17,7 +17,7 @@ enum class IceAgentState;
 class PeerRelay
 {
 public:
-  typedef std::function<void (PeerRelay*, std::string const&)> CandidateGatheringDoneCallback;
+  typedef std::function<void (PeerRelay*, std::string const&, std::string const&)> SdpMessageCallback;
   typedef std::function<void (PeerRelay*, IceAgentState const&)> IceAgentStateCallback;
 
   PeerRelay(Glib::RefPtr<Glib::MainLoop> mainloop,
@@ -25,8 +25,9 @@ public:
             std::string const& peerLogin,
             std::string const& stunIp,
             std::string const& turnIp,
-            CandidateGatheringDoneCallback gatherDoneCb,
+            SdpMessageCallback sdpCb,
             IceAgentStateCallback stateCb,
+            bool createOffer,
             IceAdapterOptions const& options
             );
   virtual ~PeerRelay();
@@ -44,6 +45,8 @@ public:
 
   void reconnect();
 
+  bool isOfferer() const;
+
 protected:
   void createAgent();
   bool onGameReceive(Glib::IOCondition condition);
@@ -54,9 +57,10 @@ protected:
   std::string mStunIp;
   std::string mTurnIp;
   int mLocalGameUdpPort;
+  bool mCreateOffer;
   std::shared_ptr<IceAgent> mIceAgent;
   Glib::RefPtr<Gio::SocketAddress> mGameAddress;
-  CandidateGatheringDoneCallback mCandidateGatheringDoneCallback;
+  SdpMessageCallback mSdpMessageCallback;
   IceAgentStateCallback mIceAgentStateCallback;
   IceAdapterOptions mOptions;
 };

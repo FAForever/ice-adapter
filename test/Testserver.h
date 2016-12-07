@@ -20,8 +20,8 @@ protected:
   PlayerIdType mCurrentPlayerId;
   std::map<PlayerIdType, Socket*> mPlayerSockets;
   std::map<Socket*, PlayerIdType> mSocketPlayers;
-  std::map<PlayerIdType, std::string> mPlayersHostedgames;
-  std::map<std::string, std::set<PlayerIdType>> mGames;
+  std::map<PlayerIdType, std::string> mHostingplayersLogins;
+  std::map<std::string, std::set<PlayerIdType>> mHostingloginsGames;
 };
 
 } // namespace faf

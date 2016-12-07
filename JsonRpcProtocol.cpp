@@ -167,7 +167,7 @@ Json::Value JsonRpcProtocol::processRequest(Json::Value const& request, Socket* 
     return response;
   }
 
-  FAF_LOG_DEBUG << "dispatching JSRONRPC method '" << request["method"].asString() << "'";
+  FAF_LOG_TRACE << "dispatching JSRONRPC method '" << request["method"].asString() << "'";
 
   Json::Value params(Json::arrayValue);
   if (request.isMember("params") &&

@@ -16,7 +16,7 @@ Not that all JSON messages are newline terminated.
 | joinGame | remotePlayerLogin (string), remotePlayerId (int) | "ok" | Tell the game to create the Lobby, create a PeerRelay and join the remote game. |
 | connectToPeer | remotePlayerLogin (string), remotePlayerId (int)| "ok" | Create a PeerRelay and tell the game to connect to the remote peer. |
 | disconnectFromPeer | remotePlayerId (int)| "ok" | Create a PeerRelay and tell the game to connect to the remote peer. |
-| setSdp | remotePlayerId (int), sdp64 (string) | "ok" | Set the remote SDP to the PeerRelay to establish a connection. |
+| addSdpMessage | remotePlayerId (int), type (string), message (string) | "ok" | Add the remote SDP part to the PeerRelay to establish a connection. |
 | sendToGpgNet | header (string), chunks (array) | "ok" | Send an arbitrary message to the game. |
 | status | | [status structure](#Status structure) | Polls the current status of the `faf-ice-adapter`. |
 | reserveRelays | count (int) | "ok" | Reserve `count` peers. Note that all currently running and reserved relays are already count as reserved. |
@@ -24,10 +24,9 @@ Not that all JSON messages are newline terminated.
 ### Notifications (faf-ice-adapter ➠ client )
 | Name | Parameters | Description |
 | --- | --- | --- |
-| onNeedSdp | localPlayerId (int), remotePlayerId (int) | A PeerRelay was created and the SDP record is needed to establish a connection. |
 | onConnectionStateChanged | "Connected"/"Disconnected" (string) | The game connected to the internal GPGNetServer. |
 | onGpgNetMessageReceived | header (string), chunks (array) | The game sent a message to the `faf-ice-adapter` via the internal GPGNetServer. |
-| onSdpGathered | localPlayerId (int), remotePlayerId (int), SDP (string) | The PeerRelays IceAgent gathered the local SDP record for connecting to the remote player. This Base64 encoded SDP string must be forwarded to the remote peer and set using the `setSdp` command. |
+| onSdpMessage | localPlayerId (int), remotePlayerId (int), type (string), message (string) | The PeerRelays IceAgent gathered a local SDP part for connecting to the remote player. This message must be forwarded to the remote peer and set using the `addSdpMessage` command. |
 | onPeerStateChanged | localPlayerId (int), remotePlayerId (int), "NeedRemoteSdp" / "Disconnected" / "Gathering" / "Connecting" / "Connected" / "Ready" / "Failed" | Informs the client about the ICE connectivity state change. |
 
 #### Status structure

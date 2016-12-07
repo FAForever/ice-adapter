@@ -11,8 +11,9 @@ PeerRelay::PeerRelay(Glib::RefPtr<Glib::MainLoop> mainloop,
                      std::string const& peerLogin,
                      std::string const& stunIp,
                      std::string const& turnIp,
-                     CandidateGatheringDoneCallback gatherDoneCb,
+                     SdpMessageCallback sdpCb,
                      IceAgentStateCallback stateCb,
+                     bool createOffer,
                      IceAdapterOptions const& options):
   mMainloop(mainloop),
   mPeerId(peerId),
@@ -20,7 +21,8 @@ PeerRelay::PeerRelay(Glib::RefPtr<Glib::MainLoop> mainloop,
   mStunIp(stunIp),
   mTurnIp(turnIp),
   mLocalGameUdpPort(0),
-  mCandidateGatheringDoneCallback(gatherDoneCb),
+  mCreateOffer(createOffer),
+  mSdpMessageCallback(sdpCb),
   mIceAgentStateCallback(stateCb),
   mOptions(options)
 {
@@ -89,7 +91,6 @@ std::string const& PeerRelay::peerLogin() const
   return mPeerLogin;
 }
 
-
 void PeerRelay::reconnect()
 {
   /*
@@ -109,11 +110,16 @@ void PeerRelay::reconnect()
   */
 }
 
+bool PeerRelay::isOfferer() const
+{
+  return mCreateOffer;
+}
+
 void PeerRelay::createAgent()
 {
   mIceAgent.reset();
   mIceAgent = std::make_shared<IceAgent>(mMainloop->gobj(),
-                                         true,
+                                         mCreateOffer,
                                          mStunIp,
                                          mTurnIp,
                                          mOptions);
@@ -134,16 +140,13 @@ void PeerRelay::createAgent()
     }
   });
 
-  mIceAgent->setCandidateGatheringDoneCallback([this](IceAgent*, std::string const& sdp)
+  mIceAgent->setSdpMessageCallback([this](IceAgent*, std::string const& type, std::string const& msg)
   {
-    if (mCandidateGatheringDoneCallback)
+    if (mSdpMessageCallback)
     {
-      mCandidateGatheringDoneCallback(this, sdp);
+      mSdpMessageCallback(this, type, msg);
     }
   });
-
-  mIceAgent->gatherCandidates();
-
 }
 
 Glib::ustring

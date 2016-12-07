@@ -74,13 +74,23 @@ void IceAdapter::joinGame(std::string const& remotePlayerLogin,
 }
 
 void IceAdapter::connectToPeer(std::string const& remotePlayerLogin,
-                               int remotePlayerId)
+                               int remotePlayerId,
+                               bool createOffer)
 {
   FAF_LOG_TRACE << "connectToPeer " << remotePlayerLogin << " " << remotePlayerId;
+  if (mTaskState == IceAdapterTaskState::ShouldJoinGame ||
+      mTaskState == IceAdapterTaskState::SentJoinGame)
+  {
+    if (mRelays.count(remotePlayerId) == 0)
+    {
+      FAF_LOG_ERROR << "connectToPeer called in Join-mode: existing relay expected";
+    }
+  }
   int relayPort;
   auto relay = createPeerRelayOrUseReserved(remotePlayerId,
                                             remotePlayerLogin,
-                                            relayPort);
+                                            relayPort,
+                                            createOffer);
   if (relay)
   {
     mRelays[remotePlayerId] = relay;
@@ -119,7 +129,7 @@ void IceAdapter::disconnectFromPeer(int remotePlayerId)
   mRelays.erase(relayIt);
 }
 
-void IceAdapter::setSdp(int remotePlayerId, std::string const& sdp64)
+void IceAdapter::addSdpMessage(int remotePlayerId, std::string const& type, std::string const& msg)
 {
   auto relayIt = mRelays.find(remotePlayerId);
   if (relayIt == mRelays.end())
@@ -139,7 +149,7 @@ void IceAdapter::setSdp(int remotePlayerId, std::string const& sdp64)
   {
     FAF_LOG_WARN << "relayIt->second->iceAgent()->isConnected()";
   }
-  relayIt->second->iceAgent()->setRemoteSdp(sdp64);
+  relayIt->second->iceAgent()->addRemoteSdpMessage(type, msg);
 }
 
 void IceAdapter::sendToGpgNet(GPGNetMessage const& message)
@@ -229,7 +239,8 @@ void IceAdapter::reserveRelays(int count)
     int relayPort;
     auto relay = createPeerRelay(DUMMY_RESERVED_PLAYER_ID,
                                  "",
-                                 relayPort);
+                                 relayPort,
+                                 true);
     if (relay)
     {
       mReservedRelays.push(relay);
@@ -363,7 +374,9 @@ void IceAdapter::connectRpcMethods()
     }
     try
     {
-      connectToPeer(paramsArray[0].asString(), paramsArray[1].asInt());
+      connectToPeer(paramsArray[0].asString(),
+                    paramsArray[1].asInt(),
+                    paramsArray.size() > 2 ? paramsArray[2].asBool() : true);
       result = "ok";
     }
     catch(std::exception& e)
@@ -416,20 +429,22 @@ void IceAdapter::connectRpcMethods()
     }
   });
 
-  mRpcServer->setRpcCallback("setSdp",
+  mRpcServer->setRpcCallback("addSdpMessage",
                              [this](Json::Value const& paramsArray,
                              Json::Value & result,
                              Json::Value & error,
                              Socket* session)
   {
-    if (paramsArray.size() < 2)
+    if (paramsArray.size() < 3)
     {
-      error = "Need 2 parameters: remotePlayerId (int), sdp64 (string)";
+      error = "Need 3 parameters: remotePlayerId (int), type (string), msg (string)";
       return;
     }
     try
     {
-      setSdp(paramsArray[0].asInt(), paramsArray[1].asString());
+      addSdpMessage(paramsArray[0].asInt(),
+                    paramsArray[1].asString(),
+                    paramsArray[2].asString());
       result = "ok";
     }
     catch(std::exception& e)
@@ -511,7 +526,8 @@ void IceAdapter::tryExecuteTask()
         int relayPort;
         auto relay = createPeerRelayOrUseReserved(mJoinGameRemotePlayerId,
                                                   mJoinGameRemotePlayerLogin,
-                                                  relayPort);
+                                                  relayPort,
+                                                  false);
 
         if (relay)
         {
@@ -539,7 +555,8 @@ void IceAdapter::tryExecuteTask()
 
 std::shared_ptr<PeerRelay> IceAdapter::createPeerRelayOrUseReserved(int remotePlayerId,
                                                         std::string const& remotePlayerLogin,
-                                                        int& portResult)
+                                                        int& portResult,
+                                                        bool createOffer)
 {
   if (!mReservedRelays.empty())
   {
@@ -552,12 +569,6 @@ std::shared_ptr<PeerRelay> IceAdapter::createPeerRelayOrUseReserved(int remotePl
     /* if we already gathered a SDP for this reserved relay, forward it on next tick */
     Glib::signal_idle().connect_once([this, relay]()
     {
-      Json::Value needSdpParams(Json::arrayValue);
-      needSdpParams.append(mOptions.localPlayerId);
-      needSdpParams.append(relay->peerId());
-      mRpcServer->sendRequest("onNeedSdp",
-                              needSdpParams);
-
       if (!relay->iceAgent()->localSdp64().empty())
       {
         Json::Value gatheredSdpParams(Json::arrayValue);
@@ -574,16 +585,18 @@ std::shared_ptr<PeerRelay> IceAdapter::createPeerRelayOrUseReserved(int remotePl
   {
     return createPeerRelay(remotePlayerId,
                            remotePlayerLogin,
-                           portResult);
+                           portResult,
+                           createOffer);
   }
 }
 
 std::shared_ptr<PeerRelay> IceAdapter::createPeerRelay(int remotePlayerId,
                                                        std::string const& remotePlayerLogin,
-                                                       int& portResult)
+                                                       int& portResult,
+                                                       bool createOffer)
 {
 
-  auto gatherDoneCb = [this](PeerRelay* relay, std::string const& sdp)
+  auto sdpMsgCb = [this](PeerRelay* relay, std::string const& type, std::string const& msg)
   {
     /* Only non-reserved relays will be forwarded */
     if (relay->peerId() != DUMMY_RESERVED_PLAYER_ID)
@@ -591,8 +604,9 @@ std::shared_ptr<PeerRelay> IceAdapter::createPeerRelay(int remotePlayerId,
       Json::Value gatheredSdpParams(Json::arrayValue);
       gatheredSdpParams.append(mOptions.localPlayerId);
       gatheredSdpParams.append(relay->peerId());
-      gatheredSdpParams.append(sdp);
-      mRpcServer->sendRequest("onSdpGathered",
+      gatheredSdpParams.append(type);
+      gatheredSdpParams.append(msg);
+      mRpcServer->sendRequest("onSdpMessage",
                               gatheredSdpParams);
     }
   };
@@ -616,18 +630,16 @@ std::shared_ptr<PeerRelay> IceAdapter::createPeerRelay(int remotePlayerId,
                                             remotePlayerLogin,
                                             mStunIp,
                                             mTurnIp,
-                                            gatherDoneCb,
+                                            sdpMsgCb,
                                             stateCb,
+                                            createOffer,
                                             mOptions);
   portResult = result->localGameUdpPort();
 
-  if (remotePlayerId >= 0)
+  if (createOffer &&
+      remotePlayerId != DUMMY_RESERVED_PLAYER_ID)
   {
-    Json::Value needSdpParams(Json::arrayValue);
-    needSdpParams.append(mOptions.localPlayerId);
-    needSdpParams.append(remotePlayerId);
-    mRpcServer->sendRequest("onNeedSdp",
-                            needSdpParams);
+    result->iceAgent()->gatherCandidates();
   }
 
   return result;
