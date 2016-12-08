@@ -102,11 +102,6 @@ public:
       */
   Json::Value status() const;
 
-  /** \brief Reserves relays for future use
-   *         Note that all currently running relays are already count as reserved
-       \param count: The accumulated number of reserved relays
-      */
-  void reserveRelays(int count);
 protected:
   void onGpgNetMessage(GPGNetMessage const& message);
   void onGpgConnectionStateChanged();
@@ -114,11 +109,6 @@ protected:
   void connectRpcMethods();
 
   void tryExecuteTask();
-
-  std::shared_ptr<PeerRelay> createPeerRelayOrUseReserved(int remotePlayerId,
-                                                          std::string const& remotePlayerLogin,
-                                                          int& portResult,
-                                                          bool createOffer);
 
   std::shared_ptr<PeerRelay> createPeerRelay(int remotePlayerId,
                                              std::string const& remotePlayerLogin,
@@ -140,7 +130,6 @@ protected:
   std::string mGPGNetGameState;
 
   std::map<int, std::shared_ptr<PeerRelay>> mRelays;
-  std::queue<std::shared_ptr<PeerRelay>> mReservedRelays;
 
   IceAdapterTaskState mTaskState;
 };

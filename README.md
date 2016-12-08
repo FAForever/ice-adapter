@@ -19,7 +19,6 @@ Not that all JSON messages are newline terminated.
 | addSdpMessage | remotePlayerId (int), type (string), message (string) | "ok" | Add the remote SDP part to the PeerRelay to establish a connection. |
 | sendToGpgNet | header (string), chunks (array) | "ok" | Send an arbitrary message to the game. |
 | status | | [status structure](#Status structure) | Polls the current status of the `faf-ice-adapter`. |
-| reserveRelays | count (int) | "ok" | Reserve `count` peers. Note that all currently running and reserved relays are already count as reserved. |
 
 ### Notifications (faf-ice-adapter ➠ client )
 | Name | Parameters | Description |
