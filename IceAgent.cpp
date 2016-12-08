@@ -1,13 +1,23 @@
 #include "IceAgent.h"
 
+#include <boost/preprocessor/stringize.hpp>
+
 #include <stdexcept>
 #include <cstring>
+
+#include <glibmm.h>
 
 #include <agent.h>
 #include <nice.h>
 
 #include "IceAdapterOptions.h"
 #include "logging.h"
+
+#if SIGCXX_MAJOR_VERSION == 2 && SIGCXX_MICRO_VERSION == 0 && SIGCXX_MINOR_VERSION == 4
+namespace sigc {
+  SIGC_FUNCTORS_DEDUCE_RESULT_TYPE_WITH_DECLTYPE
+}
+#endif
 
 namespace faf
 {
@@ -88,18 +98,21 @@ void cb_nice_recv(NiceAgent *agent,
 
 IceAgent::IceAgent(GMainLoop* mainloop,
                    bool offering,
+                   int peerId,
                    std::string const& stunIp,
                    std::string const& turnIp,
                    IceAdapterOptions const& options):
   mAgent(nullptr),
   mTurnUser(options.turnUser),
   mTurnPassword(options.turnPass),
-  mSdp(nullptr),
-  mSdp64(nullptr),
   mHasRemoteSdp(false),
+  mConnected(false),
   mOffering(offering),
+  mPeerId(peerId),
   mStreamId(0),
-  mState(IceAgentState::NeedRemoteSdp)
+  mState(IceAgentState::NeedRemoteSdp),
+  mStartTime(0),
+  mConnectedTime(0)
 {
   mAgent = nice_agent_new(g_main_loop_get_context (mainloop),
                           NICE_COMPATIBILITY_RFC5245);
@@ -118,14 +131,25 @@ IceAgent::IceAgent(GMainLoop* mainloop,
   {
     throw std::runtime_error("nice_agent_add_stream() failed");
   }
-  nice_agent_set_relay_info(mAgent,
-                            mStreamId,
-                            1,
-                            turnIp.c_str(),
-                            3478,
-                            mTurnUser.c_str(),
-                            mTurnPassword.c_str(),
-                            NICE_RELAY_TYPE_TURN_UDP);
+
+
+  Glib::signal_timeout().connect([this, turnIp]()
+  {
+    if (!isConnected())
+    {
+      FAF_LOG_INFO << mPeerId << ": Adding TURN server to ICE";
+      nice_agent_set_relay_info(mAgent,
+                                mStreamId,
+                                1,
+                                turnIp.c_str(),
+                                3478,
+                                mTurnUser.c_str(),
+                                mTurnPassword.c_str(),
+                                NICE_RELAY_TYPE_TURN_UDP);
+    }
+    return false;
+  }, 1500);
+
   /*
   nice_agent_set_relay_info(mAgent,
                             mStreamId,
@@ -195,16 +219,6 @@ IceAgent::IceAgent(GMainLoop* mainloop,
 
 IceAgent::~IceAgent()
 {
-  if (mSdp)
-  {
-    g_free(mSdp);
-    mSdp = nullptr;
-  }
-  if (mSdp64)
-  {
-    g_free(mSdp64);
-    mSdp64 = nullptr;
-  }
   if (mStreamId)
   {
     nice_agent_remove_stream(mAgent,
@@ -214,11 +228,12 @@ IceAgent::~IceAgent()
   {
     g_object_unref(mAgent);
   }
-  FAF_LOG_TRACE << "~IceAgent()";
+  FAF_LOG_TRACE << mPeerId << ": ~IceAgent()";
 }
 
 void IceAgent::gatherCandidates()
 {
+  mStartTime = g_get_monotonic_time();
   // Start gathering local candidates
   if (!nice_agent_gather_candidates(mAgent,
                                     mStreamId))
@@ -251,6 +266,7 @@ void IceAgent::setStateCallback(StateCallback cb)
 
 void IceAgent::addRemoteSdpMessage(std::string const& type, std::string const& msg)
 {
+  FAF_LOG_INFO << mPeerId << ": adding sdp <" << type << ">: " << msg;
   if (type == "initialSdp")
   {
     mHasRemoteSdp = true;
@@ -292,7 +308,7 @@ bool IceAgent::hasRemoteSdp() const
 
 bool IceAgent::isConnected() const
 {
-  return mState == IceAgentState::Ready;
+  return mConnected;
 }
 
 void IceAgent::send(std::string const& msg)
@@ -317,42 +333,26 @@ std::string IceAgent::remoteCandidateInfo() const
   return mRemoteCandidateInfo;
 }
 
-std::string IceAgent::localSdp() const
-{
-  if (mSdp)
-  {
-    return std::string(mSdp);
-  }
-  else
-  {
-    return std::string();
-  }
-}
-
-std::string IceAgent::localSdp64() const
-{
-  if (mSdp64)
-  {
-    return std::string(mSdp64);
-  }
-  else
-  {
-    return std::string();
-  }
-}
-
-std::string IceAgent::remoteSdp() const
-{
-  return mRemoteSdp;
-}
-
 IceAgentState IceAgent::state() const
 {
   return mState;
 }
 
+double IceAgent::timeToConnected() const
+{
+  if (isConnected())
+  {
+    return (mConnectedTime - mStartTime) / 1e6;
+  }
+  else
+  {
+    return (g_get_monotonic_time() - mStartTime) / 1e6;
+  }
+}
+
 void IceAgent::onCandidateGatheringDone()
 {
+  FAF_LOG_INFO << mPeerId << ": gathering done";
   /*
   mSdp = nice_agent_generate_local_sdp(mAgent);
   mSdp64 = g_base64_encode(reinterpret_cast<unsigned char *>(mSdp),
@@ -361,7 +361,6 @@ void IceAgent::onCandidateGatheringDone()
   {
     mSdpMessageCallback(this, mSdp64);
   }
-  FAF_LOG_TRACE << "SDP:\n" << mSdp;
   */
 }
 
@@ -386,8 +385,17 @@ void IceAgent::onComponentStateChanged(unsigned int state)
       mState = IceAgentState::Connected;
       break;
     case NICE_COMPONENT_STATE_READY:
-      FAF_LOG_TRACE << "NICE_COMPONENT_STATE_READY";
+    {
+      FAF_LOG_INFO << mPeerId << ": NICE_COMPONENT_STATE_READY";
       mState = IceAgentState::Ready;
+      mConnected = true;
+
+      //auto list = nice_agent_get_local_candidates(mAgent,
+      //                                            mStreamId,
+      //                                            1);
+      //g_slist_free_full(list, (GDestroyNotify)&nice_candidate_free);
+      mConnectedTime = g_get_monotonic_time();
+    }
       break;
     case NICE_COMPONENT_STATE_FAILED:
       FAF_LOG_ERROR << "NICE_COMPONENT_STATE_FAILED";
@@ -425,10 +433,10 @@ std::string addrString(NiceAddress* a)
 void IceAgent::onCandidateSelected(NiceCandidate* localCandidate,
                                     NiceCandidate* remoteCandidate)
 {
-  mLocalCandidateInfo += transportToString(localCandidate->transport);
+  mLocalCandidateInfo = transportToString(localCandidate->transport);
   mLocalCandidateInfo += " ";
   mLocalCandidateInfo += addrString(&localCandidate->addr);
-  mRemoteCandidateInfo += transportToString(remoteCandidate->transport);
+  mRemoteCandidateInfo = transportToString(remoteCandidate->transport);
   mRemoteCandidateInfo += " ";
   mRemoteCandidateInfo += addrString(&remoteCandidate->addr);
 }
@@ -447,8 +455,15 @@ void IceAgent::onReceive(std::string const& msg)
 {
   if (mReceiveCallback)
   {
-    mReceiveCallback(this,
-                     msg);
+    if (!mConnected)
+    {
+      FAF_LOG_WARN << mPeerId << ": skipping " << msg.size() << " bytes: ICE not connected";
+    }
+    else
+    {
+      mReceiveCallback(this,
+                       msg);
+    }
   }
 }
 

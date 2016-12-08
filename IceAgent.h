@@ -30,6 +30,7 @@ class IceAgent
 public:
   IceAgent(GMainLoop* mainloop,
            bool offering,
+           int peerId,
            std::string const& stunIp,
            std::string const& turnIp,
            IceAdapterOptions const& options);
@@ -54,11 +55,9 @@ public:
   std::string localCandidateInfo() const;
   std::string remoteCandidateInfo() const;
 
-  std::string localSdp() const;
-  std::string localSdp64() const;
-  std::string remoteSdp() const;
-
   IceAgentState state() const;
+
+  double timeToConnected() const;
 
 protected:
   void onCandidateGatheringDone();
@@ -71,12 +70,10 @@ protected:
   NiceAgent* mAgent;
   std::string mTurnUser;
   std::string mTurnPassword;
-  char* mSdp;
-  char* mSdp64;
-  std::string mRemoteSdp;
   bool mHasRemoteSdp;
   bool mConnected;
   bool mOffering;
+  int mPeerId;
   std::string mLocalCandidateInfo;
   std::string mRemoteCandidateInfo;
 
@@ -87,6 +84,9 @@ protected:
   unsigned int mStreamId;
 
   IceAgentState mState;
+
+  int64_t mStartTime;
+  int64_t mConnectedTime;
 
   friend void cb_candidate_gathering_done(NiceAgent*,
                                           unsigned int,

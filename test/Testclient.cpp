@@ -2,22 +2,117 @@
 #include "ui_Testclient.h"
 
 #include <set>
+#include <iostream>
 
 #include <QtCore/QVariant>
 #include <QtCore/QTimer>
+#include <QtCore/QSettings>
 #include <QtNetwork/QTcpServer>
+
+#include <boost/date_time/posix_time/posix_time.hpp>
+#include <boost/date_time/posix_time/posix_time_io.hpp>
+#include <boost/log/expressions.hpp>
+#include <boost/log/sinks/sync_frontend.hpp>
+#include <boost/log/sinks/basic_sink_backend.hpp>
 
 #include <json/json.h>
 
 #include "logging.h"
 
-namespace faf {
+namespace faf
+{
+
+class LogSink : public boost::log::sinks::basic_formatted_sink_backend<char, boost::log::sinks::synchronized_feeding>
+{
+public:
+  enum Column_t
+  {
+    ColumnTime,
+    ColumnSeverity,
+    ColumnCode,
+    ColumMessage
+  };
+
+    LogSink(QTableWidget* widget)
+      : mWidget(widget)
+    {
+    }
+
+    void consume(const boost::log::record_view& rec, const string_type& fstring)
+    {
+      auto time = boost::log::extract<boost::posix_time::ptime>("TimeStamp", rec).get();
+      auto timeItem = new QTableWidgetItem(QString::fromStdString(boost::posix_time::to_simple_string(time)));
+      {
+        int row = mWidget->rowCount();
+        mWidget->insertRow(row);
+        mWidget->setItem(row, ColumnTime, timeItem);
+        timeItem->setFlags(Qt::ItemIsSelectable | Qt::ItemIsEnabled);
+      }
+
+      {
+        std::ostringstream os;
+        os << rec[boost::log::trivial::severity];
+        auto sevItem = new QTableWidgetItem(QString::fromStdString(os.str()));
+        mWidget->setItem(timeItem->row(), ColumnSeverity, sevItem);
+        sevItem->setFlags(Qt::ItemIsSelectable | Qt::ItemIsEnabled);
+        if (sevItem->text() == "debug")
+        {
+          sevItem->setBackgroundColor(QColor::fromRgbF(0.8, 1, 0.8));
+        }
+        else if(sevItem->text() == "info")
+        {
+          sevItem->setBackgroundColor(QColor::fromRgbF(0.8, 0.8, 1));
+        }
+        else if(sevItem->text() == "warning")
+        {
+          sevItem->setBackgroundColor(QColor::fromRgbF(1, 1, 0.5));
+        }
+        else if(sevItem->text() == "error")
+        {
+          sevItem->setBackgroundColor(QColor::fromRgbF(1, 0.5, 0.5));
+        }
+
+      }
+
+      {
+        auto codeString = boost::log::extract<std::string>("Function", rec).get() +
+                          "(" + boost::log::extract<std::string>("File", rec).get() + ":" +
+                          std::to_string(boost::log::extract<int>("Line", rec).get()) + ")";
+        auto codeItem = new QTableWidgetItem(QString::fromStdString(codeString));
+        mWidget->setItem(timeItem->row(), ColumnCode, codeItem);
+        codeItem->setFlags(Qt::ItemIsSelectable | Qt::ItemIsEnabled);
+      }
+      {
+        auto msgItem = new QTableWidgetItem(QString::fromStdString(fstring));
+        mWidget->setItem(timeItem->row(), ColumMessage, msgItem);
+        msgItem->setFlags(Qt::ItemIsSelectable | Qt::ItemIsEnabled | Qt::ItemIsEditable);
+      }
+    }
+
+private:
+    QTableWidget* mWidget;
+};
 
 Testclient::Testclient(QWidget *parent) :
   QMainWindow(parent),
-  mUi(new Ui::Testclient)
+  mUi(new Ui::Testclient),
+  mGpgnetPort(0),
+  mIcePort(0)
 {
   mUi->setupUi(this);
+
+  QSettings s;
+  this->restoreGeometry(s.value("mainGeometry").toByteArray());
+  this->restoreState(s.value("mainState").toByteArray());
+  mUi->tableWidget_clientLog->horizontalHeader()->restoreState(s.value("clientLogHeaderState").toByteArray());
+  mUi->tableWidget_iceLog->horizontalHeader()->restoreState(s.value("iceLogHeaderState").toByteArray());
+
+  mUi->pushButton_leave->setEnabled(false);
+
+  typedef boost::log::sinks::synchronous_sink<LogSink> sink_t;
+  boost::shared_ptr<LogSink> backend(new LogSink(mUi->tableWidget_clientLog));
+  boost::shared_ptr< sink_t > sink(new sink_t(backend));
+  boost::log::core::get()->add_sink(sink);
 
   connectRpcMethods();
 
@@ -35,37 +130,65 @@ Testclient::Testclient(QWidget *parent) :
           &GPGNetClient::onGPGNetMessage,
           this,
           &Testclient::onGPGNetMessageFromIceAdapter);
+
+  auto updateTimer = new QTimer(this);
+  connect(updateTimer,
+          &QTimer::timeout,
+          [this]()
+  {
+    if (mIcePort > 0 &&
+        mIceClient.state() == QAbstractSocket::UnconnectedState)
+    {
+      mIceClient.connectToHost("localhost", mIcePort);
+    }
+    updateStatus();
+  });
+  updateTimer->start(1000);
 }
 
 Testclient::~Testclient()
 {
   mIceAdapterProcess.close();
+
+  QSettings s;
+  s.setValue("iceLogHeaderState", mUi->tableWidget_iceLog->horizontalHeader()->saveState());
+  s.setValue("clientLogHeaderState", mUi->tableWidget_clientLog->horizontalHeader()->saveState());
+  s.setValue("mainState", this->saveState());
+  s.setValue("mainGeometry", this->saveGeometry());
+
   delete mUi;
 }
 
-void Testclient::on_pushButton_hostGame_clicked(bool startHosting)
+void Testclient::on_pushButton_hostGame_clicked()
 {
-  if (startHosting)
-  {
-    Json::Value params(Json::arrayValue);
-    params.append(mPlayerLogin.toStdString());
-    mServerClient.sendRequest("hostGame", params);
-    mUi->listWidget_games->setEnabled(false);
-  }
-  else
-  {
-    FAF_LOG_ERROR << "implementme";
-  }
+  startGpgnetClient();
+  Json::Value params(Json::arrayValue);
+  params.append(mPlayerLogin.toStdString());
+  mServerClient.sendRequest("hostGame", params);
+  mUi->listWidget_games->setEnabled(false);
+  mUi->pushButton_leave->setEnabled(true);
+  mUi->pushButton_hostGame->setEnabled(false);
+}
+
+void Testclient::on_pushButton_leave_clicked()
+{
+  mGpgClient.disconnectFromHost();
+  mUi->listWidget_games->setEnabled(true);
+  mUi->pushButton_hostGame->setEnabled(true);
 }
 
 void Testclient::on_listWidget_games_itemClicked(QListWidgetItem *item)
 {
   if (item)
   {
+    startGpgnetClient();
     Json::Value params(Json::arrayValue);
     params.append(item->text().toStdString());
     params.append(item->data(Qt::UserRole).toInt());
     mServerClient.sendRequest("joinGame", params);
+    mUi->listWidget_games->setEnabled(false);
+    mUi->pushButton_leave->setEnabled(true);
+    mUi->pushButton_hostGame->setEnabled(false);
   }
 }
 
@@ -147,17 +270,19 @@ void Testclient::connectRpcMethods()
 
 void Testclient::updateStatus()
 {
+  if (mIceClient.state() != QAbstractSocket::ConnectedState)
+  {
+    return;
+  }
   mIceClient.sendRequest("status",
                          Json::Value(Json::arrayValue),
                          nullptr,
                          [this] (Json::Value const& result,
                                  Json::Value const& error)
   {
-    if (mGpgClient.state() != QAbstractSocket::ConnectedState)
+    if (mGpgnetPort == 0)
     {
-      FAF_LOG_DEBUG << "connecting GPGNetClient to port " << result["gpgnet"]["local_port"].asInt();
-      mGpgClient.connectToHost("localhost",
-                               result["gpgnet"]["local_port"].asInt());
+      mGpgnetPort = result["gpgnet"]["local_port"].asInt();
     }
 
     mUi->label_gameConnected->setText(result["gpgnet"]["connected"].asBool() ? "true" : "false");
@@ -171,16 +296,12 @@ void Testclient::updateStatus()
        new QTableWidgetItem(QString::fromStdString(relayInfo["remote_player_login"].asString())));
       mUi->tableWidget_players->setItem(row, ColumnState,
         new QTableWidgetItem(QString::fromStdString(relayInfo["ice_agent"]["state"].asString())));
+      mUi->tableWidget_players->setItem(row, ColumnConntime,
+        new QTableWidgetItem(QString("%1 s").arg(relayInfo["ice_agent"]["time_to_connected"].asDouble())));
       mUi->tableWidget_players->setItem(row, ColumnLocalCand,
         new QTableWidgetItem(QString::fromStdString(relayInfo["ice_agent"]["local_candidate"].asString())));
       mUi->tableWidget_players->setItem(row, ColumnRemoteCand,
         new QTableWidgetItem(QString::fromStdString(relayInfo["ice_agent"]["remote_candidate"].asString())));
-      mUi->tableWidget_players->setItem(row, ColumnLocalSdp,
-        new QTableWidgetItem(QString::fromStdString(relayInfo["local_sdp"]["remote_candidate"].asString())));
-      mUi->tableWidget_players->setItem(row, ColumnRemoteSdp,
-        new QTableWidgetItem(QString::fromStdString(relayInfo["remote_sdp"]["remote_candidate"].asString())));
-
-
       ++row;
     }
 
@@ -190,51 +311,84 @@ void Testclient::updateStatus()
 
 void Testclient::startIceAdapter()
 {
-  int rpcPort = 0;
+  if (mIcePort == 0)
   {
     QTcpServer server;
     server.listen(QHostAddress::LocalHost, 0);
-    rpcPort = server.serverPort();
+    mIcePort = server.serverPort();
   }
-  QString exeName = "./faf-ice-adapter";
-#if defined(__MINGW32__)
-    exeName = "faf-ice-adapter.exe";
-#endif
+  //QString exeName = "./faf-ice-adapter";
+//#if defined(__MINGW32__)
+//    exeName = "faf-ice-adapter.exe";
+//#endif
+//    G_MESSAGES_DEBUG=all
+  auto env = QProcessEnvironment::systemEnvironment();
+  env.insert("G_MESSAGES_DEBUG", "all");
+  mIceAdapterProcess.setProcessEnvironment(env);
   mIceAdapterProcess.start("./faf-ice-adapter",
                            QStringList()
                            << "--id" << QString::number(mPlayerId)
                            << "--login" << mPlayerLogin
-                           << "--rpc-port" << QString::number(rpcPort)
+                           << "--rpc-port" << QString::number(mIcePort)
                            << "--gpgnet-port" << "0"
                            );
-  mIceAdapterProcess.waitForReadyRead(1000);
-  auto timer = new QTimer(this);
-  timer->setSingleShot(true);
-  connect(timer,
-          &QTimer::timeout,
-          [this, rpcPort]()
+}
+
+void Testclient::startGpgnetClient()
+{
+  mGpgClient.connectToHost("localhost",
+                           mGpgnetPort);
+}
+
+void showIceOutput(QByteArray const& output,
+                   QTableWidget* widget,
+                   bool error)
+{
+  for(auto const& line: output.split('\n'))
   {
-    mIceClient.connectToHost("localhost", rpcPort);
-    connect(&mIceClient,
-            &QTcpSocket::connected,
-            [this]()
+    if (!line.trimmed().isEmpty())
     {
-      updateStatus();
-    });
-  });
-  timer->start(500);
+      auto msg = QString(line.trimmed());
+      auto item = new QTableWidgetItem(msg);
+      int row = widget->rowCount();
+      widget->insertRow(row);
+      widget->setItem(row, 0, item);
+      item->setFlags(Qt::ItemIsSelectable | Qt::ItemIsEnabled | Qt::ItemIsEditable);
+      if (error)
+      {
+        if (msg.contains("<warning>"))
+        {
+          item->setBackgroundColor(QColor::fromRgbF(1, 1, 0.5));
+        }
+        else
+        {
+          item->setBackgroundColor(QColor::fromRgbF(1, 0.5, 0.5));
+        }
+      }
+      else if (msg.contains("<debug>"))
+      {
+        item->setBackgroundColor(QColor::fromRgbF(0.8, 1, 0.8));
+      }
+      else if (msg.contains("<info>"))
+      {
+        item->setBackgroundColor(QColor::fromRgbF(0.8, 0.8, 1));
+      }
+    }
+  }
 }
 
 void Testclient::onIceOutput()
 {
-  auto stdOut = mIceAdapterProcess.readAllStandardOutput();
-  FAF_LOG_DEBUG << "ICE: " << stdOut.toStdString();
+  showIceOutput(mIceAdapterProcess.readAllStandardOutput(),
+                mUi->tableWidget_iceLog,
+                false);
 }
 
 void Testclient::onIceError()
 {
-  auto stdErr = mIceAdapterProcess.readAllStandardError();
-  FAF_LOG_ERROR << "ICE: " << stdErr.toStdString();
+  showIceOutput(mIceAdapterProcess.readAllStandardError(),
+                mUi->tableWidget_iceLog,
+                true);
 }
 
 void Testclient::changeEvent(QEvent *e)
@@ -275,6 +429,8 @@ int main(int argc, char *argv[])
   faf::logging_init();
   faf::logging_init_log_file("faf-ice-testclient.log");
   QApplication a(argc, argv);
+  a.setApplicationName("faf-ice-testclient");
+  a.setOrganizationName("FAForever");
   faf::Testclient c;
   c.show();
   return a.exec();

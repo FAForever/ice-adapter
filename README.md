@@ -56,9 +56,7 @@ Not that all JSON messages are newline terminated.
       "connected": /*bool: The connection state is "Ready" and bidirectional communication between the peera is established*/
       "local_candidate": /*string: The local connection information negotiated */
       "remote_candidate": /*string: The remote connection information negotiated */
-      "local_sdp": /*string: The unencoded local SDP*/
-      "local_sdp64": /*string: The Base64 encoded local SDP*/
-      "remote_sdp": /*string: The unencoded remote SDP*/
+      "time_to_connected": /*double: The time it took to connect to the peer */
       }
     },
   ...

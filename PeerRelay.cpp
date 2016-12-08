@@ -120,6 +120,7 @@ void PeerRelay::createAgent()
   mIceAgent.reset();
   mIceAgent = std::make_shared<IceAgent>(mMainloop->gobj(),
                                          mCreateOffer,
+                                         mPeerId,
                                          mStunIp,
                                          mTurnIp,
                                          mOptions);

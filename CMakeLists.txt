@@ -47,7 +47,7 @@ if(NOT (GIOMM_LIBRARIES AND GIOMM_INCLUDE_DIRS))
   pkg_search_module(GIOMM REQUIRED giomm-2.4)
 endif()
 
-find_package(Boost REQUIRED COMPONENTS log program_options thread system)
+find_package(Boost REQUIRED COMPONENTS log program_options thread system date_time)
 
 include_directories(${Boost_INCLUDE_DIRS})
 include_directories(${NICE_INCLUDE_DIRS})
@@ -58,7 +58,6 @@ include_directories(${CMAKE_CURRENT_SOURCE_DIR})
 add_custom_target(docs SOURCES README.md LICENSE)
 
 add_library(fafice
-  STATIC
     GPGNetServer.cpp
     GPGNetMessage.cpp
     IceAdapter.cpp

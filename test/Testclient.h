@@ -1,10 +1,11 @@
 #pragma once
 
+#include <memory>
+
 #include <QtWidgets/QMainWindow>
 #include <QtWidgets/QListWidgetItem>
+#include <QtWidgets/QTableWidget>
 #include <QtCore/QProcess>
-
-#include <memory>
 
 #include "test/JsonRpcClient.h"
 #include "test/GPGNetClient.h"
@@ -27,9 +28,7 @@ class Testclient : public QMainWindow
     ColumnPing,
     ColumnConntime,
     ColumnLocalCand,
-    ColumnRemoteCand,
-    ColumnLocalSdp,
-    ColumnRemoteSdp
+    ColumnRemoteCand
   };
 
 public:
@@ -37,13 +36,15 @@ public:
   ~Testclient();
 
 protected Q_SLOTS:
-  void on_pushButton_hostGame_clicked(bool startHosting);
+  void on_pushButton_hostGame_clicked();
+  void on_pushButton_leave_clicked();
   void on_listWidget_games_itemClicked(QListWidgetItem *item);
 
 protected:
   void connectRpcMethods();
   void updateStatus();
   void startIceAdapter();
+  void startGpgnetClient();
   void onIceOutput();
   void onIceError();
   void changeEvent(QEvent *e);
@@ -59,6 +60,8 @@ private:
   QProcess mIceAdapterProcess;
   GPGNetClient mGpgClient;
   Json::Value mStatus;
+  int mGpgnetPort;
+  int mIcePort;
 };
 
 

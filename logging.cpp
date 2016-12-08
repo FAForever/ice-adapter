@@ -49,26 +49,37 @@ boost::log::sources::severity_logger<boost::log::trivial::severity_level>& logge
   return l;
 }
 
+auto logFormat = boost::log::expressions::stream
+                 << boost::log::expressions::format_date_time<boost::posix_time::ptime>("TimeStamp", "%Y-%m-%d_%H:%M:%S.%f")
+                 << ": <" << boost::log::trivial::severity << "> "
+                 << '['   << boost::log::expressions::attr<std::string>("Function") << '@'
+                          << boost::log::expressions::attr<std::string>("File")
+                          << ':' << boost::log::expressions::attr<int>("Line") << "] "
+                 << boost::log::expressions::smessage;
+
 void logging_init()
 {
   boost::log::core::get()->add_global_attribute("Line", boost::log::attributes::mutable_constant<int>(5));
   boost::log::core::get()->add_global_attribute("File", boost::log::attributes::mutable_constant<std::string>(""));
   boost::log::core::get()->add_global_attribute("Function", boost::log::attributes::mutable_constant<std::string>(""));
 
+  /*
   auto format = boost::log::expressions::stream
                 << boost::log::expressions::format_date_time< boost::posix_time::ptime >("TimeStamp", "%Y-%m-%d %H:%M:%S")
                 << ": <" << boost::log::trivial::severity
                 << "> " << boost::log::expressions::smessage;
+                */
   boost::log::add_console_log(
     std::cerr,
     boost::log::keywords::filter = boost::log::trivial::severity >= boost::log::trivial::warning,
-    boost::log::keywords::format = format,
+    boost::log::keywords::format = logFormat,
     boost::log::keywords::auto_flush = true
   );
   boost::log::add_console_log(
         std::cout,
-        boost::log::keywords::filter = boost::log::trivial::severity < boost::log::trivial::warning && boost::log::trivial::severity >= boost::log::trivial::debug,
-        boost::log::keywords::format = format,
+        //boost::log::keywords::filter = boost::log::trivial::severity < boost::log::trivial::warning && boost::log::trivial::severity >= boost::log::trivial::debug,
+        boost::log::keywords::filter = boost::log::trivial::severity < boost::log::trivial::warning,
+        boost::log::keywords::format = logFormat,
         boost::log::keywords::auto_flush = true
                                            );
   boost::log::add_common_attributes();
@@ -82,15 +93,7 @@ void logging_init_log_file(std::string const& log_file)
 {
   boost::log::add_file_log (
     boost::log::keywords::file_name = log_file,
-    boost::log::keywords::format = (
-      boost::log::expressions::stream
-        << boost::log::expressions::format_date_time<boost::posix_time::ptime>("TimeStamp", "%Y-%m-%d_%H:%M:%S.%f")
-        << ": <" << boost::log::trivial::severity << "> "
-        << '['   << boost::log::expressions::attr<std::string>("Function") << '@'
-                 << boost::log::expressions::attr<std::string>("File")
-                 << ':' << boost::log::expressions::attr<int>("Line") << "] "
-        << boost::log::expressions::smessage
-      ),
+    boost::log::keywords::format = logFormat,
     boost::log::keywords::auto_flush = true
     );
 }

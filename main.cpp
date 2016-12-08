@@ -7,19 +7,31 @@
 
 #include <nice.h>
 
-namespace sigc {
-  SIGC_FUNCTORS_DEDUCE_RESULT_TYPE_WITH_DECLTYPE
-}
-
 int main(int argc, char *argv[])
 {
   try
   {
+    Glib::add_exception_handler([]()
+    {
+      try
+      {
+        throw; // rethrow exception
+      }
+      catch(const Gio::Error& e)
+      {
+        FAF_LOG_ERROR << "Gio error: " << e.what();
+      }
+      catch(const Glib::Error& e)
+      {
+        FAF_LOG_ERROR << "Glib error: " << e.what();
+      }
+    });
+
     Gio::init();
 
     faf::logging_init();
 
-    nice_debug_disable(true);
+    nice_debug_disable(false);
 
     auto options = faf::IceAdapterOptions::init(argc, argv);
 
@@ -34,14 +46,17 @@ int main(int argc, char *argv[])
                       loop);
     loop->run();
   }
-  catch (const Gio::Error& e)
+  catch(const Gio::Error& e)
+  {
+    FAF_LOG_ERROR << "Gio error: " << e.what();
+  }
+  catch(const Glib::Error& e)
   {
     FAF_LOG_ERROR << "Glib error: " << e.what();
-    return 1;
   }
   catch (const std::exception& e)
   {
-    FAF_LOG_ERROR << "error: " << e.what();
+    FAF_LOG_ERROR << "exception: " << e.what();
     return 1;
   }
   catch (...)

@@ -31,22 +31,30 @@ IceAdapter::IceAdapter(IceAdapterOptions const& options,
   connectRpcMethods();
 
   auto resolver = Gio::Resolver::get_default();
+  resolver->lookup_by_name_async(mOptions.stunHost, [this, resolver](Glib::RefPtr<Gio::AsyncResult>& result)
   {
-    auto addresses = resolver->lookup_by_name(mOptions.stunHost);
+    auto addresses = resolver->lookup_by_name_finish(result);
     if (addresses.size() == 0)
     {
-      throw std::runtime_error("error looking up STUN hostname");
+      FAF_LOG_ERROR << "error looking up STUN hostname " << mOptions.stunHost;
     }
-    mStunIp = (*addresses.begin())->to_string();
-  }
+    else
+    {
+      mStunIp = (*addresses.begin())->to_string();
+    }
+  });
+  resolver->lookup_by_name_async(mOptions.turnHost, [this, resolver](Glib::RefPtr<Gio::AsyncResult>& result)
   {
-    auto addresses = resolver->lookup_by_name(mOptions.turnHost);
+    auto addresses = resolver->lookup_by_name_finish(result);
     if (addresses.size() == 0)
     {
-      throw std::runtime_error("error looking up TURN hostname");
+      FAF_LOG_ERROR << "error looking up TURN hostname " << mOptions.turnHost;
     }
-    mTurnIp = (*addresses.begin())->to_string();
-  }
+    else
+    {
+      mTurnIp = (*addresses.begin())->to_string();
+    }
+  });
 }
 
 void IceAdapter::hostGame(std::string const& map)
@@ -215,9 +223,7 @@ Json::Value IceAdapter::status() const
         relay["ice_agent"]["connected"] = it->second->iceAgent()->isConnected();
         relay["ice_agent"]["local_candidate"] = it->second->iceAgent()->localCandidateInfo();
         relay["ice_agent"]["remote_candidate"] = it->second->iceAgent()->remoteCandidateInfo();
-        relay["ice_agent"]["local_sdp"] = it->second->iceAgent()->localSdp();
-        relay["ice_agent"]["local_sdp64"] = it->second->iceAgent()->localSdp64();
-        relay["ice_agent"]["remote_sdp"] = it->second->iceAgent()->remoteSdp();
+        relay["ice_agent"]["time_to_connected"] = it->second->iceAgent()->timeToConnected();
       }
 
       relays.append(relay);
@@ -569,15 +575,7 @@ std::shared_ptr<PeerRelay> IceAdapter::createPeerRelayOrUseReserved(int remotePl
     /* if we already gathered a SDP for this reserved relay, forward it on next tick */
     Glib::signal_idle().connect_once([this, relay]()
     {
-      if (!relay->iceAgent()->localSdp64().empty())
-      {
-        Json::Value gatheredSdpParams(Json::arrayValue);
-        gatheredSdpParams.append(mOptions.localPlayerId);
-        gatheredSdpParams.append(relay->peerId());
-        gatheredSdpParams.append(relay->iceAgent()->localSdp64());
-        mRpcServer->sendRequest("onSdpGathered",
-                                gatheredSdpParams);
-      }
+      FAF_LOG_ERROR << "implement resend of already gatheread SDP";
     }, 0);
     return relay;
   }
