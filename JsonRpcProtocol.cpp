@@ -130,8 +130,15 @@ void JsonRpcProtocol::parseMessage(Socket* socket, std::vector<char>& msgBuffer)
             auto reqIt = mCurrentRequests.find(jsonMessage["id"].asInt());
             if (reqIt != mCurrentRequests.end())
             {
-              reqIt->second(jsonMessage.isMember("result") ? jsonMessage["result"] : Json::Value(),
-                            jsonMessage.isMember("error") ? jsonMessage["error"] : Json::Value());
+              try
+              {
+                reqIt->second(jsonMessage.isMember("result") ? jsonMessage["result"] : Json::Value(),
+                              jsonMessage.isMember("error") ? jsonMessage["error"] : Json::Value());
+              }
+              catch (std::exception& e)
+              {
+                FAF_LOG_ERROR << "exception in request handler for id " << jsonMessage["id"].asInt() << ": " << e.what();
+              }
               mCurrentRequests.erase(reqIt);
             }
           }
@@ -182,7 +189,14 @@ Json::Value JsonRpcProtocol::processRequest(Json::Value const& request, Socket* 
   auto it = mCallbacks.find(request["method"].asString());
   if (it != mCallbacks.end())
   {
-    it->second(params, result, error, socket);
+    try
+    {
+      it->second(params, result, error, socket);
+    }
+    catch (std::exception& e)
+    {
+      FAF_LOG_ERROR << "exception in callback for method '" << request["method"].asString() << "': " << e.what();
+    }
   }
   else
   {

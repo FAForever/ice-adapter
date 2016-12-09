@@ -56,7 +56,7 @@ private:
   JsonRpcClient mIceClient;
   int mPlayerId;
   QString mPlayerLogin;
-  QString mHostedGameName;
+  int mGameId;
   QProcess mIceAdapterProcess;
   GPGNetClient mGpgClient;
   Json::Value mStatus;

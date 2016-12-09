@@ -16,6 +16,7 @@ Testserver::Testserver():
       FAF_LOG_TRACE << "login " << mCurrentPlayerId;
       mPlayerSockets.insert(std::make_pair(mCurrentPlayerId, socket));
       mSocketPlayers.insert(std::make_pair(socket, mCurrentPlayerId));
+      mPlayersLogins.insert(std::make_pair(mCurrentPlayerId, std::string("Player") + std::to_string(mCurrentPlayerId)));
 
       Json::Value params(Json::arrayValue);
       params.append(mCurrentPlayerId);
@@ -30,10 +31,12 @@ Testserver::Testserver():
       auto it = mSocketPlayers.find(socket);
       if (it != mSocketPlayers.end())
       {
-        FAF_LOG_TRACE << "logout " << it->second;
-        mPlayerSockets.erase(it->second);
+        PlayerIdType leavingPlayerId = it->second;
+        FAF_LOG_TRACE << "logout " << leavingPlayerId;
+        disconnectPlayerFromGame(leavingPlayerId);
+        mPlayerSockets.erase(leavingPlayerId);
         mSocketPlayers.erase(it);
-        mHostingplayersLogins.erase(it->second);
+        mPlayersLogins.erase(leavingPlayerId);
       }
     }
   });
@@ -44,27 +47,36 @@ Testserver::Testserver():
                          Json::Value & error,
                          Socket* socket)
   {
-    if (paramsArray.size() < 1)
-    {
-      error = "Need 1 parameter: gameName (string)";
-      return;
-    }
     auto it = mSocketPlayers.find(socket);
     if (it != mSocketPlayers.end())
     {
-      mHostingloginsGames[paramsArray[0].asString()].insert(it->second);
-      mHostingplayersLogins[it->second] = paramsArray[0].asString();
-
+      PlayerIdType hostingPlayerId = it->second;
+      disconnectPlayerFromGame(hostingPlayerId);
+      mGames[hostingPlayerId].insert(hostingPlayerId);
+      mPlayersGames[hostingPlayerId] = hostingPlayerId;
       {
         Json::Value params(Json::arrayValue);
         params.append("hostGame");
-        params.append(paramsArray[0].asString());
+        Json::Value hostGameParams(Json::arrayValue);
+        hostGameParams.append("testmap");
         mServer.sendRequest("sendToIceAdapter",
                             params,
                             socket);
       }
-
       sendGamelist();
+    }
+  });
+
+  mServer.setRpcCallback("leaveGame",
+                         [this](Json::Value const& paramsArray,
+                         Json::Value & result,
+                         Json::Value & error,
+                         Socket* socket)
+  {
+    auto it = mSocketPlayers.find(socket);
+    if (it != mSocketPlayers.end())
+    {
+      disconnectPlayerFromGame(it->second);
     }
   });
 
@@ -74,9 +86,9 @@ Testserver::Testserver():
                          Json::Value & error,
                          Socket* joiningPlayerSocket)
   {
-    if (paramsArray.size() < 2)
+    if (paramsArray.size() < 1)
     {
-      error = "Need 2 parameters: remotePlayerLogin (string), remotePlayerId (int)";
+      error = "Need 1 parameters: remotePlayerId (int)";
       return;
     }
     auto joiningPlayerIt = mSocketPlayers.find(joiningPlayerSocket);
@@ -87,20 +99,20 @@ Testserver::Testserver():
     }
 
     PlayerIdType joiningPlayerId = joiningPlayerIt->second;
-    auto gameIt = mHostingloginsGames.find(paramsArray[0].asString());
-    if (gameIt->second.count(joiningPlayerId) > 0)
-    {
-      error = "already joined game";
-      return;
-    }
+    disconnectPlayerFromGame(joiningPlayerId);
 
     /* Send "connectToPeer" to game host */
-    PlayerIdType hostingPlayerId = paramsArray[1].asInt();
-    if (mHostingplayersLogins.find(hostingPlayerId) == mHostingplayersLogins.end())
+    PlayerIdType hostingPlayerId = paramsArray[0].asInt();
+    auto gameIt = mGames.find(hostingPlayerId);
+    if (gameIt == mGames.end())
     {
       error = "game not found";
       return;
     }
+    gameIt->second.insert(joiningPlayerId);
+    mPlayersGames[joiningPlayerId] = hostingPlayerId;
+
+    /* send "connectToPeer" to host */
     {
       Json::Value params(Json::arrayValue);
       params.append("connectToPeer");
@@ -116,8 +128,11 @@ Testserver::Testserver():
 
     /* Send "joinGame" to joining player */
     Json::Value joinGamesParams(Json::arrayValue);
+    Json::Value joinGamesParamsParams(Json::arrayValue);
+    joinGamesParamsParams.append(mPlayersLogins[hostingPlayerId]);
+    joinGamesParamsParams.append(hostingPlayerId);
     joinGamesParams.append("joinGame");
-    joinGamesParams.append(paramsArray);
+    joinGamesParams.append(joinGamesParamsParams);
     mServer.sendRequest("sendToIceAdapter",
                         joinGamesParams,
                         joiningPlayerSocket);
@@ -131,6 +146,7 @@ Testserver::Testserver():
       {
         continue;
       }
+      /* Send "connectToPeer" to fellow players to connect to joining player */
       {
         Json::Value params(Json::arrayValue);
         params.append("connectToPeer");
@@ -143,6 +159,7 @@ Testserver::Testserver():
                             params,
                             mPlayerSockets[existingPlayerId]);
       }
+      /* Send "connectToPeer" to joining player to connect to fellow players   */
       {
         Json::Value params(Json::arrayValue);
         params.append("connectToPeer");
@@ -156,7 +173,6 @@ Testserver::Testserver():
                             joiningPlayerSocket);
       }
     }
-    gameIt->second.insert(joiningPlayerIt->second);
   });
   mServer.setRpcCallback("sendSdpMessage",
                          [this](Json::Value const& paramsArray,
@@ -193,14 +209,72 @@ void Testserver::sendGamelist(Socket* s)
 {
   Json::Value params(Json::arrayValue);
   Json::Value gameObject(Json::objectValue);
-  for (auto it = mHostingplayersLogins.cbegin(), end = mHostingplayersLogins.cend(); it != end; ++it)
+  for (auto it = mGames.cbegin(), end = mGames.cend(); it != end; ++it)
   {
-    gameObject[it->second] = it->first;
+    gameObject[mPlayersLogins[it->first]] = it->first;
   }
   params.append(gameObject);
   mServer.sendRequest("onGamelist",
                       params,
                       s);
+}
+
+void Testserver::disconnectPlayerFromGame(PlayerIdType leavingPlayerId)
+{
+  /* first check if the player hosts a game */
+  auto hostingGameIt = mGames.find(leavingPlayerId);
+  if (hostingGameIt != mGames.end())
+  {
+    for(PlayerIdType const& fellowPlayerId: hostingGameIt->second)
+    {
+      Json::Value params(Json::arrayValue);
+      params.append(leavingPlayerId);
+      mServer.sendRequest("onHostLeft",
+                          params,
+                          mPlayerSockets[fellowPlayerId]);
+
+    }
+    mGames.erase(hostingGameIt);
+    sendGamelist();
+  }
+  auto leavinPlayersGameIt = mPlayersGames.find(leavingPlayerId);
+  if (leavinPlayersGameIt != mPlayersGames.end())
+  {
+    auto gameId = leavinPlayersGameIt->second;
+    auto gameIt = mGames.find(gameId);
+    if (gameIt != mGames.end())
+    {
+      /* disconnect all fellow players from the game */
+      for(PlayerIdType const& fellowPlayerId: gameIt->second)
+      {
+        if (fellowPlayerId != leavingPlayerId)
+        {
+          {
+            Json::Value disconnectParams(Json::arrayValue);
+            disconnectParams.append(leavingPlayerId);
+            Json::Value params(Json::arrayValue);
+            params.append("disconnectFromPeer");
+            params.append(disconnectParams);
+            mServer.sendRequest("sendToIceAdapter",
+                                params,
+                                mPlayerSockets[fellowPlayerId]);
+          }
+          {
+            Json::Value disconnectParams(Json::arrayValue);
+            disconnectParams.append(fellowPlayerId);
+            Json::Value params(Json::arrayValue);
+            params.append("disconnectFromPeer");
+            params.append(disconnectParams);
+            mServer.sendRequest("sendToIceAdapter",
+                                params,
+                                mPlayerSockets[leavingPlayerId]);
+          }
+        }
+      }
+      gameIt->second.erase(leavingPlayerId);
+    }
+    mPlayersGames.erase(leavinPlayersGameIt);
+  }
 }
 
 } // namespace faf

@@ -20,6 +20,7 @@ namespace faf
 class JsonRpcServer;
 enum class ConnectionState;
 class GPGNetServer;
+class TcpSession;
 class GPGNetMessage;
 class PeerRelay;
 
@@ -104,7 +105,7 @@ public:
 
 protected:
   void onGpgNetMessage(GPGNetMessage const& message);
-  void onGpgConnectionStateChanged();
+  void onGpgConnectionStateChanged(TcpSession* session, ConnectionState cs);
 
   void connectRpcMethods();
 

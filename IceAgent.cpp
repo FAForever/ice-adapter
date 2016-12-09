@@ -133,6 +133,23 @@ IceAgent::IceAgent(GMainLoop* mainloop,
   }
 
 
+  nice_agent_set_relay_info(mAgent,
+                            mStreamId,
+                            1,
+                            turnIp.c_str(),
+                            3478,
+                            mTurnUser.c_str(),
+                            mTurnPassword.c_str(),
+                            NICE_RELAY_TYPE_TURN_UDP);
+  nice_agent_set_relay_info(mAgent,
+                            mStreamId,
+                            1,
+                            turnIp.c_str(),
+                            3478,
+                            mTurnUser.c_str(),
+                            mTurnPassword.c_str(),
+                            NICE_RELAY_TYPE_TURN_TCP);
+  /*
   Glib::signal_timeout().connect([this, turnIp]()
   {
     if (!isConnected())
@@ -149,6 +166,7 @@ IceAgent::IceAgent(GMainLoop* mainloop,
     }
     return false;
   }, 1500);
+  */
 
   /*
   nice_agent_set_relay_info(mAgent,

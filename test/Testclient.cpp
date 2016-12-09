@@ -126,14 +126,8 @@ Testclient::Testclient(QWidget *parent) :
           &QProcess::readyReadStandardOutput,
           this,
           &Testclient::onIceOutput);
-  connect(&mGpgClient,
-          &GPGNetClient::onGPGNetMessage,
-          this,
-          &Testclient::onGPGNetMessageFromIceAdapter);
-
-  auto updateTimer = new QTimer(this);
-  connect(updateTimer,
-          &QTimer::timeout,
+  connect(&mIceAdapterProcess,
+          &QProcess::readyReadStandardOutput,
           [this]()
   {
     if (mIcePort > 0 &&
@@ -141,6 +135,21 @@ Testclient::Testclient(QWidget *parent) :
     {
       mIceClient.connectToHost("localhost", mIcePort);
     }
+  });
+  connect(&mGpgClient,
+          &GPGNetClient::onGPGNetMessage,
+          this,
+          &Testclient::onGPGNetMessageFromIceAdapter);
+  connect(&mIceClient,
+          &QTcpSocket::connected,
+          this,
+          &Testclient::updateStatus);
+
+  auto updateTimer = new QTimer(this);
+  connect(updateTimer,
+          &QTimer::timeout,
+          [this]()
+  {
     updateStatus();
   });
   updateTimer->start(1000);
@@ -161,20 +170,25 @@ Testclient::~Testclient()
 
 void Testclient::on_pushButton_hostGame_clicked()
 {
+  if (mIceClient.state() == QAbstractSocket::UnconnectedState)
+  {
+    return;
+  }
   startGpgnetClient();
-  Json::Value params(Json::arrayValue);
-  params.append(mPlayerLogin.toStdString());
-  mServerClient.sendRequest("hostGame", params);
+  mServerClient.sendRequest("hostGame", Json::Value(Json::arrayValue));
   mUi->listWidget_games->setEnabled(false);
   mUi->pushButton_leave->setEnabled(true);
   mUi->pushButton_hostGame->setEnabled(false);
+  mGameId = mPlayerId;
 }
 
 void Testclient::on_pushButton_leave_clicked()
 {
   mGpgClient.disconnectFromHost();
+  mServerClient.sendRequest("leaveGame", Json::Value(Json::arrayValue));
   mUi->listWidget_games->setEnabled(true);
   mUi->pushButton_hostGame->setEnabled(true);
+  mGameId = -1;
 }
 
 void Testclient::on_listWidget_games_itemClicked(QListWidgetItem *item)
@@ -183,8 +197,8 @@ void Testclient::on_listWidget_games_itemClicked(QListWidgetItem *item)
   {
     startGpgnetClient();
     Json::Value params(Json::arrayValue);
-    params.append(item->text().toStdString());
     params.append(item->data(Qt::UserRole).toInt());
+    mGameId = item->data(Qt::UserRole).toInt();
     mServerClient.sendRequest("joinGame", params);
     mUi->listWidget_games->setEnabled(false);
     mUi->pushButton_leave->setEnabled(true);
@@ -210,6 +224,23 @@ void Testclient::connectRpcMethods()
     mUi->label_myId->setText(mPlayerLogin);
     FAF_LOG_INFO << "logged in as " << mPlayerLogin.toStdString() << " (" << mPlayerId << ")";
     startIceAdapter();
+  });
+  mServerClient.setRpcCallback("onHostLeft",
+                               [this](Json::Value const& paramsArray,
+                               Json::Value & result,
+                               Json::Value & error,
+                               Socket* socket)
+  {
+    if (paramsArray.size() < 1)
+    {
+      error = "Need 1 parameter: playerId (int)";
+      return;
+    }
+    FAF_LOG_INFO << "onHostLeft " << paramsArray[0].asInt();
+    if (mGameId == paramsArray[0].asInt())
+    {
+      on_pushButton_leave_clicked();
+    }
   });
   mServerClient.setRpcCallback("sendToIceAdapter", [this](Json::Value const& paramsArray,
                                Json::Value & result,
@@ -336,6 +367,11 @@ void Testclient::startIceAdapter()
 
 void Testclient::startGpgnetClient()
 {
+  updateStatus();
+  if (mGpgnetPort == 0)
+  {
+    FAF_LOG_ERROR << "mGpgnetPort == 0";
+  }
   mGpgClient.connectToHost("localhost",
                            mGpgnetPort);
 }

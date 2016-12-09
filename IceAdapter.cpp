@@ -27,7 +27,9 @@ IceAdapter::IceAdapter(IceAdapterOptions const& options,
                                        this,
                                        std::placeholders::_1));
   mGPGNetServer->connectionChanged.connect(std::bind(&IceAdapter::onGpgConnectionStateChanged,
-                                                     this));
+                                                     this,
+                                                     std::placeholders::_1,
+                                                     std::placeholders::_2));
   connectRpcMethods();
 
   auto resolver = Gio::Resolver::get_default();
@@ -131,6 +133,7 @@ void IceAdapter::disconnectFromPeer(int remotePlayerId)
   }
   mGPGNetServer->sendDisconnectFromPeer(remotePlayerId);
   mRelays.erase(relayIt);
+  FAF_LOG_INFO << "removed relay for peer " << remotePlayerId;
 }
 
 void IceAdapter::addSdpMessage(int remotePlayerId, std::string const& type, std::string const& msg)
@@ -259,15 +262,19 @@ void IceAdapter::onGpgNetMessage(GPGNetMessage const& message)
                           rpcParams);
 }
 
-void IceAdapter::onGpgConnectionStateChanged()
+void IceAdapter::onGpgConnectionStateChanged(TcpSession* session, ConnectionState cs)
 {
+  if (mRpcServer->sessionCount() > 1)
+  {
+    FAF_LOG_ERROR << "only 1 game session supported!!";
+  }
   Json::Value params(Json::arrayValue);
-  params.append(mRpcServer->sessionCount() > 0 ? "Connected" : "Disconnected");
+  params.append(cs == ConnectionState::Connected ? "Connected" : "Disconnected");
   mRpcServer->sendRequest("onConnectionStateChanged",
                           params);
-  if (mRpcServer->sessionCount() == 0)
+  if (cs == ConnectionState::Disconnected)
   {
-    FAF_LOG_TRACE << "game disconnected";
+    FAF_LOG_INFO << "game disconnected";
 
     mHostGameMap = "";
     mJoinGameRemotePlayerLogin = "";
@@ -277,7 +284,7 @@ void IceAdapter::onGpgConnectionStateChanged()
   }
   else
   {
-    FAF_LOG_TRACE << "game connected";
+    FAF_LOG_INFO << "game connected";
   }
 }
 

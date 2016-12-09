@@ -77,10 +77,10 @@ void TcpServer::onCloseSession(TcpSession* session)
         std::remove_if(
           mSessions.begin(),
           mSessions.end(),
-          [session](std::shared_ptr<TcpSession> const& s){ return s.get() == session;}),
+          [session](std::shared_ptr<TcpSession> const& s){ return s.get() == session; }),
       mSessions.end());
   this->connectionChanged.emit(session, ConnectionState::Disconnected);
-  FAF_LOG_TRACE << "TcpSession removed";
+  FAF_LOG_INFO << "TcpSession removed " << mSessions.size();
 }
 
 
