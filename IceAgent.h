@@ -47,6 +47,9 @@ public:
   typedef std::function<void (IceAgent*, IceAgentState const&)> StateCallback;
   void setStateCallback(StateCallback cb);
 
+  typedef std::function<void (IceAgent*, std::string const&, std::string const&)> CandidateSelectedCallback;
+  void setCandidateSelectedCallback(CandidateSelectedCallback cb);
+
   void addRemoteSdpMessage(std::string const& type, std::string const& msg);
   bool hasRemoteSdp() const;
   bool isConnected() const;
@@ -54,6 +57,7 @@ public:
 
   std::string localCandidateInfo() const;
   std::string remoteCandidateInfo() const;
+  std::string remoteSdp() const;
 
   IceAgentState state() const;
 
@@ -76,10 +80,12 @@ protected:
   int mPeerId;
   std::string mLocalCandidateInfo;
   std::string mRemoteCandidateInfo;
+  std::string mRemoteSdp;
 
   SdpMessageCallback mSdpMessageCallback;
   ReceiveCallback mReceiveCallback;
   StateCallback mStateCallback;
+  CandidateSelectedCallback mCandidateSelectedCallback;
 
   unsigned int mStreamId;
 

@@ -7,6 +7,7 @@
 #include <QtCore/QVariant>
 #include <QtCore/QTimer>
 #include <QtCore/QSettings>
+#include <QtCore/QDateTime>
 #include <QtNetwork/QTcpServer>
 
 #include <boost/date_time/posix_time/posix_time.hpp>
@@ -97,7 +98,8 @@ Testclient::Testclient(QWidget *parent) :
   QMainWindow(parent),
   mUi(new Ui::Testclient),
   mGpgnetPort(0),
-  mIcePort(0)
+  mIcePort(0),
+  mPingId(0)
 {
   mUi->setupUi(this);
 
@@ -116,7 +118,7 @@ Testclient::Testclient(QWidget *parent) :
 
   connectRpcMethods();
 
-  mServerClient.connectToHost("sikoragmbh.my-router.de", 54321);
+  mServerClient.connectToHost("zentrale.my-router.de", 54321);
 
   connect(&mIceAdapterProcess,
           &QProcess::readyReadStandardError,
@@ -153,6 +155,12 @@ Testclient::Testclient(QWidget *parent) :
     updateStatus();
   });
   updateTimer->start(1000);
+
+  mLobbySocket.bind();
+  connect(&mLobbySocket,
+          &QUdpSocket::readyRead,
+          this,
+          &Testclient::onLobbyReadyRead);
 }
 
 Testclient::~Testclient()
@@ -189,6 +197,16 @@ void Testclient::on_pushButton_leave_clicked()
   mUi->listWidget_games->setEnabled(true);
   mUi->pushButton_hostGame->setEnabled(true);
   mGameId = -1;
+  for (QUdpSocket* s: mPeerPingers.values())
+  {
+    delete s;
+  }
+  mPeerPorts.clear();
+  mPeerPingers.clear();
+  mPingHistory.clear();
+  mPendingPings.clear();
+  mPeersReady.clear();
+  mPingId = 0;
 }
 
 void Testclient::on_listWidget_games_itemClicked(QListWidgetItem *item)
@@ -297,6 +315,21 @@ void Testclient::connectRpcMethods()
     mServerClient.sendRequest("sendSdpMessage",
                               paramsArray);
   });
+
+  mIceClient.setRpcCallback("onCandidateSelected", [this](Json::Value const& paramsArray,
+                            Json::Value & result,
+                            Json::Value & error,
+                            Socket*)
+  {
+    if (paramsArray.size() < 4)
+    {
+      error = "Need 4 parameter.";
+      return;
+    }
+    FAF_LOG_INFO << "onCandidateSelected: " << paramsArray[2].asString() << " <-> " << paramsArray[3].asString();
+    mPeersReady.insert(paramsArray[1].asInt());
+    createPinger(paramsArray[1].asInt());
+  });
 }
 
 void Testclient::updateStatus()
@@ -327,12 +360,35 @@ void Testclient::updateStatus()
        new QTableWidgetItem(QString::fromStdString(relayInfo["remote_player_login"].asString())));
       mUi->tableWidget_players->setItem(row, ColumnState,
         new QTableWidgetItem(QString::fromStdString(relayInfo["ice_agent"]["state"].asString())));
+
+      QString pingText = "none";
+      int pid = relayInfo["remote_player_id"].asInt();
+      //if (!mPingHistory.contains(pid))
+      //{
+      //  FAF_LOG_ERROR << "!mPingHistory.contains " << pid;
+      //}
+      if (mPingHistory.contains(pid) &&
+          mPingHistory.value(pid).size() > 0)
+      {
+        float ping = 0;
+        for (int time : mPingHistory.value(pid))
+        {
+          ping += time;
+        }
+        ping /= mPingHistory.value(pid).size();
+        pingText = QString("%1 ms").arg(ping);
+      }
+      mUi->tableWidget_players->setItem(row, ColumnPing,
+        new QTableWidgetItem(pingText));
+
       mUi->tableWidget_players->setItem(row, ColumnConntime,
         new QTableWidgetItem(QString("%1 s").arg(relayInfo["ice_agent"]["time_to_connected"].asDouble())));
       mUi->tableWidget_players->setItem(row, ColumnLocalCand,
         new QTableWidgetItem(QString::fromStdString(relayInfo["ice_agent"]["local_candidate"].asString())));
       mUi->tableWidget_players->setItem(row, ColumnRemoteCand,
         new QTableWidgetItem(QString::fromStdString(relayInfo["ice_agent"]["remote_candidate"].asString())));
+      mUi->tableWidget_players->setItem(row, ColumnRemoteSdp,
+        new QTableWidgetItem(QString::fromStdString(relayInfo["ice_agent"]["remote_sdp"].asString())));
       ++row;
     }
 
@@ -355,6 +411,7 @@ void Testclient::startIceAdapter()
 //    G_MESSAGES_DEBUG=all
   auto env = QProcessEnvironment::systemEnvironment();
   env.insert("G_MESSAGES_DEBUG", "all");
+  env.insert("NICE_DEBUG", "all");
   mIceAdapterProcess.setProcessEnvironment(env);
   mIceAdapterProcess.start("./faf-ice-adapter",
                            QStringList()
@@ -362,6 +419,15 @@ void Testclient::startIceAdapter()
                            << "--login" << mPlayerLogin
                            << "--rpc-port" << QString::number(mIcePort)
                            << "--gpgnet-port" << "0"
+                           << "--lobby-port" << QString::number(mLobbySocket.localPort())
+                           //<< "--stun-host" << "chat.erreich.bar"
+                           //<< "--turn-host" << "chat.erreich.bar"
+                           << "--stun-host" << "dev.faforever.com"
+                           << "--turn-host" << "dev.faforever.com"
+                           //<< "--stun-host" << "numb.viagenie.ca"
+                           //<< "--turn-host" << "numb.viagenie.ca"
+                           //<< "--turn-user" << "mm+viagenie.ca@netlair.de"
+                           //<< "--turn-pass" << "asdf"
                            );
 }
 
@@ -385,6 +451,14 @@ void showIceOutput(QByteArray const& output,
     if (!line.trimmed().isEmpty())
     {
       auto msg = QString(line.trimmed());
+
+      /*
+      if (msg.contains("<trace>"))
+      {
+        continue;
+      }
+      */
+
       auto item = new QTableWidgetItem(msg);
       int row = widget->rowCount();
       widget->insertRow(row);
@@ -441,7 +515,19 @@ void Testclient::changeEvent(QEvent *e)
 
 void Testclient::onGPGNetMessageFromIceAdapter(GPGNetMessage const& msg)
 {
-  FAF_LOG_TRACE << "received GPGNetMessage from ICEAdapter: " << msg.toDebug();
+  FAF_LOG_INFO << "received GPGNetMessage from ICEAdapter: " << msg.toDebug();
+
+  auto extractPort = [](std::string const& peerAddress)
+  {
+    auto colonPos = peerAddress.find(":");
+    if (colonPos != std::string::npos)
+    {
+      return std::stoi(peerAddress.substr(colonPos + 1));
+    }
+    FAF_LOG_ERROR << "error parsing peerAddress " << peerAddress;
+    return 0;
+  };
+
   if (msg.header == "CreateLobby")
   {
     GPGNetMessage msg;
@@ -450,6 +536,130 @@ void Testclient::onGPGNetMessageFromIceAdapter(GPGNetMessage const& msg)
     auto binMsg = msg.toBinary();
     mGpgClient.write(binMsg.c_str(), binMsg.size());
   }
+  else if (msg.header == "ConnectToPeer" ||
+           msg.header == "JoinGame")
+  {
+    if (msg.chunks.size() != 3)
+    {
+      FAF_LOG_ERROR << "ConnectToPeer/JoinGame expected 3 chunks";
+      return;
+    }
+    mPeerPorts[msg.chunks.at(2).asInt()] = extractPort(msg.chunks.at(0).asString());
+    mPortPeers[extractPort(msg.chunks.at(0).asString())] = msg.chunks.at(2).asInt();
+    createPinger(msg.chunks.at(2).asInt());
+  }
+  else if (msg.header == "DisconnectFromPeer")
+  {
+    if (msg.chunks.size() != 1)
+    {
+      FAF_LOG_ERROR << "DisconnectFromPeer expected 1 chunks";
+      return;
+    }
+    if (mPeerPingers.contains(msg.chunks.at(0).asInt()))
+    {
+      delete mPeerPingers.value(msg.chunks.at(0).asInt());
+    }
+    mPeerPingers.remove(msg.chunks.at(0).asInt());
+    mPortPeers.remove(mPeerPorts.value(msg.chunks.at(0).asInt()));
+    mPeerPorts.remove(msg.chunks.at(0).asInt());
+  }
+}
+
+void Testclient::createPinger(int remotePeerId)
+{
+  if (mPeerPingers.contains(remotePeerId))
+  {
+    return;
+  }
+
+  if (!mPeerPorts.contains(remotePeerId))
+  {
+    return;
+  }
+
+  if (!mPeersReady.contains(remotePeerId))
+  {
+    return;
+  }
+
+  auto pinger = new QUdpSocket(this);
+  mPeerPingers[remotePeerId] = pinger;
+  //pinger->bind();
+  pinger->connectToHost(QHostAddress::LocalHost,
+                        mPeerPorts.value(remotePeerId));
+  connect(pinger,
+          &QUdpSocket::readyRead,
+          [this, pinger, remotePeerId]()
+  {
+  });
+  auto pingTimer = new QTimer(pinger);
+  connect(pingTimer,
+          &QTimer::timeout,
+          [this, pinger, remotePeerId]()
+  {
+    QByteArray pingDatagram;
+    pingDatagram.append("PING");
+    pingDatagram.append(reinterpret_cast<const char *>(&mPingId), sizeof(mPingId));
+    pinger->writeDatagram(pingDatagram,
+                          QHostAddress::LocalHost,
+                          mPeerPorts.value(remotePeerId));
+    mPendingPings[mPingId] = QDateTime::currentMSecsSinceEpoch();
+    ++mPingId;
+
+    if (mPendingPings.size() > 20)
+    {
+      FAF_LOG_WARN << "mPendingPings.size() > 20";
+    }
+  });
+  pingTimer->start(100);
+}
+
+void Testclient::onLobbyReadyRead()
+{
+  //FAF_LOG_DEBUG << "mLobbySocket readyRead";
+  while (mLobbySocket.hasPendingDatagrams())
+  {
+    QByteArray datagram;
+    datagram.resize(mLobbySocket.pendingDatagramSize());
+    QHostAddress sender;
+    quint16 senderPort;
+    mLobbySocket.readDatagram(datagram.data(),
+                              datagram.size(),
+                              &sender,
+                              &senderPort);
+    if (datagram.startsWith("PING"))
+    {
+      //FAF_LOG_TRACE << "ping from " << senderPort;
+      mLobbySocket.writeDatagram(datagram.replace(0,4,"PONG"),
+                                 sender,
+                                 senderPort);
+    }
+    else if (datagram.startsWith("PONG"))
+    {
+      //FAF_LOG_TRACE << "pong from " << senderPort;
+      quint32 pingId = *reinterpret_cast<quint32*>(datagram.data() + 4);
+      if (!mPendingPings.contains(pingId))
+      {
+        FAF_LOG_ERROR << "!mPendingPings.contains(pingId)";
+        return;
+      }
+      auto ping = QDateTime::currentMSecsSinceEpoch() - mPendingPings.value(pingId);
+      mPendingPings.remove(pingId);
+      if (!mPortPeers.contains(senderPort))
+      {
+        FAF_LOG_ERROR << "!mPortPeers.contains(senderPort)";
+        return;
+      }
+      auto remotePeerId = mPortPeers.value(senderPort);
+      mPingHistory[remotePeerId].push_back(ping);
+      while (mPingHistory[remotePeerId].size() > 50)
+      {
+        mPingHistory[remotePeerId].pop_front();
+      }
+      //FAF_LOG_TRACE << "ping to " << remotePeerId << ": " << ping << " ms";
+    }
+  }
+
 }
 
 } // namespace faf

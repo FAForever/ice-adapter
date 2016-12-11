@@ -19,6 +19,7 @@ class PeerRelay
 public:
   typedef std::function<void (PeerRelay*, std::string const&, std::string const&)> SdpMessageCallback;
   typedef std::function<void (PeerRelay*, IceAgentState const&)> IceAgentStateCallback;
+  typedef std::function<void (PeerRelay*, std::string const&, std::string const&)> CandidateSelectedCallback;
 
   PeerRelay(Glib::RefPtr<Glib::MainLoop> mainloop,
             int peerId,
@@ -27,6 +28,7 @@ public:
             std::string const& turnIp,
             SdpMessageCallback sdpCb,
             IceAgentStateCallback stateCb,
+            CandidateSelectedCallback candSelCb,
             bool createOffer,
             IceAdapterOptions const& options
             );
@@ -62,6 +64,7 @@ protected:
   Glib::RefPtr<Gio::SocketAddress> mGameAddress;
   SdpMessageCallback mSdpMessageCallback;
   IceAgentStateCallback mIceAgentStateCallback;
+  CandidateSelectedCallback mCandidateSelectedCallback;
   IceAdapterOptions mOptions;
 };
 

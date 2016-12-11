@@ -5,12 +5,15 @@
 #include <QtWidgets/QMainWindow>
 #include <QtWidgets/QListWidgetItem>
 #include <QtWidgets/QTableWidget>
+#include <QtNetwork/QUdpSocket>
 #include <QtCore/QProcess>
+#include <QtCore/QList>
 
 #include "test/JsonRpcClient.h"
 #include "test/GPGNetClient.h"
 #include "IceAdapter.h"
 
+class QUdpSocket;
 
 namespace faf {
 
@@ -28,7 +31,8 @@ class Testclient : public QMainWindow
     ColumnPing,
     ColumnConntime,
     ColumnLocalCand,
-    ColumnRemoteCand
+    ColumnRemoteCand,
+    ColumnRemoteSdp
   };
 
 public:
@@ -49,6 +53,8 @@ protected:
   void onIceError();
   void changeEvent(QEvent *e);
   void onGPGNetMessageFromIceAdapter(GPGNetMessage const& msg);
+  void createPinger(int remotePeerId);
+  void onLobbyReadyRead();
 
 private:
   Ui::Testclient *mUi;
@@ -62,6 +68,14 @@ private:
   Json::Value mStatus;
   int mGpgnetPort;
   int mIcePort;
+  QMap<int, quint16> mPeerPorts;
+  QMap<quint16, int> mPortPeers;
+  QMap<int, QUdpSocket*> mPeerPingers;
+  QMap<int, QList<qint64>> mPingHistory;
+  QSet<int> mPeersReady;
+  quint32 mPingId;
+  QMap<quint32, qint64> mPendingPings;
+  QUdpSocket mLobbySocket;
 };
 
 

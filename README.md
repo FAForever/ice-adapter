@@ -27,6 +27,7 @@ Not that all JSON messages are newline terminated.
 | onGpgNetMessageReceived | header (string), chunks (array) | The game sent a message to the `faf-ice-adapter` via the internal GPGNetServer. |
 | onSdpMessage | localPlayerId (int), remotePlayerId (int), type (string), message (string) | The PeerRelays IceAgent gathered a local SDP part for connecting to the remote player. This message must be forwarded to the remote peer and set using the `addSdpMessage` command. |
 | onPeerStateChanged | localPlayerId (int), remotePlayerId (int), "NeedRemoteSdp" / "Disconnected" / "Gathering" / "Connecting" / "Connected" / "Ready" / "Failed" | Informs the client about the ICE connectivity state change. |
+| onCandidateSelected | localPlayerId (int), remotePlayerId (int), localCandidate (string), remoteCandidate (string) | Informs the client that ICE connectivity is established with the provided candidates. |
 
 #### Status structure
 ```

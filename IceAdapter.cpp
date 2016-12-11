@@ -12,8 +12,6 @@
 namespace faf
 {
 
-const int DUMMY_RESERVED_PLAYER_ID = -1;
-
 IceAdapter::IceAdapter(IceAdapterOptions const& options,
                        Glib::RefPtr<Glib::MainLoop> mainloop):
   mOptions(options),
@@ -179,7 +177,7 @@ Json::Value IceAdapter::status() const
     options["ice_local_port_max"]   = mOptions.iceLocalPortMax;
     options["use_upnp"]             = mOptions.useUpnp;
     options["gpgnet_port"]          = mOptions.gpgNetPort;
-    options["game_udp_port"]        = mOptions.gameUdpPort;
+    options["lobby-port"]           = mOptions.gameUdpPort;
     options["stun_host"]            = std::string(mOptions.stunHost);
     options["turn_host"]            = std::string(mOptions.turnHost);
     options["turn_user"]            = std::string(mOptions.turnUser);
@@ -222,6 +220,7 @@ Json::Value IceAdapter::status() const
         relay["ice_agent"]["connected"] = it->second->iceAgent()->isConnected();
         relay["ice_agent"]["local_candidate"] = it->second->iceAgent()->localCandidateInfo();
         relay["ice_agent"]["remote_candidate"] = it->second->iceAgent()->remoteCandidateInfo();
+        relay["ice_agent"]["remote_sdp"] = it->second->iceAgent()->remoteSdp();
         relay["ice_agent"]["time_to_connected"] = it->second->iceAgent()->timeToConnected();
       }
 
@@ -500,8 +499,8 @@ void IceAdapter::tryExecuteTask()
                                       mJoinGameRemotePlayerLogin,
                                       mJoinGameRemotePlayerId);
         }
+        mTaskState = IceAdapterTaskState::SentJoinGame;
       }
-      mTaskState = IceAdapterTaskState::SentJoinGame;
       break;
     case IceAdapterTaskState::SentJoinGame:
       return;
@@ -525,31 +524,34 @@ std::shared_ptr<PeerRelay> IceAdapter::createPeerRelay(int remotePlayerId,
 
   auto sdpMsgCb = [this](PeerRelay* relay, std::string const& type, std::string const& msg)
   {
-    /* Only non-reserved relays will be forwarded */
-    if (relay->peerId() != DUMMY_RESERVED_PLAYER_ID)
-    {
-      Json::Value gatheredSdpParams(Json::arrayValue);
-      gatheredSdpParams.append(mOptions.localPlayerId);
-      gatheredSdpParams.append(relay->peerId());
-      gatheredSdpParams.append(type);
-      gatheredSdpParams.append(msg);
-      mRpcServer->sendRequest("onSdpMessage",
-                              gatheredSdpParams);
-    }
+    Json::Value gatheredSdpParams(Json::arrayValue);
+    gatheredSdpParams.append(mOptions.localPlayerId);
+    gatheredSdpParams.append(relay->peerId());
+    gatheredSdpParams.append(type);
+    gatheredSdpParams.append(msg);
+    mRpcServer->sendRequest("onSdpMessage",
+                            gatheredSdpParams);
   };
 
   auto stateCb = [this](PeerRelay* relay, IceAgentState const& state)
   {
-    /* Only non-reserved relays will be forwarded */
-    if (relay->peerId() != DUMMY_RESERVED_PLAYER_ID)
-    {
-      Json::Value iceStateParams(Json::arrayValue);
-      iceStateParams.append(mOptions.localPlayerId);
-      iceStateParams.append(relay->peerId());
-      iceStateParams.append(stateToString(state));
-      mRpcServer->sendRequest("onPeerStateChanged",
-                              iceStateParams);
-    }
+    Json::Value iceStateParams(Json::arrayValue);
+    iceStateParams.append(mOptions.localPlayerId);
+    iceStateParams.append(relay->peerId());
+    iceStateParams.append(stateToString(state));
+    mRpcServer->sendRequest("onPeerStateChanged",
+                            iceStateParams);
+  };
+
+  auto candSelectedCb = [this](PeerRelay* relay, std::string const& local, std::string const& remote)
+  {
+    Json::Value iceCandParams(Json::arrayValue);
+    iceCandParams.append(mOptions.localPlayerId);
+    iceCandParams.append(relay->peerId());
+    iceCandParams.append(local);
+    iceCandParams.append(remote);
+    mRpcServer->sendRequest("onCandidateSelected",
+                          iceCandParams);
   };
 
   auto result = std::make_shared<PeerRelay>(mMainloop,
@@ -559,6 +561,7 @@ std::shared_ptr<PeerRelay> IceAdapter::createPeerRelay(int remotePlayerId,
                                             mTurnIp,
                                             sdpMsgCb,
                                             stateCb,
+                                            candSelectedCb,
                                             createOffer,
                                             mOptions);
   mRelays[remotePlayerId] = result;

@@ -13,6 +13,7 @@ PeerRelay::PeerRelay(Glib::RefPtr<Glib::MainLoop> mainloop,
                      std::string const& turnIp,
                      SdpMessageCallback sdpCb,
                      IceAgentStateCallback stateCb,
+                     CandidateSelectedCallback candSelCb,
                      bool createOffer,
                      IceAdapterOptions const& options):
   mMainloop(mainloop),
@@ -24,6 +25,7 @@ PeerRelay::PeerRelay(Glib::RefPtr<Glib::MainLoop> mainloop,
   mCreateOffer(createOffer),
   mSdpMessageCallback(sdpCb),
   mIceAgentStateCallback(stateCb),
+  mCandidateSelectedCallback(candSelCb),
   mOptions(options)
 {
   createAgent();
@@ -135,18 +137,17 @@ void PeerRelay::createAgent()
 
   mIceAgent->setStateCallback([this](IceAgent* agent, IceAgentState const& state)
   {
-    if (mIceAgentStateCallback)
-    {
-      mIceAgentStateCallback(this, state);
-    }
+    mIceAgentStateCallback(this, state);
   });
 
   mIceAgent->setSdpMessageCallback([this](IceAgent*, std::string const& type, std::string const& msg)
   {
-    if (mSdpMessageCallback)
-    {
-      mSdpMessageCallback(this, type, msg);
-    }
+    mSdpMessageCallback(this, type, msg);
+  });
+
+  mIceAgent->setCandidateSelectedCallback([this](IceAgent*, std::string const& local, std::string const& remote)
+  {
+    mCandidateSelectedCallback(this, local, remote);
   });
 }
 
