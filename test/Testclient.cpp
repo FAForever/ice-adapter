@@ -118,7 +118,7 @@ Testclient::Testclient(QWidget *parent) :
 
   connectRpcMethods();
 
-  mServerClient.connectToHost("zentrale.my-router.de", 54321);
+  mServerClient.connectToHost("fafsdp.erreich.bar", 54321);
 
   connect(&mIceAdapterProcess,
           &QProcess::readyReadStandardError,
