@@ -161,7 +161,7 @@ IceAgent::IceAgent(GMainLoop* mainloop,
 
   Glib::signal_timeout().connect([this, turnIp]()
   {
-    if (!isConnected())
+    if (mState != IceAgentState::Ready)
     {
       FAF_LOG_INFO << mPeerId << ": Adding TURN server to ICE";
       nice_agent_set_relay_info(mAgent,
@@ -174,7 +174,7 @@ IceAgent::IceAgent(GMainLoop* mainloop,
                                 NICE_RELAY_TYPE_TURN_UDP);
     }
     return false;
-  }, 1500);
+  }, 2000);
 
   if (options.iceLocalPortMin > 0)
   {
