@@ -44,7 +44,7 @@ PeerRelay::PeerRelay(Glib::RefPtr<Glib::MainLoop> mainloop,
   if (isockaddr)
   {
     mLocalGameUdpPort = isockaddr->get_port();
-    FAF_LOG_TRACE << "PeerRelay for player " << peerId << " listening on port " << mLocalGameUdpPort;
+    FAF_LOG_DEBUG << "PeerRelay for player " << peerId << " listening on port " << mLocalGameUdpPort;
   }
   else
   {

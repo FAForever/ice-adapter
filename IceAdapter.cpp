@@ -508,8 +508,8 @@ void IceAdapter::tryExecuteTask()
       if (mGPGNetGameState == "Lobby")
       {
         mGPGNetServer->sendHostGame(mHostGameMap);
+        mTaskState = IceAdapterTaskState::SentHostGame;
       }
-      mTaskState = IceAdapterTaskState::SentHostGame;
       break;
     case IceAdapterTaskState::SentHostGame:
       return;

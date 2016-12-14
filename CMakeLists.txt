@@ -143,6 +143,7 @@ if(FAF_BUILD_TEST)
 
     set(CMAKE_AUTOMOC ON)
     qt5_wrap_ui(FAF_TEST_UIS_H test/Testclient.ui)
+    qt5_wrap_ui(FAF_TEST_UIS_H test/PeerWidget.ui)
     include_directories(${CMAKE_CURRENT_BINARY_DIR})
 
     add_executable(faf-ice-testclient
@@ -151,6 +152,9 @@ if(FAF_BUILD_TEST)
         test/JsonRpcClient.cpp
         test/Testclient.cpp
         test/Testclient.ui
+        test/PeerWidget.cpp
+        test/PeerWidget.ui
+        test/Pingtracker.cpp
     )
     target_link_libraries(faf-ice-testclient
       fafice

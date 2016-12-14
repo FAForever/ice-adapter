@@ -101,7 +101,6 @@ Testserver::Testserver():
     PlayerIdType joiningPlayerId = joiningPlayerIt->second;
     disconnectPlayerFromGame(joiningPlayerId);
 
-    /* Send "connectToPeer" to game host */
     PlayerIdType hostingPlayerId = paramsArray[0].asInt();
     auto gameIt = mGames.find(hostingPlayerId);
     if (gameIt == mGames.end())
