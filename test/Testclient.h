@@ -46,6 +46,7 @@ protected Q_SLOTS:
   void on_pushButton_hostGame_clicked();
   void on_pushButton_leave_clicked();
   void on_listWidget_games_itemClicked(QListWidgetItem *item);
+  void on_pushButton_savelogs_clicked();
 
 protected:
   void connectRpcMethods();

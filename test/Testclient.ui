@@ -122,6 +122,13 @@
           <item>
            <widget class="QListWidget" name="listWidget_games"/>
           </item>
+          <item>
+           <widget class="QPushButton" name="pushButton_savelogs">
+            <property name="text">
+             <string>Save log files</string>
+            </property>
+           </widget>
+          </item>
          </layout>
         </widget>
        </item>

@@ -55,7 +55,12 @@ include_directories(${JSON_INCLUDE_DIRS})
 include_directories(${GIOMM_INCLUDE_DIRS})
 include_directories(${CMAKE_CURRENT_SOURCE_DIR})
 
-add_custom_target(docs SOURCES README.md LICENSE)
+add_custom_target(docs
+  SOURCES
+  README.md
+  LICENSE
+  .travis.yml
+  )
 
 add_library(fafice
     GPGNetServer.cpp

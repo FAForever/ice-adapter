@@ -8,6 +8,8 @@
 #include <QtCore/QTimer>
 #include <QtCore/QSettings>
 #include <QtCore/QDateTime>
+#include <QtCore/QTextStream>
+#include <QtWidgets/QFileDialog>
 #include <QtNetwork/QTcpServer>
 
 #include <boost/date_time/posix_time/posix_time.hpp>
@@ -200,6 +202,11 @@ void Testclient::on_pushButton_leave_clicked()
   mGameId = -1;
   mPeerIdPingtrackers.clear();
   mPeersReady.clear();
+  for (PeerWidget* pw : mPeerWidgets.values())
+  {
+    delete pw;
+  }
+  mPeerWidgets.clear();
 }
 
 void Testclient::on_listWidget_games_itemClicked(QListWidgetItem *item)
@@ -215,6 +222,52 @@ void Testclient::on_listWidget_games_itemClicked(QListWidgetItem *item)
     mUi->pushButton_leave->setEnabled(true);
     mUi->pushButton_hostGame->setEnabled(false);
   }
+}
+
+void saveTablewidgetToFile(QTableWidget* table, QIODevice* file)
+{
+  QTextStream s(file);
+  for (int row = 0; row < table->rowCount(); ++row)
+  {
+    for (int col = 0; col < table->columnCount(); ++col)
+    {
+      auto item = table->item(row, col);
+      if (item)
+      {
+        s << item->text() << "\t";
+      }
+    }
+    s << "\n";
+  }
+}
+
+void Testclient::on_pushButton_savelogs_clicked()
+{
+  QString iceLogFilename = QFileDialog::getSaveFileName(this,
+                                                        "Save ICE log",
+                                                        "ice.log",
+                                                        "Logs (*.log)");
+  if (!iceLogFilename.isEmpty())
+  {
+    QFile f(iceLogFilename);
+    if (f.open(QIODevice::WriteOnly))
+    {
+      saveTablewidgetToFile(mUi->tableWidget_iceLog, &f);
+    }
+  }
+  QString clientLogFilename = QFileDialog::getSaveFileName(this,
+                                                           "Save Client log",
+                                                           "client.log",
+                                                           "Logs (*.log)");
+  if (!clientLogFilename.isEmpty())
+  {
+    QFile f(clientLogFilename);
+    if (f.open(QIODevice::WriteOnly))
+    {
+      saveTablewidgetToFile(mUi->tableWidget_clientLog, &f);
+    }
+  }
+
 }
 
 void Testclient::connectRpcMethods()
@@ -555,6 +608,11 @@ void Testclient::onGPGNetMessageFromIceAdapter(GPGNetMessage const& msg)
     int peerId = msg.chunks.at(0).asInt();
     mPeerIdPingtrackers.remove(peerId);
     mPeersReady.remove(peerId);
+    if (mPeerWidgets.contains(peerId))
+    {
+      delete mPeerWidgets.value(peerId);
+      mPeerWidgets.remove(peerId);
+    }
   }
 }
 
