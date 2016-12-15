@@ -129,7 +129,7 @@ void PeerRelay::createAgent()
 
   mIceAgent->setReceiveCallback([this](IceAgent* agent, std::string const& message)
   {
-    FAF_LOG_TRACE << "relaying " << message.size() << " bytes from peer to game";
+    //FAF_LOG_TRACE << "relaying " << message.size() << " bytes from peer to game";
     mLocalSocket->send_to(mGameAddress,
                           message.c_str(),
                           message.size());
