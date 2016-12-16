@@ -358,7 +358,7 @@ bool IceAgent::hasRemoteSdp() const
 
 bool IceAgent::isConnected() const
 {
-  return !mLocalCandidateInfo.empty();
+  return mPeerConnectedToMe;
 }
 
 void IceAgent::send(std::string const& msg)

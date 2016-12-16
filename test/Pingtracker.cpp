@@ -56,9 +56,9 @@ void Pingtracker::start()
         break;
       }
     }
-    if (mPendingPings.size() > 20)
+    if (mPendingPings.size() > 60)
     {
-      FAF_LOG_WARN << "mPendingPings.size() > 20";
+      FAF_LOG_WARN << "mPendingPings.size() > 60";
     }
   });
   mPingTimer.start(100);

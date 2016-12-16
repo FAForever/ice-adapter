@@ -124,10 +124,7 @@ void IceAdapter::disconnectFromPeer(int remotePlayerId)
   if (relayIt == mRelays.end())
   {
     FAF_LOG_ERROR << "no relay for remote peer " << remotePlayerId << " found";
-    std::string errorMsg("no relay for remote peer ");
-    errorMsg += std::to_string(remotePlayerId);
-    errorMsg += " found. Please call joinGame() or connectToPeer() first";
-    throw std::runtime_error(errorMsg);
+    return;
   }
   mGPGNetServer->sendDisconnectFromPeer(remotePlayerId);
   mRelays.erase(relayIt);
