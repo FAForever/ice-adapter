@@ -572,6 +572,15 @@ std::shared_ptr<PeerRelay> IceAdapter::createPeerRelay(int remotePlayerId,
     result->iceAgent()->gatherCandidates();
   }
 
+  result->iceAgent()->onPeerConnectedToMe.connect([this, remotePlayerId]()
+  {
+    Json::Value onConnectedToPeerParams(Json::arrayValue);
+    onConnectedToPeerParams.append(mOptions.localPlayerId);
+    onConnectedToPeerParams.append(remotePlayerId);
+    mRpcServer->sendRequest("onIceConnected",
+                            onConnectedToPeerParams);
+  });
+
   return result;
 }
 

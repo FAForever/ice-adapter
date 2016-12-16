@@ -111,6 +111,12 @@ Testclient::Testclient(QWidget *parent) :
   this->restoreState(s.value("mainState").toByteArray());
   mUi->tableWidget_clientLog->horizontalHeader()->restoreState(s.value("clientLogHeaderState").toByteArray());
   mUi->tableWidget_iceLog->horizontalHeader()->restoreState(s.value("iceLogHeaderState").toByteArray());
+  mUi->checkBox_c_udp_host->setChecked(s.value("c_udp_host", true).toBool());
+  mUi->checkBox_c_udp_srflx->setChecked(s.value("c_udp_srflx", true).toBool());
+  mUi->checkBox_c_udp_relay->setChecked(s.value("c_udp_relay", true).toBool());
+  mUi->checkBox_c_tcp_active->setChecked(s.value("c_tcp_active", true).toBool());
+  mUi->checkBox_c_tcp_passive->setChecked(s.value("c_tcp_passive", true).toBool());
+  mUi->checkBox_c_tcp_srflx->setChecked(s.value("c_tcp_srflx", true).toBool());
 
   mUi->pushButton_leave->setEnabled(false);
 
@@ -175,6 +181,12 @@ Testclient::~Testclient()
   s.setValue("clientLogHeaderState", mUi->tableWidget_clientLog->horizontalHeader()->saveState());
   s.setValue("mainState", this->saveState());
   s.setValue("mainGeometry", this->saveGeometry());
+  s.setValue("c_udp_host", mUi->checkBox_c_udp_host->isChecked());
+  s.setValue("c_udp_srflx", mUi->checkBox_c_udp_srflx->isChecked());
+  s.setValue("c_udp_relay", mUi->checkBox_c_udp_relay->isChecked());
+  s.setValue("c_tcp_active", mUi->checkBox_c_tcp_active->isChecked());
+  s.setValue("c_tcp_passive", mUi->checkBox_c_tcp_passive->isChecked());
+  s.setValue("c_tcp_srflx", mUi->checkBox_c_tcp_srflx->isChecked());
 
   delete mUi;
 }
@@ -316,8 +328,22 @@ void Testclient::connectRpcMethods()
       error = "Need 1 parameter: method (string), params (array)";
       return;
     }
-    mIceClient.sendRequest(paramsArray[0].asString(),
-                           paramsArray[1]);
+    if (paramsArray[0].asString() == "addSdpMessage")
+    {
+      if (paramsArray[1].size() != 3)
+      {
+        error = "Need 3 parameters: peer (int), sdpType (string), sdpMsg (string)";
+        return;
+      }
+      onAddSdpMessage(paramsArray[1][0].asInt(),
+                      paramsArray[1][1].asString(),
+                      paramsArray[1][2].asString());
+    }
+    else
+    {
+      mIceClient.sendRequest(paramsArray[0].asString(),
+                             paramsArray[1]);
+    }
   });
   mServerClient.setRpcCallback("onGamelist", [this](Json::Value const& paramsArray,
                                Json::Value & result,
@@ -362,22 +388,25 @@ void Testclient::connectRpcMethods()
                               paramsArray);
   });
 
-  mIceClient.setRpcCallback("onCandidateSelected", [this](Json::Value const& paramsArray,
+  mIceClient.setRpcCallback("onIceConnected", [this](Json::Value const& paramsArray,
                             Json::Value & result,
                             Json::Value & error,
                             Socket*)
   {
-    if (paramsArray.size() < 4)
+    if (paramsArray.size() < 2)
     {
-      error = "Need 4 parameter.";
+      error = "Need 2 parameters.";
       return;
     }
-    FAF_LOG_INFO << "onCandidateSelected: " << paramsArray[2].asString() << " <-> " << paramsArray[3].asString();
     int peerId = paramsArray[1].asInt();
     mPeersReady.insert(peerId);
     if (mPeerIdPingtrackers.contains(peerId))
     {
       mPeerIdPingtrackers.value(peerId)->start();
+    }
+    if (mPeerWidgets.contains(peerId))
+    {
+      mPeerWidgets.value(peerId)->ui->label_conntime->setStyleSheet("background-color: #00ff00;");
     }
   });
 }
@@ -645,6 +674,79 @@ void Testclient::onLobbyReadyRead()
     mPeerIdPingtrackers[remoteId]->onDatagram(datagram);
   }
 
+}
+
+
+void Testclient::onAddSdpMessage(int peerId,
+                                 std::string const& sdpType,
+                                 std::string const& sdpMsg)
+{
+  auto list = QString::fromStdString(sdpMsg).split('\n', QString::SkipEmptyParts);
+
+  int candidates = 0;
+  for (QString const& entry: list)
+  {
+    if (entry.startsWith("a=candidate"))
+    {
+      if (!mUi->checkBox_c_udp_host->isChecked() &&
+          entry.contains("UDP") &&
+          entry.contains("typ host"))
+      {
+        continue;
+      }
+      if (!mUi->checkBox_c_udp_srflx->isChecked() &&
+          entry.contains("UDP") &&
+          entry.contains("typ srflx"))
+      {
+        continue;
+      }
+      if (!mUi->checkBox_c_udp_relay->isChecked() &&
+          entry.contains("UDP") &&
+          entry.contains("typ relay"))
+      {
+        continue;
+      }
+      if (!mUi->checkBox_c_tcp_active->isChecked() &&
+          entry.contains("TCP") &&
+          entry.contains("typ host tcptype active"))
+      {
+        continue;
+      }
+      if (!mUi->checkBox_c_tcp_passive->isChecked() &&
+          entry.contains("TCP") &&
+          entry.contains("typ host tcptype passive"))
+      {
+        continue;
+      }
+      if (!mUi->checkBox_c_tcp_srflx->isChecked() &&
+          entry.contains("TCP") &&
+          entry.contains("typ srflx"))
+      {
+        continue;
+      }
+      ++candidates;
+    }
+    mSdpCache[peerId] << entry;
+  }
+
+  if (candidates > 0 &&
+      !mSdpCache.empty())
+  {
+    Json::Value params(Json::arrayValue);
+    params.append(peerId);
+    if (mSdpCache[peerId].at(0).startsWith("m=application"))
+    {
+      params.append("initialSdp");
+    }
+    else
+    {
+      params.append("newCandidate");
+    }
+    params.append(mSdpCache[peerId].join('\n').toStdString());
+    mIceClient.sendRequest("addSdpMessage",
+                           params);
+    mSdpCache[peerId].clear();
+  }
 }
 
 } // namespace faf

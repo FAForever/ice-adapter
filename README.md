@@ -27,7 +27,8 @@ Not that all JSON messages are newline terminated.
 | onGpgNetMessageReceived | header (string), chunks (array) | The game sent a message to the `faf-ice-adapter` via the internal GPGNetServer. |
 | onSdpMessage | localPlayerId (int), remotePlayerId (int), type (string), message (string) | The PeerRelays IceAgent gathered a local SDP part for connecting to the remote player. This message must be forwarded to the remote peer and set using the `addSdpMessage` command. |
 | onPeerStateChanged | localPlayerId (int), remotePlayerId (int), "NeedRemoteSdp" / "Disconnected" / "Gathering" / "Connecting" / "Connected" / "Ready" / "Failed" | Informs the client about the ICE connectivity state change. |
-| onCandidateSelected | localPlayerId (int), remotePlayerId (int), localCandidate (string), remoteCandidate (string) | Informs the client that ICE connectivity is established with the provided candidates. |
+| onCandidateSelected | localPlayerId (int), remotePlayerId (int), localCandidate (string), remoteCandidate (string) | Informs the client that ICE connectivity is established one-directional to the peer with the provided candidates. |
+| onIceConnected | localPlayerId (int), remotePlayerId (int) | Informs the client that ICE connectivity is established bi-directional to the remote peer. |
 
 #### Status structure
 ```
@@ -53,7 +54,7 @@ Not that all JSON messages are newline terminated.
     "local_game_udp_port" : /*int: The UDP port opened for the game to connect to*/
     "ice_agent": {/*Information about the IceAgent for this peer */
       "state": /*string: The connection state*/
-      "connected": /*bool: The connection state is "Ready" and bidirectional communication between the peera is established*/
+      "connected": /*bool: The connection state is "Ready" and bidirectional communication between the peers is established*/
       "local_candidate": /*string: The local connection information negotiated */
       "remote_candidate": /*string: The remote connection information negotiated */
       "time_to_connected": /*double: The time it took to connect to the peer */

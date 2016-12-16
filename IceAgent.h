@@ -3,6 +3,8 @@
 #include <functional>
 #include <map>
 
+#include <sigc++/sigc++.h>
+
 typedef struct _NiceAgent NiceAgent;
 typedef struct _GMainLoop GMainLoop;
 typedef struct _NiceCandidate NiceCandidate;
@@ -50,6 +52,8 @@ public:
   typedef std::function<void (IceAgent*, std::string const&, std::string const&)> CandidateSelectedCallback;
   void setCandidateSelectedCallback(CandidateSelectedCallback cb);
 
+  sigc::signal<void> onPeerConnectedToMe;
+
   void addRemoteSdpMessage(std::string const& type, std::string const& msg);
   bool hasRemoteSdp() const;
   bool isConnected() const;
@@ -70,13 +74,16 @@ protected:
                            NiceCandidate* remoteCandidate);
   void onNewCandidate(NiceCandidate* localCandidate);
   void onReceive(std::string const& msg);
+  bool pingPeer();
 
   NiceAgent* mAgent;
   std::string mTurnUser;
   std::string mTurnPassword;
   bool mHasRemoteSdp;
-  bool mConnected;
+  bool mConnectedToPeer;
+  bool mPeerConnectedToMe;
   bool mOffering;
+  bool mPingPeer;
   int mPeerId;
   std::string mLocalCandidateInfo;
   std::string mRemoteCandidateInfo;

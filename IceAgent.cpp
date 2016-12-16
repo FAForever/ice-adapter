@@ -111,8 +111,10 @@ IceAgent::IceAgent(GMainLoop* mainloop,
   mTurnUser(options.turnUser),
   mTurnPassword(options.turnPass),
   mHasRemoteSdp(false),
-  mConnected(false),
+  mConnectedToPeer(false),
+  mPeerConnectedToMe(false),
   mOffering(offering),
+  mPingPeer(false),
   mPeerId(peerId),
   mStreamId(0),
   mState(IceAgentState::NeedRemoteSdp),
@@ -161,7 +163,7 @@ IceAgent::IceAgent(GMainLoop* mainloop,
 
   Glib::signal_timeout().connect([this, turnIp]()
   {
-    if (mState != IceAgentState::Ready)
+    if (!mPeerConnectedToMe)
     {
       FAF_LOG_INFO << mPeerId << ": Adding TURN server to ICE";
       nice_agent_set_relay_info(mAgent,
@@ -175,6 +177,10 @@ IceAgent::IceAgent(GMainLoop* mainloop,
     }
     return false;
   }, 2000);
+
+  Glib::signal_timeout().connect(
+        sigc::mem_fun(this, &IceAgent::pingPeer),
+        500);
 
   if (options.iceLocalPortMin > 0)
   {
@@ -214,6 +220,16 @@ IceAgent::IceAgent(GMainLoop* mainloop,
                    "new-selected-pair-full",
                    G_CALLBACK(cb_new_selected_pair_full),
                    this);
+
+  onPeerConnectedToMe.connect([this]()
+  {
+    if (mConnectedTime == 0)
+    {
+      mConnectedTime = g_get_monotonic_time();
+    }
+    mPeerConnectedToMe = true;
+  });
+
   FAF_LOG_TRACE << "IceAgent() offer " << mOffering;
 }
 
@@ -290,7 +306,7 @@ void IceAgent::addRemoteSdpMessage(std::string const& type, std::string const& m
     int res = nice_agent_parse_remote_sdp(mAgent, msg.c_str());
     if (res <= 0)
     {
-      FAF_LOG_ERROR << "res " << res;
+      FAF_LOG_ERROR << "nice_agent_parse_remote_sdp() failed for " << msg << " with error " << res;
       throw std::runtime_error("nice_agent_parse_remote_sdp() failed");
     }
     if (!mOffering)
@@ -314,6 +330,7 @@ void IceAgent::addRemoteSdpMessage(std::string const& type, std::string const& m
                                                     msg.c_str());
     if (c == NULL)
     {
+      FAF_LOG_ERROR << "nice_agent_parse_remote_candidate_sdp() failed for " << msg;
       throw std::runtime_error("nice_agent_parse_remote_candidate_sdp() failed");
     }
     remote_candidates = g_slist_prepend(remote_candidates, c);
@@ -328,7 +345,10 @@ void IceAgent::addRemoteSdpMessage(std::string const& type, std::string const& m
     g_slist_free_full(remote_candidates, (GDestroyNotify)&nice_candidate_free);
   }
   mRemoteSdp += msg;
-  mRemoteSdp += "\n";
+  if (type != "initialSdp")
+  {
+    mRemoteSdp += "\n";
+  }
 }
 
 bool IceAgent::hasRemoteSdp() const
@@ -423,7 +443,7 @@ void IceAgent::onComponentStateChanged(unsigned int state)
     {
       FAF_LOG_INFO << mPeerId << ": NICE_COMPONENT_STATE_READY";
       mState = IceAgentState::Ready;
-      mConnected = true;
+      onPeerConnectedToMe();
 
       //auto list = nice_agent_get_local_candidates(mAgent,
       //                                            mStreamId,
@@ -467,7 +487,6 @@ std::string addrString(NiceAddress* a)
 void IceAgent::onCandidateSelected(NiceCandidate* localCandidate,
                                     NiceCandidate* remoteCandidate)
 {
-  mConnectedTime = g_get_monotonic_time();
   mLocalCandidateInfo = transportToString(localCandidate->transport);
   mLocalCandidateInfo += " ";
   mLocalCandidateInfo += addrString(&localCandidate->addr);
@@ -478,6 +497,8 @@ void IceAgent::onCandidateSelected(NiceCandidate* localCandidate,
   {
     mCandidateSelectedCallback(this, mLocalCandidateInfo, mRemoteCandidateInfo);
   }
+  mConnectedToPeer = true;
+  mPingPeer = true;
 }
 
 void IceAgent::onNewCandidate(NiceCandidate* localCandidate)
@@ -492,18 +513,29 @@ void IceAgent::onNewCandidate(NiceCandidate* localCandidate)
 
 void IceAgent::onReceive(std::string const& msg)
 {
-  if (mReceiveCallback)
+  if (msg == "FAFPING")
   {
-    if (!isConnected())
-    {
-      FAF_LOG_WARN << mPeerId << ": skipping " << msg.size() << " bytes: ICE not connected";
-    }
-    else
-    {
-      mReceiveCallback(this,
-                       msg);
-    }
+    send("FAFPONG");
   }
+  else if (msg == "FAFPONG")
+  {
+    onPeerConnectedToMe();
+  }
+  else if (mReceiveCallback)
+  {
+    mReceiveCallback(this,
+                     msg);
+  }
+}
+
+bool IceAgent::pingPeer()
+{
+  FAF_LOG_TRACE << "pingPeer";
+  if (mPingPeer)
+  {
+    send("FAFPING");
+  }
+  return true;
 }
 
 }
