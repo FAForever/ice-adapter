@@ -129,7 +129,7 @@ void IceAdapter::addSdpMessage(int remotePlayerId, std::string const& type, std:
     FAF_LOG_ERROR << "!relayIt->second->iceAgent()";
     return;
   }
-  if(relayIt->second->iceAgent()->isConnected())
+  if(relayIt->second->iceAgent()->peerConnectedToMe())
   {
     FAF_LOG_WARN << "relayIt->second->iceAgent()->isConnected()";
   }
@@ -203,7 +203,8 @@ Json::Value IceAdapter::status() const
       if (it->second->iceAgent())
       {
         relay["ice_agent"]["state"] = stateToString(it->second->iceAgent()->state());
-        relay["ice_agent"]["connected"] = it->second->iceAgent()->isConnected();
+        relay["ice_agent"]["peer_connected_to_me"] = it->second->iceAgent()->peerConnectedToMe();
+        relay["ice_agent"]["connected_to_peer"] = it->second->iceAgent()->connectedToPeer();
         relay["ice_agent"]["local_candidate"] = it->second->iceAgent()->localCandidateInfo();
         relay["ice_agent"]["remote_candidate"] = it->second->iceAgent()->remoteCandidateInfo();
         relay["ice_agent"]["remote_sdp"] = it->second->iceAgent()->remoteSdp();

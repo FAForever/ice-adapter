@@ -36,28 +36,22 @@ Note that all JSON messages are newline terminated.
 "version" : /* string: faf-ice-adapter version */
 "options" : /* The commandline options */
 "gpgnet" : { /* The GPGNet state */
-  "local_port" : /*int: The port the game should connect to via /gpgnet 127.0.0.1:port*/
-  "connected" : /*boolean: Is the game connected?*/
-  "game_state" : /*string: The last received "GameState"*/
-  "host_game" : {  /*optional, only in hosting mode*/
-    "map" : /*string: The scenario to host*/
-    }
-  "join_game" : {  /*optional, only in joining mode*/
-    "remote_player_login" : /*string: The name of the player to connect to*/
-    "remote_player_id" : /*int: The ID of the remote player*/
-    }
+  "local_port" : /* int: The port the game should connect to via /gpgnet 127.0.0.1:port */
+  "connected" : /* boolean: Is the game connected? */
+  "game_state" : /* string: The last received "GameState" */
   }
 "relays" : [/* An array of relay information*/
   {
-    "remote_player_id" : /*int: The ID of the remote player*/
-    "remote_player_login" : /*string: The name of the remote player*/
-    "local_game_udp_port" : /*int: The UDP port opened for the game to connect to*/
-    "ice_agent": {/*Information about the IceAgent for this peer */
-      "state": /*string: The connection state*/
-      "connected": /*bool: The connection state is "Ready" and bidirectional communication between the peers is established*/
-      "local_candidate": /*string: The local connection information negotiated */
-      "remote_candidate": /*string: The remote connection information negotiated */
-      "time_to_connected": /*double: The time it took to connect to the peer */
+    "remote_player_id" : /* int: The ID of the remote player */
+    "remote_player_login" : /* string: The name of the remote player */
+    "local_game_udp_port" : /* int: The UDP port opened for the game to connect to */
+    "ice_agent": {/* Information about the IceAgent for this peer */
+      "state": /* string: The connection state*/
+      "peer_connected_to_me": /* bool: Is the remote peer connected to me? Determined by receiving a ping or ICE state is Ready */
+      "connected_to_peer": /* bool: Am I connected to the peer? Determined by having a candidate pair */
+      "local_candidate": /* string: The local connection information negotiated */
+      "remote_candidate": /* string: The remote connection information negotiated */
+      "time_to_connected": /* double: The time it took to connect to the peer */
       }
     },
   ...

@@ -481,6 +481,9 @@ void Testclient::updateStatus(std::function<void()> finishedCallback)
       peerWidget->ui->label_raddess->setText(QString::fromStdString(relayInfo["ice_agent"]["remote_candidate"].asString()));
       peerWidget->ui->label_conntime->setText(QString("%1 s").arg(relayInfo["ice_agent"]["time_to_connected"].asDouble()));
       peerWidget->ui->label_conntime->setText(QString("%1 s").arg(relayInfo["ice_agent"]["time_to_connected"].asDouble()));
+      peerWidget->ui->label_connstate->setText(QString("%1 ⇆ %2")
+                                               .arg(relayInfo["ice_agent"]["peer_connected_to_me"].asBool())
+                                               .arg(relayInfo["ice_agent"]["connected_to_peer"].asBool()));
       peerWidget->ui->sdp->clear();
       peerWidget->ui->sdp->appendPlainText(QString::fromStdString(relayInfo["ice_agent"]["remote_sdp"].asString()));
     }

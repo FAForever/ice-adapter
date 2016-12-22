@@ -34,35 +34,35 @@
         </property>
        </widget>
       </item>
-      <item row="3" column="0">
+      <item row="4" column="0">
        <widget class="QLabel" name="label_4">
         <property name="text">
          <string>Local Address:</string>
         </property>
        </widget>
       </item>
-      <item row="4" column="0">
+      <item row="5" column="0">
        <widget class="QLabel" name="label_5">
         <property name="text">
          <string>Remote Address:</string>
         </property>
        </widget>
       </item>
-      <item row="5" column="0">
+      <item row="6" column="0">
        <widget class="QLabel" name="label_3">
         <property name="text">
          <string>Connection time:</string>
         </property>
        </widget>
       </item>
-      <item row="6" column="0">
+      <item row="7" column="0">
        <widget class="QLabel" name="label_6">
         <property name="text">
          <string>Ping:</string>
         </property>
        </widget>
       </item>
-      <item row="8" column="0">
+      <item row="9" column="0">
        <widget class="QLabel" name="label_7">
         <property name="text">
          <string>Successful pings:</string>
@@ -89,7 +89,7 @@
         </property>
        </widget>
       </item>
-      <item row="3" column="1">
+      <item row="4" column="1">
        <widget class="QLabel" name="label_laddress">
         <property name="text">
          <string/>
@@ -99,7 +99,7 @@
         </property>
        </widget>
       </item>
-      <item row="4" column="1">
+      <item row="5" column="1">
        <widget class="QLabel" name="label_raddess">
         <property name="text">
          <string/>
@@ -109,7 +109,7 @@
         </property>
        </widget>
       </item>
-      <item row="5" column="1">
+      <item row="6" column="1">
        <widget class="QLabel" name="label_conntime">
         <property name="text">
          <string/>
@@ -119,7 +119,7 @@
         </property>
        </widget>
       </item>
-      <item row="6" column="1">
+      <item row="7" column="1">
        <widget class="QLabel" name="label_ping">
         <property name="text">
          <string/>
@@ -129,7 +129,7 @@
         </property>
        </widget>
       </item>
-      <item row="8" column="1">
+      <item row="9" column="1">
        <widget class="QLabel" name="label_succpings">
         <property name="text">
          <string/>
@@ -149,28 +149,28 @@
       <item row="2" column="1">
        <widget class="QLabel" name="label_icestate">
         <property name="text">
-         <string>TextLabel</string>
+         <string/>
         </property>
         <property name="textInteractionFlags">
          <set>Qt::LinksAccessibleByMouse|Qt::TextSelectableByKeyboard|Qt::TextSelectableByMouse</set>
         </property>
        </widget>
       </item>
-      <item row="7" column="0">
+      <item row="8" column="0">
        <widget class="QLabel" name="label_9">
         <property name="text">
          <string>Pending pings:</string>
         </property>
        </widget>
       </item>
-      <item row="9" column="0">
+      <item row="10" column="0">
        <widget class="QLabel" name="label_10">
         <property name="text">
          <string>Lost pings:</string>
         </property>
        </widget>
       </item>
-      <item row="7" column="1">
+      <item row="8" column="1">
        <widget class="QLabel" name="label_pendpings">
         <property name="text">
          <string/>
@@ -180,13 +180,27 @@
         </property>
        </widget>
       </item>
-      <item row="9" column="1">
+      <item row="10" column="1">
        <widget class="QLabel" name="label_lostpings">
         <property name="text">
          <string/>
         </property>
         <property name="textInteractionFlags">
          <set>Qt::LinksAccessibleByMouse|Qt::TextSelectableByKeyboard|Qt::TextSelectableByMouse</set>
+        </property>
+       </widget>
+      </item>
+      <item row="3" column="0">
+       <widget class="QLabel" name="label_11">
+        <property name="text">
+         <string>Connection state:</string>
+        </property>
+       </widget>
+      </item>
+      <item row="3" column="1">
+       <widget class="QLabel" name="label_connstate">
+        <property name="text">
+         <string/>
         </property>
        </widget>
       </item>
@@ -221,7 +235,7 @@
           <rect>
            <x>0</x>
            <y>0</y>
-           <width>247</width>
+           <width>300</width>
            <height>241</height>
           </rect>
          </property>

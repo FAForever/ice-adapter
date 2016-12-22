@@ -359,11 +359,6 @@ bool IceAgent::hasRemoteSdp() const
   return mHasRemoteSdp;
 }
 
-bool IceAgent::isConnected() const
-{
-  return mPeerConnectedToMe;
-}
-
 void IceAgent::send(std::string const& msg)
 {
   if (mConnectedToPeer)
@@ -407,6 +402,16 @@ double IceAgent::timeToConnected() const
     return (mConnectedTime - mStartTime) / 1e6;
   }
   return 0;
+}
+
+bool IceAgent::peerConnectedToMe() const
+{
+  return mPeerConnectedToMe;
+}
+
+bool IceAgent::connectedToPeer() const
+{
+  return mConnectedToPeer;
 }
 
 void IceAgent::onCandidateGatheringDone()

@@ -56,7 +56,6 @@ public:
 
   void addRemoteSdpMessage(std::string const& type, std::string const& msg);
   bool hasRemoteSdp() const;
-  bool isConnected() const;
   void send(std::string const& msg);
 
   std::string localCandidateInfo() const;
@@ -66,6 +65,9 @@ public:
   IceAgentState state() const;
 
   double timeToConnected() const;
+
+  bool peerConnectedToMe() const;
+  bool connectedToPeer() const;
 
 protected:
   void onCandidateGatheringDone();
