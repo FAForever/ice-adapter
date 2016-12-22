@@ -14,6 +14,7 @@ public:
   void update();
   void onPingStats(int peerId, float ping, int pendPings, int lostPings, int succPings);
   void switchOff(int peerId);
+  void clear();
 protected:
   void switchGreen(int peerId);
   void switchRed(int peerId);
@@ -22,8 +23,6 @@ protected:
   QSvgWidget mSvgWidget;
   QSet<QString> mAvailableRedBulbs;
   QSet<QString> mAvailableGreenBulbs;
-  QSet<QString> mUsedRedBulbs;
-  QSet<QString> mUsedGreenBulbs;
 };
 
 } // namespace faf

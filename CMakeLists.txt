@@ -61,7 +61,6 @@ add_custom_target(docs
   LICENSE
   .travis.yml
   TODO
-  test/ChristmasWidget.svg
   )
 
 add_library(fafice
@@ -166,6 +165,7 @@ if(FAF_BUILD_TEST)
         ${FAF_TEST_UIS_H}
         ${FAF_TEST_QRC}
         test/ChristmasWidget.cpp
+        test/ChristmasWidget.svg
         test/GPGNetClient.cpp
         test/JsonRpcClient.cpp
         test/Testclient.cpp

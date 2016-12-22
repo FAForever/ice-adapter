@@ -98,6 +98,18 @@ void ChristmasWidget::switchOff(int peerId)
     }
     mPeerBulb.remove(peerId);
   }
+  update();
+}
+
+void ChristmasWidget::clear()
+{
+  for (int id: mPeerBulb.keys())
+  {
+    switchOff(id);
+  }
+  mPeerBulb.clear();
+  mPeerSuccPings.clear();
+  update();
 }
 
 void ChristmasWidget::switchGreen(int peerId)

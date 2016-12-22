@@ -223,6 +223,7 @@ void Testclient::on_pushButton_leave_clicked()
   mServerClient.sendRequest("leaveGame", Json::Value(Json::arrayValue));
   mUi->listWidget_games->setEnabled(true);
   mUi->pushButton_hostGame->setEnabled(true);
+  mUi->christmasWidget->clear();
   mGameId = -1;
   mPeerIdPingtrackers.clear();
   mPeersReady.clear();
