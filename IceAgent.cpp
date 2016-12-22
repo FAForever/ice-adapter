@@ -349,10 +349,6 @@ void IceAgent::addRemoteSdpMessage(std::string const& type, std::string const& m
     g_slist_free_full(remote_candidates, (GDestroyNotify)&nice_candidate_free);
   }
   mRemoteSdp += msg;
-  if (type != "initialSdp")
-  {
-    mRemoteSdp += "\n";
-  }
 }
 
 bool IceAgent::hasRemoteSdp() const

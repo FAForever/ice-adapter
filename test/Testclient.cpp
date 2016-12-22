@@ -735,7 +735,6 @@ void Testclient::onAddSdpMessage(int peerId,
 {
   auto list = QString::fromStdString(sdpMsg).split('\n', QString::SkipEmptyParts);
 
-  int candidates = 0;
   for (QString const& entry: list)
   {
     if (entry.startsWith("a=candidate"))
@@ -776,13 +775,12 @@ void Testclient::onAddSdpMessage(int peerId,
       {
         continue;
       }
-      ++candidates;
     }
-    mSdpCache[peerId] << entry;
+    mSdpCache[peerId] << entry.trimmed();
   }
 
-  if (candidates > 0 &&
-      !mSdpCache.empty())
+  if (!mSdpCache[peerId].empty() &&
+      mSdpCache[peerId].last().contains("a=candidate"))
   {
     Json::Value params(Json::arrayValue);
     params.append(peerId);
@@ -794,7 +792,7 @@ void Testclient::onAddSdpMessage(int peerId,
     {
       params.append("newCandidate");
     }
-    params.append(mSdpCache[peerId].join('\n').toStdString());
+    params.append(mSdpCache[peerId].join('\n').toStdString() + "\n");
     mIceClient.sendRequest("addSdpMessage",
                            params);
     mSdpCache[peerId].clear();
