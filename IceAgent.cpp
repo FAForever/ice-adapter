@@ -311,7 +311,7 @@ void IceAgent::addRemoteSdpMessage(std::string const& type, std::string const& m
     if (res <= 0)
     {
       FAF_LOG_ERROR << "nice_agent_parse_remote_sdp() failed for " << msg << " with error " << res;
-      throw std::runtime_error("nice_agent_parse_remote_sdp() failed");
+      return;
     }
     if (!mOffering)
     {
