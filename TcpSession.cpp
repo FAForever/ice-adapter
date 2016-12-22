@@ -26,11 +26,29 @@ TcpSession::~TcpSession()
 
 bool TcpSession::send(std::string const& msg)
 {
-  int bytesSent = mSocket->send(msg.c_str(), msg.size());
-  if (bytesSent != msg.size())
+  try
   {
-    FAF_LOG_ERROR << "only " << bytesSent << " of " << msg.size() << " bytes sent";
+    int bytesSent = mSocket->send(msg.c_str(), msg.size());
+    if (bytesSent != msg.size())
+    {
+      FAF_LOG_ERROR << "only " << bytesSent << " of " << msg.size() << " bytes sent";
+      return false;
+    }
+  }
+  catch (const Glib::Exception& e)
+  {
+    FAF_LOG_ERROR << "error sending " << msg.size() << " bytes to TCP client: " << e.what();
     return false;
+  }
+  catch (const std::exception& e)
+  {
+    FAF_LOG_ERROR << "error sending " << msg.size() << " bytes to TCP client: " << e.what();
+    return 1;
+  }
+  catch (...)
+  {
+    FAF_LOG_ERROR << "unknown error occured";
+    return 1;
   }
   return true;
 }

@@ -5,7 +5,7 @@ An [ICE](https://en.wikipedia.org/wiki/Interactive_Connectivity_Establishment) a
 ## JSONRPC Protocol
 The `faf-ice-adapter` is controlled using a bi-directional [JSON-RPC](http://www.jsonrpc.org/specification) interface over TCP.
 The internal server was tested against [bjsonrpc](https://github.com/deavid/bjsonrpc).
-Not that all JSON messages are newline terminated.
+Note that all JSON messages are newline terminated.
 
 ### Methods (client ➠ faf-ice-adapter)
 

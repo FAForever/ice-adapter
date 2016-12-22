@@ -129,10 +129,25 @@ void PeerRelay::createAgent()
 
   mIceAgent->setReceiveCallback([this](IceAgent* agent, std::string const& message)
   {
-    //FAF_LOG_TRACE << "relaying " << message.size() << " bytes from peer to game";
-    mLocalSocket->send_to(mGameAddress,
-                          message.c_str(),
-                          message.size());
+    try
+    {
+      mLocalSocket->send_to(mGameAddress,
+                            message.c_str(),
+                            message.size());
+
+    }
+    catch (const Glib::Exception& e)
+    {
+      FAF_LOG_ERROR << "error sending " << message.size() << " bytes to game: " << e.what();
+    }
+    catch (const std::exception& e)
+    {
+      FAF_LOG_ERROR << "error sending " << message.size() << " bytes to game: " << e.what();
+    }
+    catch (...)
+    {
+      FAF_LOG_ERROR << "unknown error occured";
+    }
   });
 
   mIceAgent->setStateCallback([this](IceAgent* agent, IceAgentState const& state)
@@ -173,17 +188,9 @@ bool PeerRelay::onGameReceive(Glib::IOCondition condition)
   auto size = mLocalSocket->receive_from(address,
                                          buffer,
                                          4096);
-  //FAF_LOG_TRACE << "relaying " << size << " bytes from game to peer";
-  if (mIceAgent &&
-      mIceAgent->isConnected())
-  {
-    mIceAgent->send(std::string(buffer,
-                                size));
-  }
-  else
-  {
-    FAF_LOG_DEBUG << "dropping " << size << " game bytes while waiting for ICE connection";
-  }
+  mIceAgent->send(std::string(buffer,
+                              size));
+
   return true;
 }
 

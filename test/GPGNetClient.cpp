@@ -1,5 +1,7 @@
 #include "GPGNetClient.h"
 
+#include "logging.h"
+
 namespace faf
 {
 
@@ -19,6 +21,7 @@ GPGNetClient::GPGNetClient()
 void GPGNetClient::onReadyRead()
 {
   auto data = this->readAll();
+  FAF_LOG_TRACE << "GPGNetClient received: " << data.toStdString();
   mMessage.insert(mMessage.end(),
                   data.begin(),
                   data.begin() + data.size());

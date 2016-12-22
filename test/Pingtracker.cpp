@@ -30,11 +30,12 @@ void Pingtracker::start()
                    &QTimer::timeout,
                    [this]()
   {
-    QByteArray pingDatagram;
-    pingDatagram.append("PING");
-    pingDatagram.append(reinterpret_cast<const char *>(&mLocalPeerId), sizeof(mLocalPeerId));
-    pingDatagram.append(reinterpret_cast<const char *>(&mRemotePeerId), sizeof(mRemotePeerId));
-    pingDatagram.append(reinterpret_cast<const char *>(&mCurrentPingId), sizeof(mCurrentPingId));
+    PingPacket p = {PingPacket::PING,
+                    mLocalPeerId,
+                    mRemotePeerId,
+                    mCurrentPingId};
+    QByteArray pingDatagram(reinterpret_cast<const char *>(&p),
+                            sizeof(PingPacket));
     mLobbySocket.writeDatagram(pingDatagram,
                           QHostAddress::LocalHost,
                           mPort);
@@ -64,32 +65,39 @@ void Pingtracker::start()
   mPingTimer.start(100);
 }
 
-void Pingtracker::onDatagram(QByteArray const& datagram)
+void Pingtracker::onPingPacket(PingPacket const* p)
 {
-  if (datagram.startsWith("PING"))
+  if (p->type == PingPacket::PING)
   {
-    mLobbySocket.writeDatagram(QByteArray(datagram).replace(0,4,"PONG"),
+    PingPacket response(*p);
+    response.type = PingPacket::PONG;
+    mLobbySocket.writeDatagram(QByteArray(reinterpret_cast<const char *>(&response),
+                                          sizeof(PingPacket)),
                                QHostAddress::LocalHost,
                                mPort);
   }
-  else if (datagram.startsWith("PONG"))
+  else if (p->type == PingPacket::PONG)
   {
-    quint32 pingId = *reinterpret_cast<quint32 const*>(datagram.constData() +
-                                                       4 +
-                                                       sizeof(mLocalPeerId) +
-                                                       sizeof(mRemotePeerId));
-    if (!mPendingPings.contains(pingId))
+    if (!mPendingPings.contains(p->pingId))
     {
-      FAF_LOG_ERROR << "!mPendingPings.contains(pingId)";
+      FAF_LOG_ERROR << "!mPendingPings.contains(p->pingId)";
       return;
     }
-    auto ping = QDateTime::currentMSecsSinceEpoch() - mPendingPings.value(pingId);
-    mPendingPings.remove(pingId);
+    auto ping = QDateTime::currentMSecsSinceEpoch() - mPendingPings.value(p->pingId);
+    mPendingPings.remove(p->pingId);
     ++mSuccessfulPings;
     mPingHistory.push_back(ping);
     while (mPingHistory.size() > 50)
     {
       mPingHistory.pop_front();
+    }
+    if (((mLostPings + mSuccessfulPings) % 10) == 0)
+    {
+      Q_EMIT pingStats(mRemotePeerId,
+                       currentPing(),
+                       mPendingPings.size(),
+                       mLostPings,
+                       mSuccessfulPings);
     }
   }
 }

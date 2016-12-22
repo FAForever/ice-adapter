@@ -24,14 +24,20 @@ class TcpSession;
 class GPGNetMessage;
 class PeerRelay;
 
-enum class IceAdapterTaskState
+struct IceAdapterGameTask
 {
-  NoTask,
-  ShouldJoinGame,
-  SentJoinGame,
-  ShouldHostGame,
-  SentHostGame
+  enum
+  {
+    JoinGame,
+    HostGame,
+    ConnectToPeer,
+    DisconnectFromPeer
+  } task;
+  std::string hostMap;
+  std::string remoteLogin;
+  int remoteId;
 };
+
 
 /*! \brief The main controller class
  *
@@ -109,11 +115,11 @@ protected:
 
   void connectRpcMethods();
 
-  void tryExecuteTask();
+  void queueGameTask(IceAdapterGameTask t);
+  void tryExecuteGameTasks();
 
   std::shared_ptr<PeerRelay> createPeerRelay(int remotePlayerId,
                                              std::string const& remotePlayerLogin,
-                                             int& portResult,
                                              bool createOffer);
 
   IceAdapterOptions mOptions;
@@ -124,15 +130,11 @@ protected:
   std::string mStunIp;
   std::string mTurnIp;
 
-  std::string mHostGameMap;
-  std::string mJoinGameRemotePlayerLogin;
-  int mJoinGameRemotePlayerId;
-
   std::string mGPGNetGameState;
 
   std::map<int, std::shared_ptr<PeerRelay>> mRelays;
 
-  IceAdapterTaskState mTaskState;
+  std::queue<IceAdapterGameTask> mGameTasks;
 };
 
 }

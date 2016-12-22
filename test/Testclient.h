@@ -1,6 +1,7 @@
 #pragma once
 
 #include <memory>
+#include <functional>
 
 #include <QtWidgets/QMainWindow>
 #include <QtWidgets/QListWidgetItem>
@@ -47,10 +48,12 @@ protected Q_SLOTS:
   void on_pushButton_leave_clicked();
   void on_listWidget_games_itemClicked(QListWidgetItem *item);
   void on_pushButton_savelogs_clicked();
+  void on_pushButton_refresh_clicked();
+  void onPingStats(int peerId, float ping, int pendPings, int lostPings, int succPings);
 
 protected:
   void connectRpcMethods();
-  void updateStatus();
+  void updateStatus(std::function<void()> finishedCallback = std::function<void()>());
   void startIceAdapter();
   void startGpgnetClient();
   void onIceOutput();

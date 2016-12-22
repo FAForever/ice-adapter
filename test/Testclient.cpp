@@ -105,6 +105,7 @@ Testclient::Testclient(QWidget *parent) :
   mUi->setupUi(this);
 
   mUi->scrollAreaWidgetContents->setLayout(new QVBoxLayout(mUi->peers));
+  mUi->scrollAreaWidgetContents->layout()->addWidget(mUi->pushButton_refresh);
 
   QSettings s;
   this->restoreGeometry(s.value("mainGeometry").toByteArray());
@@ -153,9 +154,19 @@ Testclient::Testclient(QWidget *parent) :
           &Testclient::onGPGNetMessageFromIceAdapter);
   connect(&mIceClient,
           &QTcpSocket::connected,
-          this,
-          &Testclient::updateStatus);
+          [this]()
+  {
+    FAF_LOG_INFO << "GPGnet client connected";
+    updateStatus();
+  });
+  connect(&mIceClient,
+          &QTcpSocket::disconnected,
+          [this]()
+  {
+    FAF_LOG_INFO << "GPGnet client disconnected";
+  });
 
+  /*
   auto updateTimer = new QTimer(this);
   connect(updateTimer,
           &QTimer::timeout,
@@ -164,6 +175,7 @@ Testclient::Testclient(QWidget *parent) :
     updateStatus();
   });
   updateTimer->start(1000);
+  */
 
   mLobbySocket.bind();
   connect(&mLobbySocket,
@@ -279,7 +291,25 @@ void Testclient::on_pushButton_savelogs_clicked()
       saveTablewidgetToFile(mUi->tableWidget_clientLog, &f);
     }
   }
+}
 
+void Testclient::on_pushButton_refresh_clicked()
+{
+  updateStatus();
+}
+
+void Testclient::onPingStats(int peerId, float ping, int pendPings, int lostPings, int succPings)
+{
+  if (mPeerIdPingtrackers.contains(peerId) &&
+      mPeerWidgets.contains(peerId))
+  {
+    auto peerWidget = mPeerWidgets.value(peerId);
+    auto tracker = mPeerIdPingtrackers.value(peerId);
+    peerWidget->ui->label_ping->setText(QString("%1 ms").arg(ping));
+    peerWidget->ui->label_pendpings->setText(QString::number(pendPings));
+    peerWidget->ui->label_succpings->setText(QString::number(succPings));
+    peerWidget->ui->label_lostpings->setText(QString::number(lostPings));
+  }
 }
 
 void Testclient::connectRpcMethods()
@@ -386,6 +416,7 @@ void Testclient::connectRpcMethods()
   {
     mServerClient.sendRequest("sendSdpMessage",
                               paramsArray);
+    updateStatus();
   });
 
   mIceClient.setRpcCallback("onIceConnected", [this](Json::Value const& paramsArray,
@@ -408,10 +439,11 @@ void Testclient::connectRpcMethods()
     {
       mPeerWidgets.value(peerId)->ui->label_conntime->setStyleSheet("background-color: #00ff00;");
     }
+    updateStatus();
   });
 }
 
-void Testclient::updateStatus()
+void Testclient::updateStatus(std::function<void()> finishedCallback)
 {
   if (mIceClient.state() != QAbstractSocket::ConnectedState)
   {
@@ -420,8 +452,8 @@ void Testclient::updateStatus()
   mIceClient.sendRequest("status",
                          Json::Value(Json::arrayValue),
                          nullptr,
-                         [this] (Json::Value const& result,
-                                 Json::Value const& error)
+                         [this, finishedCallback] (Json::Value const& result,
+                                                   Json::Value const& error)
   {
     if (mGpgnetPort == 0)
     {
@@ -451,16 +483,11 @@ void Testclient::updateStatus()
       peerWidget->ui->label_conntime->setText(QString("%1 s").arg(relayInfo["ice_agent"]["time_to_connected"].asDouble()));
       peerWidget->ui->sdp->clear();
       peerWidget->ui->sdp->appendPlainText(QString::fromStdString(relayInfo["ice_agent"]["remote_sdp"].asString()));
-      QString pingText = "none";
-      if (mPeerIdPingtrackers.contains(id))
-      {
-        auto tracker = mPeerIdPingtrackers.value(id);
-        pingText = QString("%1 ms").arg(tracker->currentPing());
-        peerWidget->ui->label_pendpings->setText(QString::number(tracker->pendingPings()));
-        peerWidget->ui->label_succpings->setText(QString::number(tracker->successfulPings()));
-        peerWidget->ui->label_lostpings->setText(QString::number(tracker->lostPings()));
-      }
-      peerWidget->ui->label_ping->setText(pingText);
+    }
+
+    if (finishedCallback)
+    {
+      finishedCallback();
     }
   });
 
@@ -503,13 +530,18 @@ void Testclient::startIceAdapter()
 
 void Testclient::startGpgnetClient()
 {
-  updateStatus();
-  if (mGpgnetPort == 0)
+  updateStatus([this]()
   {
-    FAF_LOG_ERROR << "mGpgnetPort == 0";
-  }
-  mGpgClient.connectToHost("localhost",
-                           mGpgnetPort);
+    if (mGpgnetPort == 0)
+    {
+      FAF_LOG_ERROR << "mGpgnetPort == 0";
+    }
+    else
+    {
+      mGpgClient.connectToHost("localhost",
+                               mGpgnetPort);
+    }
+  });
 }
 
 void showIceOutput(QByteArray const& output,
@@ -625,6 +657,10 @@ void Testclient::onGPGNetMessageFromIceAdapter(GPGNetMessage const& msg)
     {
       pingtracker->start();
     }
+    connect(pingtracker.get(),
+            &Pingtracker::pingStats,
+            this,
+            &Testclient::onPingStats);
     FAF_LOG_DEBUG << "Pingtracker for peer " << peerId << " port " << peerPort << " created";
   }
   else if (msg.header == "DisconnectFromPeer")
@@ -657,23 +693,22 @@ void Testclient::onLobbyReadyRead()
                               datagram.size(),
                               &sender,
                               &senderPort);
-    quint32 remoteId;
-    if (datagram.startsWith("PING"))
+    if (datagram.size() != sizeof(PingPacket))
     {
-      remoteId = *reinterpret_cast<quint32 const*>(datagram.constData() + 4);
+      FAF_LOG_ERROR << "wrong PING datagram size: " << datagram.size();
     }
-    else if (datagram.startsWith("PONG"))
+    else
     {
-      remoteId = *reinterpret_cast<quint32 const*>(datagram.constData() + 4 + sizeof(quint32));
+      auto p = reinterpret_cast<PingPacket const*>(datagram.constData());
+      quint32 peerId = p->type == PingPacket::PING ? p->senderId : p->answererId;
+      if (!mPeerIdPingtrackers.contains(peerId))
+      {
+        FAF_LOG_ERROR << "!mPeerIdPingtrackers.contains(peerId): " << peerId;
+        continue;
+      }
+      mPeerIdPingtrackers[peerId]->onPingPacket(p);
     }
-    if (!mPeerIdPingtrackers.contains(remoteId))
-    {
-      FAF_LOG_ERROR << "!mPeerIdPingtrackers.contains(remoteId): " << remoteId;
-      continue;
-    }
-    mPeerIdPingtrackers[remoteId]->onDatagram(datagram);
   }
-
 }
 
 

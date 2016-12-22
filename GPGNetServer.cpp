@@ -23,7 +23,8 @@ void GPGNetServer::sendMessage(GPGNetMessage const& msg)
 {
   if (mSessions.empty())
   {
-    throw std::runtime_error(std::string("No GPGNetConnection. Wait for the game to connect first."));
+    FAF_LOG_ERROR << "No GPGNetConnection. Wait for the game to connect before sending messages";
+    return;
   }
   for (auto it = mSessions.begin(), end = mSessions.end(); it != end; ++it)
   {
@@ -62,6 +63,7 @@ void GPGNetServer::sendConnectToPeer(std::string const& addressAndPort,
     playerId
   };
   sendMessage(msg);
+  FAF_LOG_INFO << "sending ConnectToPeer " << playerId << " " << playerName << " " << addressAndPort;
 }
 
 void GPGNetServer::sendJoinGame(std::string const& addressAndPort,

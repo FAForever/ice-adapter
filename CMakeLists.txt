@@ -84,7 +84,7 @@ target_link_libraries(fafice
   ${NICE_LIBRARIES}
 )
 
-add_executable(faf-ice-adapter
+add_executable(faf-ice-adapter WIN32
   main.cpp
 )
 
@@ -151,7 +151,7 @@ if(FAF_BUILD_TEST)
     qt5_wrap_ui(FAF_TEST_UIS_H test/PeerWidget.ui)
     include_directories(${CMAKE_CURRENT_BINARY_DIR})
 
-    add_executable(faf-ice-testclient
+    add_executable(faf-ice-testclient WIN32
         ${FAF_TEST_UIS_H}
         test/GPGNetClient.cpp
         test/JsonRpcClient.cpp

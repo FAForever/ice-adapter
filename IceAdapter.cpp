@@ -15,8 +15,7 @@ namespace faf
 IceAdapter::IceAdapter(IceAdapterOptions const& options,
                        Glib::RefPtr<Glib::MainLoop> mainloop):
   mOptions(options),
-  mMainloop(mainloop),
-  mTaskState(IceAdapterTaskState::NoTask)
+  mMainloop(mainloop)
 {
   FAF_LOG_INFO << "ICE adapter version " << FAF_VERSION_STRING << " initializing";
   mRpcServer    = std::make_shared<JsonRpcServer>(mOptions.rpcPort);
@@ -59,49 +58,35 @@ IceAdapter::IceAdapter(IceAdapterOptions const& options,
 
 void IceAdapter::hostGame(std::string const& map)
 {
-  if (mTaskState != IceAdapterTaskState::NoTask)
-  {
-    throw std::runtime_error(std::string("joinGame/hostGame may only called once per game connection session. Wait for the game to disconnect."));
-  }
-  mHostGameMap = map;
-  mTaskState = IceAdapterTaskState::ShouldHostGame;
-  tryExecuteTask();
+  queueGameTask({IceAdapterGameTask::HostGame,
+                 map,
+                 "",
+                 0});
 }
 
 void IceAdapter::joinGame(std::string const& remotePlayerLogin,
                           int remotePlayerId)
 {
-  if (mTaskState != IceAdapterTaskState::NoTask)
-  {
-    throw std::runtime_error(std::string("joinGame/hostGame may only called once per game connection session. Wait for the game to disconnect."));
-  }
-  mJoinGameRemotePlayerLogin = remotePlayerLogin;
-  mJoinGameRemotePlayerId = remotePlayerId;
-  int relayPort;
-  createPeerRelay(mJoinGameRemotePlayerId,
-                  mJoinGameRemotePlayerLogin,
-                  relayPort,
+  createPeerRelay(remotePlayerId,
+                  remotePlayerLogin,
                   false);
-  mTaskState = IceAdapterTaskState::ShouldJoinGame;
-  tryExecuteTask();
+  queueGameTask({IceAdapterGameTask::JoinGame,
+                 "",
+                 remotePlayerLogin,
+                 remotePlayerId});
 }
 
 void IceAdapter::connectToPeer(std::string const& remotePlayerLogin,
                                int remotePlayerId,
                                bool createOffer)
 {
-  FAF_LOG_TRACE << "connectToPeer " << remotePlayerLogin << " " << remotePlayerId;
-  int relayPort;
-  auto relay = createPeerRelay(remotePlayerId,
-                               remotePlayerLogin,
-                               relayPort,
-                               createOffer);
-  if (relay)
-  {
-    mGPGNetServer->sendConnectToPeer(std::string("127.0.0.1:") + std::to_string(relayPort),
-                                     remotePlayerLogin,
-                                     remotePlayerId);
-  }
+  createPeerRelay(remotePlayerId,
+                  remotePlayerLogin,
+                  createOffer);
+  queueGameTask({IceAdapterGameTask::ConnectToPeer,
+                 "",
+                 remotePlayerLogin,
+                 remotePlayerId});
 }
 
 void IceAdapter::reconnectToPeer(int remotePlayerId)
@@ -110,10 +95,7 @@ void IceAdapter::reconnectToPeer(int remotePlayerId)
   if (relayIt == mRelays.end())
   {
     FAF_LOG_ERROR << "no relay for remote peer " << remotePlayerId << " found";
-    std::string errorMsg("no relay for remote peer ");
-    errorMsg += std::to_string(remotePlayerId);
-    errorMsg += " found. Please call joinGame() or connectToPeer() first";
-    throw std::runtime_error(errorMsg);
+    return;
   }
   relayIt->second->reconnect();
 }
@@ -126,9 +108,12 @@ void IceAdapter::disconnectFromPeer(int remotePlayerId)
     FAF_LOG_ERROR << "no relay for remote peer " << remotePlayerId << " found";
     return;
   }
-  mGPGNetServer->sendDisconnectFromPeer(remotePlayerId);
   mRelays.erase(relayIt);
   FAF_LOG_INFO << "removed relay for peer " << remotePlayerId;
+  queueGameTask({IceAdapterGameTask::DisconnectFromPeer,
+                 "",
+                 "",
+                 remotePlayerId});
 }
 
 void IceAdapter::addSdpMessage(int remotePlayerId, std::string const& type, std::string const& msg)
@@ -137,15 +122,12 @@ void IceAdapter::addSdpMessage(int remotePlayerId, std::string const& type, std:
   if (relayIt == mRelays.end())
   {
     FAF_LOG_ERROR << "no relay for remote peer " << remotePlayerId << " found";
-    std::string errorMsg("no relay for remote peer ");
-    errorMsg += std::to_string(remotePlayerId);
-    errorMsg += " found. Please call joinGame() or connectToPeer() first";
-    throw std::runtime_error(errorMsg);
+    return;
   }
   if(!relayIt->second->iceAgent())
   {
     FAF_LOG_ERROR << "!relayIt->second->iceAgent()";
-    throw std::runtime_error("!relayIt->second->iceAgent()");
+    return;
   }
   if(relayIt->second->iceAgent()->isConnected())
   {
@@ -156,6 +138,11 @@ void IceAdapter::addSdpMessage(int remotePlayerId, std::string const& type, std:
 
 void IceAdapter::sendToGpgNet(GPGNetMessage const& message)
 {
+  if (mGPGNetServer->sessionCount() == 0)
+  {
+    FAF_LOG_ERROR << "sendToGpgNet failed. No sessions connected";
+    return;
+  }
   mGPGNetServer->sendMessage(message);
 }
 
@@ -190,6 +177,7 @@ Json::Value IceAdapter::status() const
     gpgnet["connected"] = mGPGNetServer->sessionCount() > 0;
     gpgnet["game_state"] = mGPGNetGameState;
 
+    /*
     if (!mHostGameMap.empty())
     {
       gpgnet["host_game"]["map"] = mHostGameMap;
@@ -199,6 +187,7 @@ Json::Value IceAdapter::status() const
       gpgnet["join_game"]["remote_player_login"] = mJoinGameRemotePlayerLogin;
       gpgnet["join_game"]["remote_player_id"] = mJoinGameRemotePlayerId;
     }
+    */
     result["gpgnet"] = gpgnet;
   }
   /* Relays */
@@ -243,7 +232,7 @@ void IceAdapter::onGpgNetMessage(GPGNetMessage const& message)
                                        mOptions.localPlayerId,
                                        1);
       }
-      tryExecuteTask();
+      tryExecuteGameTasks();
     }
   }
   Json::Value rpcParams(Json::arrayValue);
@@ -271,12 +260,8 @@ void IceAdapter::onGpgConnectionStateChanged(TcpSession* session, ConnectionStat
   if (cs == ConnectionState::Disconnected)
   {
     FAF_LOG_INFO << "game disconnected";
-
-    mHostGameMap = "";
-    mJoinGameRemotePlayerLogin = "";
     mRelays.clear();
     mGPGNetGameState = "";
-    mTaskState = IceAdapterTaskState::NoTask;
   }
   else
   {
@@ -476,49 +461,77 @@ void IceAdapter::connectRpcMethods()
   });
 }
 
-void IceAdapter::tryExecuteTask()
+void IceAdapter::queueGameTask(IceAdapterGameTask t)
 {
-  switch (mTaskState)
+  mGameTasks.push(t);
+  tryExecuteGameTasks();
+}
+
+void IceAdapter::tryExecuteGameTasks()
+{
+  if (mGPGNetServer->sessionCount() == 0)
   {
-    case IceAdapterTaskState::NoTask:
-      return;
-    case IceAdapterTaskState::ShouldJoinGame:
-      if (mGPGNetGameState == "Lobby")
+    return;
+  }
+  while (!mGameTasks.empty())
+  {
+    auto task = mGameTasks.front();
+    switch (task.task)
+    {
+      case IceAdapterGameTask::JoinGame:
       {
-        auto relayIt = mRelays.find(mJoinGameRemotePlayerId);
+        if (mGPGNetGameState != "Lobby")
+        {
+          return;
+        }
+        auto relayIt = mRelays.find(task.remoteId);
         if (relayIt == mRelays.end())
         {
-          FAF_LOG_ERROR << "no relay found for joining player " << mJoinGameRemotePlayerId;
+          FAF_LOG_ERROR << "no relay found for joining player " << task.remoteId;
+          return;
         }
         else
         {
           mGPGNetServer->sendJoinGame(std::string("127.0.0.1:") + std::to_string(relayIt->second->localGameUdpPort()),
-                                      mJoinGameRemotePlayerLogin,
-                                      mJoinGameRemotePlayerId);
+                                      task.remoteLogin,
+                                      task.remoteId);
         }
-        mTaskState = IceAdapterTaskState::SentJoinGame;
+        break;
       }
-      break;
-    case IceAdapterTaskState::SentJoinGame:
-      return;
-    case IceAdapterTaskState::ShouldHostGame:
-      if (mGPGNetGameState == "Lobby")
+      case IceAdapterGameTask::HostGame:
+        if (mGPGNetGameState != "Lobby")
+        {
+          return;
+        }
+        mGPGNetServer->sendHostGame(task.hostMap);
+        break;
+      case IceAdapterGameTask::ConnectToPeer:
       {
-        mGPGNetServer->sendHostGame(mHostGameMap);
-        mTaskState = IceAdapterTaskState::SentHostGame;
+        auto relayIt = mRelays.find(task.remoteId);
+        if (relayIt == mRelays.end())
+        {
+          FAF_LOG_ERROR << "no relay found for joining player " << task.remoteId;
+        }
+        else
+        {
+          mGPGNetServer->sendConnectToPeer(std::string("127.0.0.1:") + std::to_string(relayIt->second->localGameUdpPort()),
+                                           task.remoteLogin,
+                                           task.remoteId);
+        }
+        break;
       }
-      break;
-    case IceAdapterTaskState::SentHostGame:
-      return;
+      case IceAdapterGameTask::DisconnectFromPeer:
+        mGPGNetServer->sendDisconnectFromPeer(task.remoteId);
+        break;
+    }
+    mGameTasks.pop();
   }
 }
 
 std::shared_ptr<PeerRelay> IceAdapter::createPeerRelay(int remotePlayerId,
                                                        std::string const& remotePlayerLogin,
-                                                       int& portResult,
                                                        bool createOffer)
 {
-
   auto sdpMsgCb = [this](PeerRelay* relay, std::string const& type, std::string const& msg)
   {
     Json::Value gatheredSdpParams(Json::arrayValue);
@@ -562,7 +575,6 @@ std::shared_ptr<PeerRelay> IceAdapter::createPeerRelay(int remotePlayerId,
                                             createOffer,
                                             mOptions);
   mRelays[remotePlayerId] = result;
-  portResult = result->localGameUdpPort();
 
   if (createOffer)
   {

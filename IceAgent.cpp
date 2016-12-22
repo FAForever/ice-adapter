@@ -1,7 +1,5 @@
 #include "IceAgent.h"
 
-#include <boost/preprocessor/stringize.hpp>
-
 #include <stdexcept>
 #include <cstring>
 
@@ -98,7 +96,13 @@ void cb_nice_recv(NiceAgent *agent,
     FAF_LOG_WARN << "component_id == 2";
     return;
   }
-  static_cast<IceAgent*>(data)->onReceive(std::string(buf, len));
+  auto a = static_cast<IceAgent*>(data);
+  if (stream_id != a->mStreamId)
+  {
+    FAF_LOG_WARN << "stream_id != agent->mStreamId";
+    return;
+  }
+  a->onReceive(std::string(buf, len));
 }
 
 IceAgent::IceAgent(GMainLoop* mainloop,
@@ -178,9 +182,7 @@ IceAgent::IceAgent(GMainLoop* mainloop,
     return false;
   }, 2000);
 
-  Glib::signal_timeout().connect(
-        sigc::mem_fun(this, &IceAgent::pingPeer),
-        500);
+  mTimerConnection = Glib::signal_timeout().connect(sigc::mem_fun(this, &IceAgent::pingPeer), 500);
 
   if (options.iceLocalPortMin > 0)
   {
@@ -235,6 +237,7 @@ IceAgent::IceAgent(GMainLoop* mainloop,
 
 IceAgent::~IceAgent()
 {
+  mTimerConnection.disconnect();
   if (mStreamId)
   {
     nice_agent_remove_stream(mAgent,
@@ -363,13 +366,17 @@ bool IceAgent::isConnected() const
 
 void IceAgent::send(std::string const& msg)
 {
-  if (isConnected())
+  if (mConnectedToPeer)
   {
     nice_agent_send(mAgent,
                     mStreamId,
                     1,
                     msg.size(),
                     msg.c_str());
+  }
+  else
+  {
+    FAF_LOG_TRACE << "dropping " << msg.size() << " bytes while waiting to connect to ICE peer";
   }
 }
 
@@ -395,14 +402,11 @@ IceAgentState IceAgent::state() const
 
 double IceAgent::timeToConnected() const
 {
-  if (isConnected())
+  if (mStartTime > 0 && mConnectedTime > 0)
   {
     return (mConnectedTime - mStartTime) / 1e6;
   }
-  else
-  {
-    return (g_get_monotonic_time() - mStartTime) / 1e6;
-  }
+  return 0;
 }
 
 void IceAgent::onCandidateGatheringDone()
@@ -443,7 +447,10 @@ void IceAgent::onComponentStateChanged(unsigned int state)
     {
       FAF_LOG_INFO << mPeerId << ": NICE_COMPONENT_STATE_READY";
       mState = IceAgentState::Ready;
-      onPeerConnectedToMe();
+      if (!mPeerConnectedToMe)
+      {
+        onPeerConnectedToMe();
+      }
 
       //auto list = nice_agent_get_local_candidates(mAgent,
       //                                            mStreamId,
@@ -499,6 +506,7 @@ void IceAgent::onCandidateSelected(NiceCandidate* localCandidate,
   }
   mConnectedToPeer = true;
   mPingPeer = true;
+  pingPeer();
 }
 
 void IceAgent::onNewCandidate(NiceCandidate* localCandidate)
@@ -519,7 +527,10 @@ void IceAgent::onReceive(std::string const& msg)
   }
   else if (msg == "FAFPONG")
   {
-    onPeerConnectedToMe();
+    if (!mPeerConnectedToMe)
+    {
+      onPeerConnectedToMe();
+    }
   }
   else if (mReceiveCallback)
   {
