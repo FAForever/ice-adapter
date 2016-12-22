@@ -18,7 +18,8 @@ IceAdapter::IceAdapter(IceAdapterOptions const& options,
   mMainloop(mainloop)
 {
   FAF_LOG_INFO << "ICE adapter version " << FAF_VERSION_STRING << " initializing";
-  mRpcServer    = std::make_shared<JsonRpcServer>(mOptions.rpcPort);
+  mRpcServer = std::make_shared<JsonRpcServer>(mOptions.rpcPort);
+  mRpcServer->listen();
   mGPGNetServer = std::make_shared<GPGNetServer>(mOptions.gpgNetPort);
   mGPGNetServer->addGpgMessageCallback(std::bind(&IceAdapter::onGpgNetMessage,
                                        this,
@@ -27,6 +28,7 @@ IceAdapter::IceAdapter(IceAdapterOptions const& options,
                                                      this,
                                                      std::placeholders::_1,
                                                      std::placeholders::_2));
+  mGPGNetServer->listen();
   connectRpcMethods();
 
   auto resolver = Gio::Resolver::get_default();

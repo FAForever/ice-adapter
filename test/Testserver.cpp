@@ -202,6 +202,7 @@ Testserver::Testserver():
                         params,
                         remoteIt->second);
   });
+  mServer.listen();
 }
 
 void Testserver::sendGamelist(Socket* s)

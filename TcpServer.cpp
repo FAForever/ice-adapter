@@ -32,13 +32,12 @@ TcpServer::TcpServer(int port,
     Gio::InetSocketAddress::create(listenAddress, static_cast<guint16>(port));
 
   mListenSocket->bind(srcAddress, false);
-  mListenSocket->listen();
 
   auto isockaddr = Glib::RefPtr<Gio::InetSocketAddress>::cast_dynamic(mListenSocket->get_local_address());
   if (isockaddr)
   {
     mListenPort = isockaddr->get_port();
-    FAF_LOG_TRACE << "TcpServer listening on port " << mListenPort;
+    FAF_LOG_TRACE << "TcpServer listening bound to port " << mListenPort;
   }
   else
   {
@@ -59,6 +58,11 @@ TcpServer::TcpServer(int port,
 TcpServer::~TcpServer()
 {
   FAF_LOG_TRACE << "~TcpServer()";
+}
+
+void TcpServer::listen()
+{
+  mListenSocket->listen();
 }
 
 int TcpServer::listenPort() const

@@ -24,6 +24,7 @@ public:
   TcpServer(int port, bool loopback = true);
   virtual ~TcpServer();
 
+  void listen();
   int listenPort() const;
 
   int sessionCount() const;
