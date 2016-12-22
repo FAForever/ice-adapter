@@ -105,6 +105,7 @@ protected:
   int64_t mConnectedTime;
 
   sigc::connection mTimerConnection;
+  sigc::connection mTurnTimerConnection;
 
   friend void cb_candidate_gathering_done(NiceAgent*,
                                           unsigned int,

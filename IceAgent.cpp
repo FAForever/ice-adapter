@@ -165,7 +165,7 @@ IceAgent::IceAgent(GMainLoop* mainloop,
                             NICE_RELAY_TYPE_TURN_TCP);
    */
 
-  Glib::signal_timeout().connect([this, turnIp]()
+  mTurnTimerConnection = Glib::signal_timeout().connect([this, turnIp]()
   {
     if (!mPeerConnectedToMe)
     {
@@ -238,6 +238,7 @@ IceAgent::IceAgent(GMainLoop* mainloop,
 IceAgent::~IceAgent()
 {
   mTimerConnection.disconnect();
+  mTurnTimerConnection.disconnect();
   if (mStreamId)
   {
     nice_agent_remove_stream(mAgent,
