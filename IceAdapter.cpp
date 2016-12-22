@@ -577,21 +577,25 @@ std::shared_ptr<PeerRelay> IceAdapter::createPeerRelay(int remotePlayerId,
                                             candSelectedCb,
                                             createOffer,
                                             mOptions);
+
+  result->iceAgent()->onConnectivityChanged.connect(
+        [this, remotePlayerId](bool connectedToPeer, bool peerConnectedToMe)
+  {
+    Json::Value onConnectedToPeerParams(Json::arrayValue);
+    onConnectedToPeerParams.append(mOptions.localPlayerId);
+    onConnectedToPeerParams.append(remotePlayerId);
+    onConnectedToPeerParams.append(connectedToPeer);
+    onConnectedToPeerParams.append(peerConnectedToMe);
+    mRpcServer->sendRequest("onConnectivityChanged",
+                            onConnectedToPeerParams);
+  });
+
   mRelays[remotePlayerId] = result;
 
   if (createOffer)
   {
     result->iceAgent()->gatherCandidates();
   }
-
-  result->iceAgent()->onPeerConnectedToMe.connect([this, remotePlayerId]()
-  {
-    Json::Value onConnectedToPeerParams(Json::arrayValue);
-    onConnectedToPeerParams.append(mOptions.localPlayerId);
-    onConnectedToPeerParams.append(remotePlayerId);
-    mRpcServer->sendRequest("onIceConnected",
-                            onConnectedToPeerParams);
-  });
 
   return result;
 }

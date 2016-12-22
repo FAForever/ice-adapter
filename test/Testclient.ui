@@ -202,7 +202,7 @@
         <rect>
          <x>0</x>
          <y>0</y>
-         <width>264</width>
+         <width>219</width>
          <height>536</height>
         </rect>
        </property>
@@ -334,7 +334,27 @@
     </layout>
    </widget>
   </widget>
+  <widget class="QDockWidget" name="dockWidget_3">
+   <property name="features">
+    <set>QDockWidget::DockWidgetFloatable|QDockWidget::DockWidgetMovable</set>
+   </property>
+   <property name="windowTitle">
+    <string>Connections</string>
+   </property>
+   <attribute name="dockWidgetArea">
+    <number>2</number>
+   </attribute>
+   <widget class="faf::ChristmasWidget" name="christmasWidget"/>
+  </widget>
  </widget>
+ <customwidgets>
+  <customwidget>
+   <class>faf::ChristmasWidget</class>
+   <extends>QWidget</extends>
+   <header>test/ChristmasWidget.h</header>
+   <container>1</container>
+  </customwidget>
+ </customwidgets>
  <resources/>
  <connections/>
 </ui>

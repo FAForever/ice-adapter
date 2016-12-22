@@ -52,7 +52,8 @@ public:
   typedef std::function<void (IceAgent*, std::string const&, std::string const&)> CandidateSelectedCallback;
   void setCandidateSelectedCallback(CandidateSelectedCallback cb);
 
-  sigc::signal<void> onPeerConnectedToMe;
+  /* connectedToPeer, peerConnectedToMe */
+  sigc::signal<void, bool, bool> onConnectivityChanged;
 
   void addRemoteSdpMessage(std::string const& type, std::string const& msg);
   bool hasRemoteSdp() const;

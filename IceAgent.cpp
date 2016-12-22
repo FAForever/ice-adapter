@@ -223,13 +223,13 @@ IceAgent::IceAgent(GMainLoop* mainloop,
                    G_CALLBACK(cb_new_selected_pair_full),
                    this);
 
-  onPeerConnectedToMe.connect([this]()
+  onConnectivityChanged.connect([this](bool connectedToPeer, bool peerConnectedToMe)
   {
-    if (mConnectedTime == 0)
+    if (peerConnectedToMe &&
+        mConnectedTime == 0)
     {
       mConnectedTime = g_get_monotonic_time();
     }
-    mPeerConnectedToMe = true;
   });
 
   FAF_LOG_TRACE << "IceAgent() offer " << mOffering;
@@ -454,7 +454,8 @@ void IceAgent::onComponentStateChanged(unsigned int state)
       mState = IceAgentState::Ready;
       if (!mPeerConnectedToMe)
       {
-        onPeerConnectedToMe();
+        mPeerConnectedToMe = true;
+        onConnectivityChanged(mConnectedToPeer, mPeerConnectedToMe);
       }
 
       //auto list = nice_agent_get_local_candidates(mAgent,
@@ -509,9 +510,13 @@ void IceAgent::onCandidateSelected(NiceCandidate* localCandidate,
   {
     mCandidateSelectedCallback(this, mLocalCandidateInfo, mRemoteCandidateInfo);
   }
-  mConnectedToPeer = true;
-  mPingPeer = true;
-  pingPeer();
+  if (!mConnectedToPeer)
+  {
+    mConnectedToPeer = true;
+    onConnectivityChanged(mConnectedToPeer, mPeerConnectedToMe);
+    mPingPeer = true;
+    pingPeer();
+  }
 }
 
 void IceAgent::onNewCandidate(NiceCandidate* localCandidate)
@@ -534,7 +539,8 @@ void IceAgent::onReceive(std::string const& msg)
   {
     if (!mPeerConnectedToMe)
     {
-      onPeerConnectedToMe();
+      mPeerConnectedToMe = true;
+      onConnectivityChanged(mConnectedToPeer, mPeerConnectedToMe);
     }
   }
   else if (mReceiveCallback)

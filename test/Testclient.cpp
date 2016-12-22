@@ -419,25 +419,33 @@ void Testclient::connectRpcMethods()
     updateStatus();
   });
 
-  mIceClient.setRpcCallback("onIceConnected", [this](Json::Value const& paramsArray,
+  mIceClient.setRpcCallback("onConnectivityChanged", [this](Json::Value const& paramsArray,
                             Json::Value & result,
                             Json::Value & error,
                             Socket*)
   {
-    if (paramsArray.size() < 2)
+    if (paramsArray.size() < 4)
     {
-      error = "Need 2 parameters.";
+      error = "Need 4 parameters.";
       return;
     }
     int peerId = paramsArray[1].asInt();
-    mPeersReady.insert(peerId);
-    if (mPeerIdPingtrackers.contains(peerId))
+    bool connectedToPeer = paramsArray[2].asBool();
+    if (connectedToPeer)
     {
-      mPeerIdPingtrackers.value(peerId)->start();
+      mPeersReady.insert(peerId);
+      if (mPeerIdPingtrackers.contains(peerId))
+      {
+        mPeerIdPingtrackers.value(peerId)->start();
+      }
     }
-    if (mPeerWidgets.contains(peerId))
+    bool peerConnectedToMe = paramsArray[3].asBool();
+    if (peerConnectedToMe)
     {
-      mPeerWidgets.value(peerId)->ui->label_conntime->setStyleSheet("background-color: #00ff00;");
+      if (mPeerWidgets.contains(peerId))
+      {
+        mPeerWidgets.value(peerId)->ui->label_conntime->setStyleSheet("background-color: #00ff00;");
+      }
     }
     updateStatus();
   });
@@ -664,6 +672,10 @@ void Testclient::onGPGNetMessageFromIceAdapter(GPGNetMessage const& msg)
             &Pingtracker::pingStats,
             this,
             &Testclient::onPingStats);
+    connect(pingtracker.get(),
+            &Pingtracker::pingStats,
+            mUi->christmasWidget,
+            &ChristmasWidget::onPingStats);
     FAF_LOG_DEBUG << "Pingtracker for peer " << peerId << " port " << peerPort << " created";
   }
   else if (msg.header == "DisconnectFromPeer")
@@ -674,6 +686,7 @@ void Testclient::onGPGNetMessageFromIceAdapter(GPGNetMessage const& msg)
       return;
     }
     int peerId = msg.chunks.at(0).asInt();
+    mUi->christmasWidget->switchOff(peerId);
     mPeerIdPingtrackers.remove(peerId);
     mPeersReady.remove(peerId);
     if (mPeerWidgets.contains(peerId))

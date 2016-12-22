@@ -18,8 +18,14 @@ Pingtracker::Pingtracker(int localPeerId,
   mLobbySocket(lobbySocket),
   mCurrentPingId(0)
 {
-
+  auto updateTimer = new QTimer(this);
+  connect(updateTimer,
+          &QTimer::timeout,
+          this,
+          &Pingtracker::update);
+  updateTimer->start(1000);
 }
+
 void Pingtracker::start()
 {
   if (mPingTimer.isActive())
@@ -31,9 +37,9 @@ void Pingtracker::start()
                    [this]()
   {
     PingPacket p = {PingPacket::PING,
-                    mLocalPeerId,
-                    mRemotePeerId,
-                    mCurrentPingId};
+                    static_cast<quint32>(mLocalPeerId),
+                    static_cast<quint32>(mRemotePeerId),
+                    static_cast<quint32>(mCurrentPingId)};
     QByteArray pingDatagram(reinterpret_cast<const char *>(&p),
                             sizeof(PingPacket));
     mLobbySocket.writeDatagram(pingDatagram,
@@ -42,25 +48,6 @@ void Pingtracker::start()
     auto currentTime = QDateTime::currentMSecsSinceEpoch();
     mPendingPings[mCurrentPingId] = currentTime;
     ++mCurrentPingId;
-
-    int maxTime = 5000;
-    while (mPendingPings.size() > 0)
-    {
-      auto it = mPendingPings.begin();
-      if ((currentTime - it.value()) > 5000)
-      {
-        mPendingPings.erase(it);
-        ++mLostPings;
-      }
-      else
-      {
-        break;
-      }
-    }
-    if (mPendingPings.size() > 60)
-    {
-      FAF_LOG_WARN << "mPendingPings.size() > 60";
-    }
   });
   mPingTimer.start(100);
 }
@@ -87,18 +74,6 @@ void Pingtracker::onPingPacket(PingPacket const* p)
     mPendingPings.remove(p->pingId);
     ++mSuccessfulPings;
     mPingHistory.push_back(ping);
-    while (mPingHistory.size() > 50)
-    {
-      mPingHistory.pop_front();
-    }
-    if (((mLostPings + mSuccessfulPings) % 10) == 0)
-    {
-      Q_EMIT pingStats(mRemotePeerId,
-                       currentPing(),
-                       mPendingPings.size(),
-                       mLostPings,
-                       mSuccessfulPings);
-    }
   }
 }
 
@@ -135,6 +110,37 @@ int Pingtracker::lostPings() const
 int Pingtracker::successfulPings() const
 {
   return mSuccessfulPings;
+}
+
+void Pingtracker::update()
+{
+  while (mPendingPings.size() > 0)
+  {
+    auto it = mPendingPings.begin();
+    auto currentTime = QDateTime::currentMSecsSinceEpoch();
+    if ((currentTime - it.value()) > 5000)
+    {
+      mPendingPings.erase(it);
+      ++mLostPings;
+    }
+    else
+    {
+      break;
+    }
+  }
+  if (mPendingPings.size() > 60)
+  {
+    FAF_LOG_WARN << "mPendingPings.size() > 60";
+  }
+  while (mPingHistory.size() > 50)
+  {
+    mPingHistory.pop_front();
+  }
+  Q_EMIT pingStats(mRemotePeerId,
+                   currentPing(),
+                   mPendingPings.size(),
+                   mLostPings,
+                   mSuccessfulPings);
 }
 
 } // namespace faf

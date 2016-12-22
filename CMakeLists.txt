@@ -60,6 +60,8 @@ add_custom_target(docs
   README.md
   LICENSE
   .travis.yml
+  TODO
+  test/ChristmasWidget.svg
   )
 
 add_library(fafice
@@ -127,22 +129,29 @@ if(FAF_BUILD_TEST)
   find_package(Qt5Widgets QUIET)
   if (Qt5Widgets_FOUND)
     find_package(Qt5Network REQUIRED)
+    find_package(Qt5Svg REQUIRED)
 
     if(MINGW)
       pkg_search_module(QT5W REQUIRED Qt5Widgets)
       pkg_search_module(QT5N REQUIRED Qt5Network)
+      pkg_search_module(QT5S REQUIRED Qt5Svg)
       link_directories(${QT5W_LIBRARY_DIRS})
       link_directories(${QT5N_LIBRARY_DIRS})
+      link_directories(${QT5S_LIBRARY_DIRS})
       include_directories(${Qt5Widgets_INCLUDE_DIRS})
       include_directories(${Qt5Network_INCLUDE_DIRS})
+      include_directories(${Qt5Svg_INCLUDE_DIRS})
       set(faf_test_lib_libs
         Qt5::QWindowsIntegrationPlugin
         libQt5PlatformSupport.a
         ${QT5W_LIBRARIES}
-        ${QT5N_LIBRARIES})
+        ${QT5N_LIBRARIES}
+        ${QT5S_LIBRARIES}
+        )
     else()
       set(faf_test_lib_libs
         Qt5::Widgets
+        Qt5::Svg
         Qt5::Network)
     endif()
 
@@ -151,8 +160,12 @@ if(FAF_BUILD_TEST)
     qt5_wrap_ui(FAF_TEST_UIS_H test/PeerWidget.ui)
     include_directories(${CMAKE_CURRENT_BINARY_DIR})
 
+    qt5_add_resources(FAF_TEST_QRC test/ChristmasWidget.qrc)
+
     add_executable(faf-ice-testclient WIN32
         ${FAF_TEST_UIS_H}
+        ${FAF_TEST_QRC}
+        test/ChristmasWidget.cpp
         test/GPGNetClient.cpp
         test/JsonRpcClient.cpp
         test/Testclient.cpp

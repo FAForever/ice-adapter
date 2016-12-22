@@ -9,7 +9,7 @@ install:
 - echo "deb http://pkg.mxe.cc/repos/apt/debian wheezy main" | sudo tee /etc/apt/sources.list.d/mxeapt.list
 - sudo apt-key adv --keyserver x-hkp://keys.gnupg.net --recv-keys D43A795B73B16ABE9643FE1AFD8FFF16DB45C6AB
 - sudo apt-get update
-- sudo apt-get --yes install mxe-$MXE_TARGET-jsoncpp mxe-$MXE_TARGET-glib mxe-$MXE_TARGET-glibmm mxe-$MXE_TARGET-qtbase gtk-doc-tools
+- sudo apt-get --yes install mxe-$MXE_TARGET-jsoncpp mxe-$MXE_TARGET-glib mxe-$MXE_TARGET-glibmm mxe-$MXE_TARGET-qtbase mxe-$MXE_TARGET-qtsvg gtk-doc-tools
   mxe-$MXE_TARGET-boost
 script:
 - export LIBNICE_SHA=2803a0b4b70af9684e05ef5ed3f0c2fbca4b6c93

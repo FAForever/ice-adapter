@@ -39,14 +39,15 @@ public:
 Q_SIGNALS:
   void pingStats(int peerId, float ping, int pendPings, int lostPings, int succPings);
 protected:
-  quint32 mLocalPeerId;
-  quint32 mRemotePeerId;
+  void update();
+  int mLocalPeerId;
+  int mRemotePeerId;
   quint16 mPort;
-  QMap<quint32, qint64> mPendingPings;
+  QMap<int, qint64> mPendingPings;
   int mLostPings;
   int mSuccessfulPings;
   QList<qint64> mPingHistory;
-  quint32 mCurrentPingId;
+  int mCurrentPingId;
   QUdpSocket& mLobbySocket;
   QTimer mPingTimer;
 };

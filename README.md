@@ -28,7 +28,7 @@ Note that all JSON messages are newline terminated.
 | onSdpMessage | localPlayerId (int), remotePlayerId (int), type (string), message (string) | The PeerRelays IceAgent gathered a local SDP part for connecting to the remote player. This message must be forwarded to the remote peer and set using the `addSdpMessage` command. |
 | onPeerStateChanged | localPlayerId (int), remotePlayerId (int), "NeedRemoteSdp" / "Disconnected" / "Gathering" / "Connecting" / "Connected" / "Ready" / "Failed" | Informs the client about the ICE connectivity state change. |
 | onCandidateSelected | localPlayerId (int), remotePlayerId (int), localCandidate (string), remoteCandidate (string) | Informs the client that ICE connectivity is established one-directional to the peer with the provided candidates. |
-| onIceConnected | localPlayerId (int), remotePlayerId (int) | Informs the client that ICE connectivity is established bi-directional to the remote peer. |
+| onConnectivityChanged | localPlayerId (int), remotePlayerId (int), connectedToPeer (bool), peerConnectedToMe (bool) | Informs the client that ICE connectivity to the peer changed.. |
 
 #### Status structure
 ```
