@@ -128,8 +128,8 @@ Testclient::Testclient(QWidget *parent) :
 
   connectRpcMethods();
 
-  //mServerClient.connectToHost("fafsdp.erreich.bar", 54321);
-  mServerClient.connectToHost("localhost", 54321);
+  mServerClient.connectToHost("fafsdp.erreich.bar", 54321);
+  //mServerClient.connectToHost("localhost", 54321);
 
   connect(&mIceAdapterProcess,
           &QProcess::readyReadStandardError,
