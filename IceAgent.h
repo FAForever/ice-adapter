@@ -30,6 +30,7 @@ public:
 
   IceStreamPtr createStream(int peerId);
   void removeStream(int peerId);
+  void clear();
 
   GMainLoop* mainloop() const;
 protected:

@@ -281,6 +281,7 @@ void IceAdapter::onGpgConnectionStateChanged(TcpSession* session, ConnectionStat
   {
     FAF_LOG_INFO << "game disconnected";
     mRelays.clear();
+    mAgent->clear();
     mGPGNetGameState = "";
   }
   else

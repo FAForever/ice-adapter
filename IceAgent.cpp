@@ -168,6 +168,12 @@ void IceAgent::removeStream(int peerId)
   mPeerStreams.erase(streamIt);
 }
 
+void IceAgent::clear()
+{
+  mSteamIdStreams.clear();
+  mPeerStreams.clear();
+}
+
 GMainLoop* IceAgent::mainloop() const
 {
   return mMainloop;

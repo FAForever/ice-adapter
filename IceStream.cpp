@@ -132,7 +132,7 @@ IceStream::IceStream(IceAgentPtr agent,
                          cb_nice_recv,
                          this);
 
-  FAF_LOG_TRACE << mPeerId << ": IceStream()";
+  FAF_LOG_DEBUG << mPeerId << ": IceStream()";
 }
 
 IceStream::~IceStream()
@@ -144,7 +144,7 @@ IceStream::~IceStream()
     nice_agent_remove_stream(mAgent->handle(),
                              mStreamId);
   }
-  FAF_LOG_TRACE << mPeerId << ": ~IceStream()";
+  FAF_LOG_DEBUG << mPeerId << ": ~IceStream()";
 }
 
 unsigned int IceStream::streamId() const
@@ -459,7 +459,6 @@ void IceStream::onNewCandidate(NiceCandidate* localCandidate)
 
 bool IceStream::pingPeer()
 {
-  FAF_LOG_TRACE << "pingPeer";
   if (mPingPeer)
   {
     send("FAFPING");
