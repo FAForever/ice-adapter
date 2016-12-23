@@ -69,6 +69,7 @@ add_library(fafice
     IceAdapter.cpp
     IceAdapterOptions.cpp
     IceAgent.cpp
+    IceStream.cpp
     JsonRpcProtocol.cpp
     JsonRpcServer.cpp
     logging.cpp

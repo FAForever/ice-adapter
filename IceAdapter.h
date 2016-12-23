@@ -23,6 +23,8 @@ class GPGNetServer;
 class TcpSession;
 class GPGNetMessage;
 class PeerRelay;
+class IceAgent;
+typedef std::shared_ptr<IceAgent> IceAgentPtr;
 
 struct IceAdapterGameTask
 {
@@ -75,11 +77,9 @@ public:
    *         The IceAdapter will send the client the SDP record via "rpcGatheredSdp" JSONRPC notification.
        \param remotePlayerLogin: Login name of the player to connect to
        \param remotePlayerId:    ID of the player to connect to
-       \param createOffer:       should the client create the offer or does it only answer
       */
   void connectToPeer(std::string const& remotePlayerLogin,
-                     int remotePlayerId,
-                     bool createOffer);
+                     int remotePlayerId);
 
   /** \brief Not sure yet
       */
@@ -94,10 +94,9 @@ public:
   /** \brief Sets the SDP record for the remote peer.
    *         This method assumes a previous call of joinGame or connectToPeer.
        \param remotePlayerId: ID of the remote player
-       \param type:           type of the SDP message
-       \param msg:            the SDP message
+       \param sdp:            the SDP message
       */
-  void addSdpMessage(int remotePlayerId, std::string const& type, std::string const& msg);
+  void addSdp(int remotePlayerId, std::string const& sdp);
 
   /** \brief Send an arbitrary GPGNet message to the game
        \param message: The GPGNet message
@@ -119,9 +118,9 @@ protected:
   void tryExecuteGameTasks();
 
   std::shared_ptr<PeerRelay> createPeerRelay(int remotePlayerId,
-                                             std::string const& remotePlayerLogin,
-                                             bool createOffer);
+                                             std::string const& remotePlayerLogin);
 
+  IceAgentPtr mAgent;
   IceAdapterOptions mOptions;
   std::shared_ptr<JsonRpcServer> mRpcServer;
   std::shared_ptr<GPGNetServer> mGPGNetServer;

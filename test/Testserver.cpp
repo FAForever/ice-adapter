@@ -118,7 +118,6 @@ Testserver::Testserver():
       Json::Value connectToPeerParams(Json::arrayValue);
       connectToPeerParams.append(std::string("Player") + std::to_string(joiningPlayerId));
       connectToPeerParams.append(joiningPlayerId);
-      connectToPeerParams.append(true);
       params.append(connectToPeerParams);
       mServer.sendRequest("sendToIceAdapter",
                           params,
@@ -152,7 +151,6 @@ Testserver::Testserver():
         Json::Value connectToPeerParams(Json::arrayValue);
         connectToPeerParams.append(std::string("Player") + std::to_string(joiningPlayerId));
         connectToPeerParams.append(joiningPlayerId);
-        connectToPeerParams.append(true);
         params.append(connectToPeerParams);
         mServer.sendRequest("sendToIceAdapter",
                             params,
@@ -165,7 +163,6 @@ Testserver::Testserver():
         Json::Value connectToPeerParams(Json::arrayValue);
         connectToPeerParams.append(std::string("Player") + std::to_string(existingPlayerId));
         connectToPeerParams.append(existingPlayerId);
-        connectToPeerParams.append(false);
         params.append(connectToPeerParams);
         mServer.sendRequest("sendToIceAdapter",
                             params,
@@ -173,15 +170,15 @@ Testserver::Testserver():
       }
     }
   });
-  mServer.setRpcCallback("sendSdpMessage",
+  mServer.setRpcCallback("sendSdp",
                          [this](Json::Value const& paramsArray,
                          Json::Value & result,
                          Json::Value & error,
                          Socket* socket)
   {
-    if (paramsArray.size() < 4)
+    if (paramsArray.size() < 3)
     {
-      error = "Need 2 parameters: playerId (int), remotePlayerId (int), type (string), message (string)";
+      error = "Need 2 parameters: playerId (int), remotePlayerId (int), sdp (string)";
       return;
     }
     auto remoteId = paramsArray[1].asInt();
@@ -192,11 +189,10 @@ Testserver::Testserver():
       return;
     }
     Json::Value params(Json::arrayValue);
-    params.append("addSdpMessage");
+    params.append("addSdp");
     Json::Value setSdpParams(Json::arrayValue);
     setSdpParams.append(mSocketPlayers[socket]);
     setSdpParams.append(paramsArray[2]);
-    setSdpParams.append(paramsArray[3]);
     params.append(setSdpParams);
     mServer.sendRequest("sendToIceAdapter",
                         params,

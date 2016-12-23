@@ -61,9 +61,7 @@ protected:
   void changeEvent(QEvent *e);
   void onGPGNetMessageFromIceAdapter(GPGNetMessage const& msg);
   void onLobbyReadyRead();
-  void onAddSdpMessage(int peerId,
-                       std::string const& sdpType,
-                       std::string const& sdpMsg);
+  void onAddSdp(int peerId, std::string const& sdp);
 
 private:
   Ui::Testclient *mUi;

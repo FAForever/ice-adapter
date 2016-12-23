@@ -1,35 +1,32 @@
 #include "PeerRelay.h"
 
-#include "IceAgent.h"
+#include "IceStream.h"
 #include "logging.h"
 
 namespace faf
 {
 
-PeerRelay::PeerRelay(Glib::RefPtr<Glib::MainLoop> mainloop,
+PeerRelay::PeerRelay(IceStreamPtr iceStream,
                      int peerId,
                      std::string const& peerLogin,
                      std::string const& stunIp,
                      std::string const& turnIp,
-                     SdpMessageCallback sdpCb,
-                     IceAgentStateCallback stateCb,
+                     SdpCallback sdpCb,
+                     IceStreamStateCallback stateCb,
                      CandidateSelectedCallback candSelCb,
-                     bool createOffer,
+                     ConnectivityChangedCallback connCb,
                      IceAdapterOptions const& options):
-  mMainloop(mainloop),
+  mIceStream(iceStream),
   mPeerId(peerId),
   mPeerLogin(peerLogin),
   mStunIp(stunIp),
   mTurnIp(turnIp),
-  mLocalGameUdpPort(0),
-  mCreateOffer(createOffer),
-  mSdpMessageCallback(sdpCb),
-  mIceAgentStateCallback(stateCb),
+  mSdpCallback(sdpCb),
+  mIceStreamStateCallback(stateCb),
   mCandidateSelectedCallback(candSelCb),
-  mOptions(options)
+  mConnectivityChangedCallback(connCb),
+  mLocalGameUdpPort(0)
 {
-  createAgent();
-
   mLocalSocket = Gio::Socket::create(Gio::SOCKET_FAMILY_IPV4,
                                 Gio::SOCKET_TYPE_DATAGRAM,
                                 Gio::SOCKET_PROTOCOL_DEFAULT);
@@ -57,77 +54,9 @@ PeerRelay::PeerRelay(Glib::RefPtr<Glib::MainLoop> mainloop,
         Glib::IO_IN);
 
   mGameAddress = Gio::InetSocketAddress::create(Gio::InetAddress::create("127.0.0.1"),
-                                                static_cast<guint16>(mOptions.gameUdpPort));
-  FAF_LOG_TRACE << "PeerRelay " << mPeerId << " constructed";
-}
+                                                static_cast<guint16>(options.gameUdpPort));
 
-PeerRelay::~PeerRelay()
-{
-  FAF_LOG_TRACE << "PeerRelay " << mPeerId << " destructed";
-}
-
-void PeerRelay::setPeer(int peerId,
-                        std::string const& peerLogin)
-{
-  mPeerId = peerId;
-  mPeerLogin = peerLogin;
-}
-
-int PeerRelay::peerId() const
-{
-  return mPeerId;
-}
-
-int PeerRelay::localGameUdpPort() const
-{
-  return mLocalGameUdpPort;
-}
-
-std::shared_ptr<IceAgent> PeerRelay::iceAgent() const
-{
-  return mIceAgent;
-}
-
-std::string const& PeerRelay::peerLogin() const
-{
-  return mPeerLogin;
-}
-
-void PeerRelay::reconnect()
-{
-  /*
-  std::string oldSdp;
-  if (mIceAgent &&
-      mIceAgent->hasRemoteSdp())
-  {
-    oldSdp = mIceAgent->remoteSdp64();
-  }
-  */
-  createAgent();
-  /*
-  if (!oldSdp.empty())
-  {
-    mIceAgent->setRemoteSdp(oldSdp);
-  }
-  */
-}
-
-bool PeerRelay::isOfferer() const
-{
-  return mCreateOffer;
-}
-
-void PeerRelay::createAgent()
-{
-  mIceAgent.reset();
-  mIceAgent = std::make_shared<IceAgent>(mMainloop->gobj(),
-                                         mCreateOffer,
-                                         mPeerId,
-                                         mStunIp,
-                                         mTurnIp,
-                                         mOptions);
-
-  mIceAgent->setReceiveCallback([this](IceAgent* agent, std::string const& message)
+  mIceStream->setReceiveCallback([this](IceStream*, std::string const& message)
   {
     try
     {
@@ -150,20 +79,57 @@ void PeerRelay::createAgent()
     }
   });
 
-  mIceAgent->setStateCallback([this](IceAgent* agent, IceAgentState const& state)
+  mIceStream->setStateCallback([this](IceStream*, IceStreamState const& state)
   {
-    mIceAgentStateCallback(this, state);
+    mIceStreamStateCallback(this, state);
   });
 
-  mIceAgent->setSdpMessageCallback([this](IceAgent*, std::string const& type, std::string const& msg)
+  mIceStream->setSdpCallback([this](IceStream*, std::string const& sdp)
   {
-    mSdpMessageCallback(this, type, msg);
+    mSdpCallback(this, sdp);
   });
 
-  mIceAgent->setCandidateSelectedCallback([this](IceAgent*, std::string const& local, std::string const& remote)
+  mIceStream->setCandidateSelectedCallback([this](IceStream*, std::string const& local, std::string const& remote)
   {
     mCandidateSelectedCallback(this, local, remote);
   });
+
+  mIceStream->setConnectivityChangedCallback([this](IceStream*, bool connectedToPeer, bool peerConnectedToMe)
+  {
+    mConnectivityChangedCallback(this, connectedToPeer, peerConnectedToMe);
+  });
+
+  FAF_LOG_TRACE << "PeerRelay " << mPeerId << " constructed";
+}
+
+PeerRelay::~PeerRelay()
+{
+  FAF_LOG_TRACE << "PeerRelay " << mPeerId << " destructed";
+}
+
+int PeerRelay::peerId() const
+{
+  return mPeerId;
+}
+
+int PeerRelay::localGameUdpPort() const
+{
+  return mLocalGameUdpPort;
+}
+
+IceStreamPtr PeerRelay::iceStream() const
+{
+  return mIceStream;
+}
+
+std::string const& PeerRelay::peerLogin() const
+{
+  return mPeerLogin;
+}
+
+void PeerRelay::reconnect()
+{
+  FAF_LOG_ERROR << "implementme";
 }
 
 Glib::ustring
@@ -180,16 +146,15 @@ socket_address_to_string(const Glib::RefPtr<Gio::SocketAddress>& address)
   return res;
 }
 
-bool PeerRelay::onGameReceive(Glib::IOCondition condition)
+bool PeerRelay::onGameReceive(Glib::IOCondition)
 {
-  gchar buffer[4096] = {};
   Glib::RefPtr<Gio::SocketAddress> address;
   //auto address = mLocalSocket->get_remote_address();
   auto size = mLocalSocket->receive_from(address,
-                                         buffer,
+                                         mBuffer,
                                          4096);
-  mIceAgent->send(std::string(buffer,
-                              size));
+  mIceStream->send(std::string(mBuffer,
+                               size));
 
   return true;
 }

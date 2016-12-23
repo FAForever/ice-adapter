@@ -11,37 +11,36 @@ namespace faf
 {
 
 /* Forward declarations */
-class IceAgent;
-enum class IceAgentState;
+class IceStream;
+typedef std::shared_ptr<IceStream> IceStreamPtr;
+enum class IceStreamState;
 
 class PeerRelay
 {
 public:
-  typedef std::function<void (PeerRelay*, std::string const&, std::string const&)> SdpMessageCallback;
-  typedef std::function<void (PeerRelay*, IceAgentState const&)> IceAgentStateCallback;
+  typedef std::function<void (PeerRelay*, std::string const&)> SdpCallback;
+  typedef std::function<void (PeerRelay*, IceStreamState const&)> IceStreamStateCallback;
   typedef std::function<void (PeerRelay*, std::string const&, std::string const&)> CandidateSelectedCallback;
+  typedef std::function<void (PeerRelay*, bool, bool)> ConnectivityChangedCallback;
 
-  PeerRelay(Glib::RefPtr<Glib::MainLoop> mainloop,
+  PeerRelay(IceStreamPtr iceStream,
             int peerId,
             std::string const& peerLogin,
             std::string const& stunIp,
             std::string const& turnIp,
-            SdpMessageCallback sdpCb,
-            IceAgentStateCallback stateCb,
+            SdpCallback sdpCb,
+            IceStreamStateCallback stateCb,
             CandidateSelectedCallback candSelCb,
-            bool createOffer,
+            ConnectivityChangedCallback connCb,
             IceAdapterOptions const& options
             );
   virtual ~PeerRelay();
-
-  void setPeer(int peerId,
-               std::string const& peerLogin);
 
   int peerId() const;
 
   int localGameUdpPort() const;
 
-  std::shared_ptr<IceAgent> iceAgent() const;
+  IceStreamPtr iceStream() const;
 
   std::string const& peerLogin() const;
 
@@ -50,22 +49,21 @@ public:
   bool isOfferer() const;
 
 protected:
-  void createAgent();
-  bool onGameReceive(Glib::IOCondition condition);
-  Glib::RefPtr<Glib::MainLoop> mMainloop;
-  Glib::RefPtr<Gio::Socket> mLocalSocket;
+  bool onGameReceive(Glib::IOCondition);
+
+  IceStreamPtr mIceStream;
   int mPeerId;
   std::string mPeerLogin;
   std::string mStunIp;
   std::string mTurnIp;
-  int mLocalGameUdpPort;
-  bool mCreateOffer;
-  std::shared_ptr<IceAgent> mIceAgent;
-  Glib::RefPtr<Gio::SocketAddress> mGameAddress;
-  SdpMessageCallback mSdpMessageCallback;
-  IceAgentStateCallback mIceAgentStateCallback;
+  SdpCallback mSdpCallback;
+  IceStreamStateCallback mIceStreamStateCallback;
   CandidateSelectedCallback mCandidateSelectedCallback;
-  IceAdapterOptions mOptions;
+  ConnectivityChangedCallback mConnectivityChangedCallback;
+  Glib::RefPtr<Gio::Socket> mLocalSocket;
+  int mLocalGameUdpPort;
+  Glib::RefPtr<Gio::SocketAddress> mGameAddress;
+  gchar mBuffer[4096];
 };
 
 }

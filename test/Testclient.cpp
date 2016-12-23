@@ -128,7 +128,8 @@ Testclient::Testclient(QWidget *parent) :
 
   connectRpcMethods();
 
-  mServerClient.connectToHost("fafsdp.erreich.bar", 54321);
+  //mServerClient.connectToHost("fafsdp.erreich.bar", 54321);
+  mServerClient.connectToHost("localhost", 54321);
 
   connect(&mIceAdapterProcess,
           &QProcess::readyReadStandardError,
@@ -359,16 +360,15 @@ void Testclient::connectRpcMethods()
       error = "Need 1 parameter: method (string), params (array)";
       return;
     }
-    if (paramsArray[0].asString() == "addSdpMessage")
+    if (paramsArray[0].asString() == "addSdp")
     {
-      if (paramsArray[1].size() != 3)
+      if (paramsArray[1].size() != 2)
       {
-        error = "Need 3 parameters: peer (int), sdpType (string), sdpMsg (string)";
+        error = "Need 3 parameters: peer (int), sdp (string)";
         return;
       }
-      onAddSdpMessage(paramsArray[1][0].asInt(),
-                      paramsArray[1][1].asString(),
-                      paramsArray[1][2].asString());
+      onAddSdp(paramsArray[1][0].asInt(),
+               paramsArray[1][1].asString());
     }
     else
     {
@@ -399,7 +399,8 @@ void Testclient::connectRpcMethods()
   for(auto event: {"onConnectionStateChanged",
                    "onGpgNetMessageReceived",
                    "onPeerStateChanged",
-                   "onNeedSdp"})
+                   "onNeedSdp",
+                   "onCandidateSelected"})
   {
     mIceClient.setRpcCallback(event, [this](Json::Value const&,
                                Json::Value &,
@@ -410,12 +411,12 @@ void Testclient::connectRpcMethods()
     });
   }
 
-  mIceClient.setRpcCallback("onSdpMessage", [this](Json::Value const& paramsArray,
+  mIceClient.setRpcCallback("onSdp", [this](Json::Value const& paramsArray,
                             Json::Value &,
                             Json::Value &,
                             Socket*)
   {
-    mServerClient.sendRequest("sendSdpMessage",
+    mServerClient.sendRequest("sendSdp",
                               paramsArray);
     updateStatus();
   });
@@ -729,11 +730,9 @@ void Testclient::onLobbyReadyRead()
 }
 
 
-void Testclient::onAddSdpMessage(int peerId,
-                                 std::string const& sdpType,
-                                 std::string const& sdpMsg)
+void Testclient::onAddSdp(int peerId, std::string const& sdp)
 {
-  auto list = QString::fromStdString(sdpMsg).split('\n', QString::SkipEmptyParts);
+  auto list = QString::fromStdString(sdp).split('\n', QString::SkipEmptyParts);
 
   for (QString const& entry: list)
   {
@@ -784,16 +783,8 @@ void Testclient::onAddSdpMessage(int peerId,
   {
     Json::Value params(Json::arrayValue);
     params.append(peerId);
-    if (mSdpCache[peerId].at(0).startsWith("m=application"))
-    {
-      params.append("initialSdp");
-    }
-    else
-    {
-      params.append("newCandidate");
-    }
     params.append(mSdpCache[peerId].join('\n').toStdString() + "\n");
-    mIceClient.sendRequest("addSdpMessage",
+    mIceClient.sendRequest("addSdp",
                            params);
     mSdpCache[peerId].clear();
   }

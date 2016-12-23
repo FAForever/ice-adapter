@@ -11,9 +11,11 @@
 
 namespace faf {
 
-ChristmasWidget::ChristmasWidget(QWidget *parent) : QWidget(parent)
+ChristmasWidget::ChristmasWidget(QWidget *parent) :
+  QSvgWidget(parent),
+  mLastHeight(0)
 {
-  this->setLayout(new QHBoxLayout(this));
+  //this->setLayout(new QHBoxLayout(this));
 
   for(int i = 0; i < 11; ++i)
   {
@@ -22,8 +24,8 @@ ChristmasWidget::ChristmasWidget(QWidget *parent) : QWidget(parent)
   }
 
   this->update();
-  mSvgWidget.setSizePolicy(QSizePolicy::Fixed, QSizePolicy::Fixed);
-  this->layout()->addWidget(&mSvgWidget);
+  //mSvgWidget.setSizePolicy(QSizePolicy::Fixed, QSizePolicy::Fixed);
+  //this->layout()->addWidget(&mSvgWidget);
 }
 
 void ChristmasWidget::update()
@@ -58,7 +60,7 @@ void ChristmasWidget::update()
      }
   }
 
-  mSvgWidget.load(filteredSvgData);
+  this->load(filteredSvgData);
 }
 
 void ChristmasWidget::onPingStats(int peerId, float ping, int pendPings, int lostPings, int succPings)
@@ -112,6 +114,15 @@ void ChristmasWidget::clear()
   update();
 }
 
+QSize ChristmasWidget::sizeHint() const
+{
+  QSize s = size();
+  const_cast<ChristmasWidget*>(this)->mLastHeight = s.height();
+  s.setWidth((s.height()*572)/544);
+  s.setHeight(QSvgWidget::sizeHint().height());
+  return s;
+}
+
 void ChristmasWidget::switchGreen(int peerId)
 {
   if (mPeerBulb.contains(peerId))
@@ -132,6 +143,16 @@ void ChristmasWidget::switchGreen(int peerId)
   }
   mPeerBulb[peerId] = *mAvailableGreenBulbs.begin();
   mAvailableGreenBulbs.erase(mAvailableGreenBulbs.begin());
+}
+
+void ChristmasWidget::resizeEvent(QResizeEvent * event)
+{
+  QSvgWidget::resizeEvent(event);
+
+  if (mLastHeight!=height())
+  {
+    updateGeometry();
+  }
 }
 
 void ChristmasWidget::switchRed(int peerId)

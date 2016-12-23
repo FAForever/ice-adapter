@@ -2,11 +2,12 @@
 
 #include <QtCore/QSet>
 #include <QtWidgets/QWidget>
+#include <QtGui/QResizeEvent>
 #include <QtSvg/QSvgWidget>
 
 namespace faf {
 
-class ChristmasWidget : public QWidget
+class ChristmasWidget : public QSvgWidget
 {
   Q_OBJECT
 public:
@@ -15,14 +16,16 @@ public:
   void onPingStats(int peerId, float ping, int pendPings, int lostPings, int succPings);
   void switchOff(int peerId);
   void clear();
+  QSize sizeHint() const override;
 protected:
+  void resizeEvent(QResizeEvent * event) override;
   void switchGreen(int peerId);
   void switchRed(int peerId);
   QHash<int, QString> mPeerBulb;
   QHash<int, int> mPeerSuccPings;
-  QSvgWidget mSvgWidget;
   QSet<QString> mAvailableRedBulbs;
   QSet<QString> mAvailableGreenBulbs;
+  int mLastHeight;
 };
 
 } // namespace faf
