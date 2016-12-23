@@ -13,8 +13,8 @@ namespace faf {
 struct PingPacket
 {
   enum {
-    PING = 0x2222,
-    PONG = 0x1111
+    PING = 0x01ce,
+    PONG = 0x1ce0
   } type;
   quint32 senderId;
   quint32 answererId;
