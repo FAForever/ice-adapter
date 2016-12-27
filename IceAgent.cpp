@@ -84,12 +84,9 @@ void cb_new_candidate(NiceAgent *agentHandle,
 }
 
 IceAgent::IceAgent(GMainLoop* mainloop,
-                   std::string const& stunIp,
-                   std::string const& turnIp,
                    IceAdapterOptions const& options):
   mHandle(nullptr),
   mMainloop(mainloop),
-  mTurnIp(turnIp),
   mOptions(options)
 {
   mHandle = nice_agent_new(g_main_loop_get_context (mainloop),
@@ -99,12 +96,12 @@ IceAgent::IceAgent(GMainLoop* mainloop,
     throw std::runtime_error("nice_agent_new() failed");
   }
 
-  g_object_set(mHandle, "stun-server", stunIp.c_str(), nullptr);
+  g_object_set(mHandle, "stun-server", mOptions.stunIp.c_str(), nullptr);
   g_object_set(mHandle, "stun-server-port", 3478, nullptr);
   g_object_set(mHandle, "controlling-mode", true, nullptr);
   g_object_set(mHandle, "ice-tcp", true, nullptr);
   g_object_set(mHandle, "ice-udp", true, nullptr);
-  g_object_set(mHandle, "upnp", options.useUpnp, nullptr);
+  g_object_set(mHandle, "upnp", mOptions.useUpnp, nullptr);
 
 
   // Connect to the signals
@@ -154,7 +151,6 @@ IceStreamPtr IceAgent::createStream(int peerId,
                                             stateCallback,
                                             candidateSelectedCallback,
                                             connectivityChangedCallback,
-                                            mTurnIp,
                                             mOptions);
   if (mPeerStreams.count(peerId) > 0)
   {

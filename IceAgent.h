@@ -20,8 +20,6 @@ class IceAgent : public std::enable_shared_from_this<IceAgent>
 {
 public:
   IceAgent(GMainLoop* mainloop,
-           std::string const& stunIp,
-           std::string const& turnIp,
            IceAdapterOptions const& options);
   virtual ~IceAgent();
 
@@ -42,7 +40,6 @@ protected:
 
   NiceAgent* mHandle;
   GMainLoop* mMainloop;
-  std::string mTurnIp;
   IceAdapterOptions mOptions;
   std::map<int, IceStreamPtr> mPeerStreams;
   std::map<unsigned int, IceStreamPtr> mSteamIdStreams;

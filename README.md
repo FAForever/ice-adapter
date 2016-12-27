@@ -73,8 +73,8 @@ faf-ice-adapter usage:
 --upnp arg (=1)                      use UPNP for NAT router port configuration
 --gpgnet-port arg (=7237)            set the port of internal GPGNet server
 --lobby-port arg (=7238)             set the port the game lobby should use for incoming UDP packets from the PeerRelay
---stun-host arg (=dev.faforever.com) set the STUN hostname
---turn-host arg (=dev.faforever.com) set the TURN hostname
+--stun-ip arg (=37.58.123.3)         set the STUN IP address
+--turn-ip arg (=37.58.123.3)         set the TURN IP address
 --turn-user arg                      set the TURN username
 --turn-pass arg                      set the TURN password
 --log-file arg                       set a verbose log file

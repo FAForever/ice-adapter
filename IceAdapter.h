@@ -126,9 +126,6 @@ protected:
   std::shared_ptr<GPGNetServer> mGPGNetServer;
   Glib::RefPtr<Glib::MainLoop> mMainloop;
 
-  std::string mStunIp;
-  std::string mTurnIp;
-
   std::string mGPGNetGameState;
 
   std::map<int, std::shared_ptr<PeerRelay>> mRelays;

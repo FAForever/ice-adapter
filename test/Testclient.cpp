@@ -120,6 +120,7 @@ Testclient::Testclient(QWidget *parent) :
   mUi->checkBox_c_tcp_srflx->setChecked(s.value("c_tcp_srflx", true).toBool());
 
   mUi->pushButton_leave->setEnabled(false);
+  mUi->groupBox_lobby->setEnabled(false);
 
   typedef boost::log::sinks::synchronous_sink<LogSink> sink_t;
   boost::shared_ptr<LogSink> backend(new LogSink(mUi->tableWidget_clientLog));
@@ -158,6 +159,7 @@ Testclient::Testclient(QWidget *parent) :
           [this]()
   {
     FAF_LOG_INFO << "GPGnet client connected";
+    mUi->groupBox_lobby->setEnabled(true);
     updateStatus();
   });
   connect(&mIceClient,
@@ -165,6 +167,7 @@ Testclient::Testclient(QWidget *parent) :
           [this]()
   {
     FAF_LOG_INFO << "GPGnet client disconnected";
+    mUi->groupBox_lobby->setEnabled(false);
   });
 
   /*
@@ -312,6 +315,36 @@ void Testclient::onPingStats(int peerId, float ping, int pendPings, int lostPing
     peerWidget->ui->label_succpings->setText(QString::number(succPings));
     peerWidget->ui->label_lostpings->setText(QString::number(lostPings));
   }
+}
+
+void Testclient::onStunLookup(QHostInfo const& stunHost)
+{
+  if (stunHost.addresses().isEmpty())
+  {
+    FAF_LOG_ERROR << "error looking up STUN hostname";
+    return;
+  }
+  auto env = QProcessEnvironment::systemEnvironment();
+  env.insert("G_MESSAGES_DEBUG", "all");
+  env.insert("NICE_DEBUG", "all");
+  mIceAdapterProcess.setProcessEnvironment(env);
+  mIceAdapterProcess.start("./faf-ice-adapter",
+                           QStringList()
+                           << "--id" << QString::number(mPlayerId)
+                           << "--login" << mPlayerLogin
+                           << "--rpc-port" << QString::number(mIcePort)
+                           << "--gpgnet-port" << "0"
+                           << "--lobby-port" << QString::number(mLobbySocket.localPort())
+                           //<< "--stun-host" << "chat.erreich.bar"
+                           //<< "--turn-host" << "chat.erreich.bar"
+                           << "--stun-ip" << stunHost.addresses().first().toString()
+                           << "--turn-ip" << stunHost.addresses().first().toString()
+                           //<< "--stun-host" << "numb.viagenie.ca"
+                           //<< "--turn-host" << "numb.viagenie.ca"
+                           //<< "--turn-user" << "mm+viagenie.ca@netlair.de"
+                           //<< "--turn-pass" << "asdf"
+                           );
+
 }
 
 void Testclient::connectRpcMethods()
@@ -514,31 +547,13 @@ void Testclient::startIceAdapter()
     server.listen(QHostAddress::LocalHost, 0);
     mIcePort = server.serverPort();
   }
-  //QString exeName = "./faf-ice-adapter";
-//#if defined(__MINGW32__)
-//    exeName = "faf-ice-adapter.exe";
-//#endif
-//    G_MESSAGES_DEBUG=all
-  auto env = QProcessEnvironment::systemEnvironment();
-  env.insert("G_MESSAGES_DEBUG", "all");
-  env.insert("NICE_DEBUG", "all");
-  mIceAdapterProcess.setProcessEnvironment(env);
-  mIceAdapterProcess.start("./faf-ice-adapter",
-                           QStringList()
-                           << "--id" << QString::number(mPlayerId)
-                           << "--login" << mPlayerLogin
-                           << "--rpc-port" << QString::number(mIcePort)
-                           << "--gpgnet-port" << "0"
-                           << "--lobby-port" << QString::number(mLobbySocket.localPort())
-                           //<< "--stun-host" << "chat.erreich.bar"
-                           //<< "--turn-host" << "chat.erreich.bar"
-                           << "--stun-host" << "dev.faforever.com"
-                           << "--turn-host" << "dev.faforever.com"
-                           //<< "--stun-host" << "numb.viagenie.ca"
-                           //<< "--turn-host" << "numb.viagenie.ca"
-                           //<< "--turn-user" << "mm+viagenie.ca@netlair.de"
-                           //<< "--turn-pass" << "asdf"
-                           );
+
+  QHostInfo::lookupHost("dev.faforever.com",
+                        this,
+                        SLOT(onStunLookup(QHostInfo)));
+  //QHostInfo::lookupHost("localhost",
+  //                      this,
+  //                      SLOT(onStunLookup(QHostInfo)));
 }
 
 void Testclient::startGpgnetClient()

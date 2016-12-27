@@ -19,36 +19,8 @@ IceAdapter::IceAdapter(IceAdapterOptions const& options,
   mMainloop(mainloop)
 {
   FAF_LOG_INFO << "ICE adapter version " << FAF_VERSION_STRING << " initializing";
-  auto lookUp = [](std::string const& hostname, std::string& ip)
-  {
-    auto resolver = Gio::Resolver::get_default();
-    auto addresses = resolver->lookup_by_name(hostname);
-    if (addresses.size() == 0)
-    {
-      FAF_LOG_ERROR << "error looking up hostname " << hostname;
-    }
-    else
-    {
-      ip = (*addresses.begin())->to_string();
-    }
-  };
-  lookUp(mOptions.stunHost, mStunIp);
-  lookUp(mOptions.turnHost, mTurnIp);
-
-  if (!mOptions.stunHost.empty() && mStunIp.empty())
-  {
-    FAF_LOG_ERROR << "error looking up STUN host. quitting";
-    std::exit(1);
-  }
-  if (!mOptions.turnHost.empty() && mTurnIp.empty())
-  {
-    FAF_LOG_ERROR << "error looking up TURN host. quitting";
-    std::exit(1);
-  }
 
   mAgent = std::make_shared<IceAgent>(mMainloop->gobj(),
-                                      mStunIp,
-                                      mTurnIp,
                                       mOptions);
 
   mRpcServer = std::make_shared<JsonRpcServer>(mOptions.rpcPort);
@@ -171,8 +143,8 @@ Json::Value IceAdapter::status() const
     options["use_upnp"]             = mOptions.useUpnp;
     options["gpgnet_port"]          = mOptions.gpgNetPort;
     options["lobby-port"]           = mOptions.gameUdpPort;
-    options["stun_host"]            = std::string(mOptions.stunHost);
-    options["turn_host"]            = std::string(mOptions.turnHost);
+    options["stun_ip"]              = std::string(mOptions.stunIp);
+    options["turn_ip"]              = std::string(mOptions.turnIp);
     options["turn_user"]            = std::string(mOptions.turnUser);
     options["turn_pass"]            = std::string(mOptions.turnPass);
     options["log_file"]             = std::string(mOptions.logFile);

@@ -8,6 +8,7 @@
 #include <QtWidgets/QTableWidget>
 #include <QtWidgets/QGroupBox>
 #include <QtNetwork/QUdpSocket>
+#include <QtNetwork/QHostInfo>
 #include <QtCore/QProcess>
 #include <QtCore/QList>
 
@@ -50,6 +51,7 @@ protected Q_SLOTS:
   void on_pushButton_savelogs_clicked();
   void on_pushButton_refresh_clicked();
   void onPingStats(int peerId, float ping, int pendPings, int lostPings, int succPings);
+  void onStunLookup(QHostInfo const& stunHost);
 
 protected:
   void connectRpcMethods();
