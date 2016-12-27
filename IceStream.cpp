@@ -62,7 +62,16 @@ void cb_nice_recv(NiceAgent *agent,
     FAF_LOG_WARN << "stream_id != agent->mStreamId";
     return;
   }
-  a->onReceive(std::string(buf, len));
+  if (len > sizeof(IceStreamPacket::Header))
+  {
+    auto packet = reinterpret_cast<IceStreamPacket*>(buf);
+    if (packet->header.magic == IceStreamPacket::Header::MAGIC &&
+        packet->header.length > 0 &&
+        len == sizeof(IceStreamPacket::Header) + packet->header.length)
+    {
+      a->onReceive(std::string(packet->data, packet->header.length));
+    }
+  }
 }
 
 IceStream::IceStream(IceAgentPtr agent,
@@ -72,7 +81,6 @@ IceStream::IceStream(IceAgentPtr agent,
                      StateCallback stateCallback,
                      CandidateSelectedCallback candidateSelectedCallback,
                      ConnectivityChangedCallback connectivityChangedCallback,
-                     std::string const& turnIp,
                      IceAdapterOptions const& options):
   mAgent(agent),
   mPeerId(peerId),
@@ -97,7 +105,6 @@ IceStream::IceStream(IceAgentPtr agent,
   }
 
   mTurnTimerConnection = Glib::signal_timeout().connect([this,
-                                                        turnIp,
                                                         options]()
   {
     if (!mPeerConnectedToMe)
@@ -106,7 +113,7 @@ IceStream::IceStream(IceAgentPtr agent,
       nice_agent_set_relay_info(mAgent->handle(),
                                 mStreamId,
                                 1,
-                                turnIp.c_str(),
+                                options.turnIp.c_str(),
                                 3478,
                                 options.turnUser.c_str(),
                                 options.turnPass.c_str(),
@@ -142,6 +149,7 @@ IceStream::IceStream(IceAgentPtr agent,
                          cb_nice_recv,
                          this);
 
+  mCurrentPacket.header.magic = IceStreamPacket::Header::MAGIC;
   FAF_LOG_DEBUG << mPeerId << ": IceStream()";
 }
 
@@ -258,11 +266,21 @@ void IceStream::send(std::string const& msg)
 {
   if (mConnectedToPeer)
   {
+    if (msg.size() > 2048)
+    {
+      FAF_LOG_ERROR << "msg size " << msg.size() << " too large";
+      return;
+    }
+    mCurrentPacket.header.length = msg.size();
+    std::copy(msg.cbegin(),
+              msg.cend(),
+              mCurrentPacket.data);
+
     nice_agent_send(mAgent->handle(),
                     mStreamId,
                     1,
-                    msg.size(),
-                    msg.c_str());
+                    sizeof(mCurrentPacket.header) + mCurrentPacket.header.length,
+                    reinterpret_cast<char*>(&mCurrentPacket));
   }
   else
   {

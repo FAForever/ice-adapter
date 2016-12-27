@@ -4,6 +4,7 @@
 #include <memory>
 #include <functional>
 #include <string>
+#include <array>
 
 #include <sigc++/sigc++.h>
 
@@ -27,6 +28,19 @@ enum class IceStreamState
   Failed
 };
 
+struct IceStreamPacket
+{
+  struct Header
+  {
+    enum Magic : uint32_t
+    {
+      MAGIC = 0xfaf001ce
+    } magic;
+    uint16_t length;
+  } header;
+  char data[2048];
+};
+
 std::string stateToString(IceStreamState const& s);
 
 class IceStream
@@ -45,7 +59,6 @@ public:
             StateCallback stateCallback,
             CandidateSelectedCallback candidateSelectedCallback,
             ConnectivityChangedCallback connectivityChangedCallback,
-            std::string const& turnIp,
             IceAdapterOptions const& options);
   virtual ~IceStream();
 
@@ -97,6 +110,7 @@ protected:
   std::string mLocalCandidateInfo;
   std::string mRemoteCandidateInfo;
   std::string mRemoteSdp;
+  IceStreamPacket mCurrentPacket;
 
   sigc::connection mTimerConnection;
   sigc::connection mTurnTimerConnection;
