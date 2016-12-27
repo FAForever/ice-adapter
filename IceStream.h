@@ -32,30 +32,27 @@ std::string stateToString(IceStreamState const& s);
 class IceStream
 {
 public:
+  typedef std::function<void (IceStream*, std::string const&)> SdpCallback;
+  typedef std::function<void (IceStream*, std::string const&)> ReceiveCallback;
+  typedef std::function<void (IceStream*, IceStreamState const&)> StateCallback;
+  typedef std::function<void (IceStream*, std::string const&, std::string const&)> CandidateSelectedCallback;
+  typedef std::function<void (IceStream*, bool, bool)> ConnectivityChangedCallback;
+
   IceStream(IceAgentPtr agent,
             int peerId,
+            SdpCallback sdpCallback,
+            ReceiveCallback receiveCallback,
+            StateCallback stateCallback,
+            CandidateSelectedCallback candidateSelectedCallback,
+            ConnectivityChangedCallback connectivityChangedCallback,
             std::string const& turnIp,
             IceAdapterOptions const& options);
   virtual ~IceStream();
 
   unsigned int streamId() const;
+  int peerId() const;
 
   void gatherCandidates();
-
-  typedef std::function<void (IceStream*, std::string const&)> SdpCallback;
-  void setSdpCallback(SdpCallback cb);
-
-  typedef std::function<void (IceStream*, std::string const&)> ReceiveCallback;
-  void setReceiveCallback(ReceiveCallback cb);
-
-  typedef std::function<void (IceStream*, IceStreamState const&)> StateCallback;
-  void setStateCallback(StateCallback cb);
-
-  typedef std::function<void (IceStream*, std::string const&, std::string const&)> CandidateSelectedCallback;
-  void setCandidateSelectedCallback(CandidateSelectedCallback cb);
-
-  typedef std::function<void (IceStream*, bool, bool)> ConnectivityChangedCallback;
-  void setConnectivityChangedCallback(ConnectivityChangedCallback cb);
 
   void addRemoteSdp(std::string const& sdp);
   void send(std::string const& msg);
@@ -83,6 +80,11 @@ protected:
 
   IceAgentPtr mAgent;
   int mPeerId;
+  SdpCallback mSdpCallback;
+  ReceiveCallback mReceiveCallback;
+  StateCallback mStateCallback;
+  CandidateSelectedCallback mCandidateSelectedCallback;
+  ConnectivityChangedCallback mConnectivityChangedCallback;
 
   unsigned int mStreamId;
   IceStreamState mState;
@@ -95,12 +97,6 @@ protected:
   std::string mLocalCandidateInfo;
   std::string mRemoteCandidateInfo;
   std::string mRemoteSdp;
-
-  SdpCallback mSdpCallback;
-  ReceiveCallback mReceiveCallback;
-  StateCallback mStateCallback;
-  CandidateSelectedCallback mCandidateSelectedCallback;
-  ConnectivityChangedCallback mConnectivityChangedCallback;
 
   sigc::connection mTimerConnection;
   sigc::connection mTurnTimerConnection;

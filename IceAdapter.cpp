@@ -19,6 +19,38 @@ IceAdapter::IceAdapter(IceAdapterOptions const& options,
   mMainloop(mainloop)
 {
   FAF_LOG_INFO << "ICE adapter version " << FAF_VERSION_STRING << " initializing";
+  auto lookUp = [](std::string const& hostname, std::string& ip)
+  {
+    auto resolver = Gio::Resolver::get_default();
+    auto addresses = resolver->lookup_by_name(hostname);
+    if (addresses.size() == 0)
+    {
+      FAF_LOG_ERROR << "error looking up hostname " << hostname;
+    }
+    else
+    {
+      ip = (*addresses.begin())->to_string();
+    }
+  };
+  lookUp(mOptions.stunHost, mStunIp);
+  lookUp(mOptions.turnHost, mTurnIp);
+
+  if (!mOptions.stunHost.empty() && mStunIp.empty())
+  {
+    FAF_LOG_ERROR << "error looking up STUN host. quitting";
+    std::exit(1);
+  }
+  if (!mOptions.turnHost.empty() && mTurnIp.empty())
+  {
+    FAF_LOG_ERROR << "error looking up TURN host. quitting";
+    std::exit(1);
+  }
+
+  mAgent = std::make_shared<IceAgent>(mMainloop->gobj(),
+                                      mStunIp,
+                                      mTurnIp,
+                                      mOptions);
+
   mRpcServer = std::make_shared<JsonRpcServer>(mOptions.rpcPort);
   mRpcServer->listen();
   mGPGNetServer = std::make_shared<GPGNetServer>(mOptions.gpgNetPort);
@@ -32,49 +64,7 @@ IceAdapter::IceAdapter(IceAdapterOptions const& options,
   mGPGNetServer->listen();
   connectRpcMethods();
 
-  auto resolver = Gio::Resolver::get_default();
-  resolver->lookup_by_name_async(mOptions.stunHost, [this, resolver](Glib::RefPtr<Gio::AsyncResult>& result)
-  {
-    auto addresses = resolver->lookup_by_name_finish(result);
-    if (addresses.size() == 0)
-    {
-      FAF_LOG_ERROR << "error looking up STUN hostname " << mOptions.stunHost;
-    }
-    else
-    {
-      mStunIp = (*addresses.begin())->to_string();
-    }
-    if (!mStunIp.empty() &&
-        !mTurnIp.empty() &&
-        !mAgent)
-    {
-      mAgent = std::make_shared<IceAgent>(mMainloop->gobj(),
-                                          mStunIp,
-                                          mTurnIp,
-                                          mOptions);
-    }
-  });
-  resolver->lookup_by_name_async(mOptions.turnHost, [this, resolver](Glib::RefPtr<Gio::AsyncResult>& result)
-  {
-    auto addresses = resolver->lookup_by_name_finish(result);
-    if (addresses.size() == 0)
-    {
-      FAF_LOG_ERROR << "error looking up TURN hostname " << mOptions.turnHost;
-    }
-    else
-    {
-      mTurnIp = (*addresses.begin())->to_string();
-    }
-    if (!mStunIp.empty() &&
-        !mTurnIp.empty() &&
-        !mAgent)
-    {
-      mAgent = std::make_shared<IceAgent>(mMainloop->gobj(),
-                                          mStunIp,
-                                          mTurnIp,
-                                          mOptions);
-    }
-  });
+  FAF_LOG_TRACE << "IceAdapter initialized";
 }
 
 void IceAdapter::hostGame(std::string const& map)
@@ -555,38 +545,48 @@ std::shared_ptr<PeerRelay> IceAdapter::createPeerRelay(int remotePlayerId,
     FAF_LOG_ERROR << "no agent created. looking up STUN/TURN servers likely failed. check internet";
     return std::shared_ptr<PeerRelay>();
   }
-  auto sdpMsgCb = [this](PeerRelay* relay, std::string const& sdp)
+
+  auto sdpMsgCb = [this](IceStream* stream, std::string const& sdp)
   {
     Json::Value gatheredSdpParams(Json::arrayValue);
     gatheredSdpParams.append(mOptions.localPlayerId);
-    gatheredSdpParams.append(relay->peerId());
+    gatheredSdpParams.append(stream->peerId());
     gatheredSdpParams.append(sdp);
     mRpcServer->sendRequest("onSdp",
                             gatheredSdpParams);
   };
 
-  auto stateCb = [this](PeerRelay* relay, IceStreamState const& state)
+  auto recvCb = [this](IceStream* stream, std::string const& msg)
+  {
+    auto relayIt = mRelays.find(stream->peerId());
+    if (relayIt != mRelays.end())
+    {
+      relayIt->second->sendPeerMessageToGame(msg);
+    }
+  };
+
+  auto stateCb = [this](IceStream* stream, IceStreamState const& state)
   {
     Json::Value iceStateParams(Json::arrayValue);
     iceStateParams.append(mOptions.localPlayerId);
-    iceStateParams.append(relay->peerId());
+    iceStateParams.append(stream->peerId());
     iceStateParams.append(stateToString(state));
     mRpcServer->sendRequest("onPeerStateChanged",
                             iceStateParams);
   };
 
-  auto candSelectedCb = [this](PeerRelay* relay, std::string const& local, std::string const& remote)
+  auto candSelectedCb = [this](IceStream* stream, std::string const& local, std::string const& remote)
   {
     Json::Value iceCandParams(Json::arrayValue);
     iceCandParams.append(mOptions.localPlayerId);
-    iceCandParams.append(relay->peerId());
+    iceCandParams.append(stream->peerId());
     iceCandParams.append(local);
     iceCandParams.append(remote);
     mRpcServer->sendRequest("onCandidateSelected",
                           iceCandParams);
   };
 
-  auto connChangedCb = [this, remotePlayerId](PeerRelay* relay, bool connectedToPeer, bool peerConnectedToMe)
+  auto connChangedCb = [this, remotePlayerId](IceStream* relay, bool connectedToPeer, bool peerConnectedToMe)
   {
     Json::Value onConnectedToPeerParams(Json::arrayValue);
     onConnectedToPeerParams.append(mOptions.localPlayerId);
@@ -597,17 +597,15 @@ std::shared_ptr<PeerRelay> IceAdapter::createPeerRelay(int remotePlayerId,
                             onConnectedToPeerParams);
   };
 
-  auto stream = mAgent->createStream(remotePlayerId);
+  auto stream = mAgent->createStream(remotePlayerId,
+                                     sdpMsgCb,
+                                     recvCb,
+                                     stateCb,
+                                     candSelectedCb,
+                                     connChangedCb);
 
   auto result = std::make_shared<PeerRelay>(stream,
-                                            remotePlayerId,
                                             remotePlayerLogin,
-                                            mStunIp,
-                                            mTurnIp,
-                                            sdpMsgCb,
-                                            stateCb,
-                                            candSelectedCb,
-                                            connChangedCb,
                                             mOptions);
 
   mRelays[remotePlayerId] = result;

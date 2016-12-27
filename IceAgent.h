@@ -5,6 +5,7 @@
 #include <map>
 
 #include "IceAdapterOptions.h"
+#include "IceStream.h"
 
 typedef struct _NiceAgent NiceAgent;
 typedef struct _GMainLoop GMainLoop;
@@ -14,8 +15,6 @@ namespace faf
 {
 
 class IceAdapterOptions;
-class IceStream;
-typedef std::shared_ptr<IceStream> IceStreamPtr;
 
 class IceAgent : public std::enable_shared_from_this<IceAgent>
 {
@@ -28,7 +27,13 @@ public:
 
   NiceAgent* handle() const;
 
-  IceStreamPtr createStream(int peerId);
+  IceStreamPtr createStream(int peerId,
+                            IceStream::SdpCallback sdpCallback,
+                            IceStream::ReceiveCallback receiveCallback,
+                            IceStream::StateCallback stateCallback,
+                            IceStream::CandidateSelectedCallback candidateSelectedCallback,
+                            IceStream::ConnectivityChangedCallback connectivityChangedCallback);
+
   void removeStream(int peerId);
   void clear();
 

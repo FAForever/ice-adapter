@@ -67,10 +67,20 @@ void cb_nice_recv(NiceAgent *agent,
 
 IceStream::IceStream(IceAgentPtr agent,
                      int peerId,
+                     SdpCallback sdpCallback,
+                     ReceiveCallback receiveCallback,
+                     StateCallback stateCallback,
+                     CandidateSelectedCallback candidateSelectedCallback,
+                     ConnectivityChangedCallback connectivityChangedCallback,
                      std::string const& turnIp,
                      IceAdapterOptions const& options):
   mAgent(agent),
   mPeerId(peerId),
+  mSdpCallback(sdpCallback),
+  mReceiveCallback(receiveCallback),
+  mStateCallback(stateCallback),
+  mCandidateSelectedCallback(candidateSelectedCallback),
+  mConnectivityChangedCallback(connectivityChangedCallback),
   mStreamId(0),
   mState(IceStreamState::NeedRemoteSdp),
   mStartTime(0),
@@ -152,6 +162,11 @@ unsigned int IceStream::streamId() const
   return mStreamId;
 }
 
+int IceStream::peerId() const
+{
+  return mPeerId;
+}
+
 void IceStream::gatherCandidates()
 {
   mStartTime = g_get_monotonic_time();
@@ -171,31 +186,6 @@ void IceStream::gatherCandidates()
   }
   g_free(sdp);
   mLocalCandidatesGathered = true;
-}
-
-void IceStream::setSdpCallback(SdpCallback cb)
-{
-  mSdpCallback = cb;
-}
-
-void IceStream::setReceiveCallback(ReceiveCallback cb)
-{
-  mReceiveCallback = cb;
-}
-
-void IceStream::setStateCallback(StateCallback cb)
-{
-  mStateCallback = cb;
-}
-
-void IceStream::setCandidateSelectedCallback(CandidateSelectedCallback cb)
-{
-  mCandidateSelectedCallback = cb;
-}
-
-void IceStream::setConnectivityChangedCallback(ConnectivityChangedCallback cb)
-{
-  mConnectivityChangedCallback = cb;
 }
 
 void IceStream::addRemoteSdp(std::string const& sdp)

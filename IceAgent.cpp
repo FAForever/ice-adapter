@@ -102,7 +102,7 @@ IceAgent::IceAgent(GMainLoop* mainloop,
   g_object_set(mHandle, "stun-server", stunIp.c_str(), nullptr);
   g_object_set(mHandle, "stun-server-port", 3478, nullptr);
   g_object_set(mHandle, "controlling-mode", true, nullptr);
-  g_object_set(mHandle, "ice-tcp", false, nullptr);
+  g_object_set(mHandle, "ice-tcp", true, nullptr);
   g_object_set(mHandle, "ice-udp", true, nullptr);
   g_object_set(mHandle, "upnp", options.useUpnp, nullptr);
 
@@ -140,10 +140,20 @@ NiceAgent* IceAgent::handle() const
   return mHandle;
 }
 
-IceStreamPtr IceAgent::createStream(int peerId)
+IceStreamPtr IceAgent::createStream(int peerId,
+                                    IceStream::SdpCallback sdpCallback,
+                                    IceStream::ReceiveCallback receiveCallback,
+                                    IceStream::StateCallback stateCallback,
+                                    IceStream::CandidateSelectedCallback candidateSelectedCallback,
+                                    IceStream::ConnectivityChangedCallback connectivityChangedCallback)
 {
   auto result = std::make_shared<IceStream>(shared_from_this(),
                                             peerId,
+                                            sdpCallback,
+                                            receiveCallback,
+                                            stateCallback,
+                                            candidateSelectedCallback,
+                                            connectivityChangedCallback,
                                             mTurnIp,
                                             mOptions);
   if (mPeerStreams.count(peerId) > 0)
