@@ -124,7 +124,7 @@ Testclient::Testclient(QWidget *parent) :
 
   typedef boost::log::sinks::synchronous_sink<LogSink> sink_t;
   boost::shared_ptr<LogSink> backend(new LogSink(mUi->tableWidget_clientLog));
-  boost::shared_ptr< sink_t > sink(new sink_t(backend));
+  boost::shared_ptr<sink_t> sink(new sink_t(backend));
   boost::log::core::get()->add_sink(sink);
 
   connectRpcMethods();
@@ -160,6 +160,8 @@ Testclient::Testclient(QWidget *parent) :
   {
     FAF_LOG_INFO << "GPGnet client connected";
     mUi->groupBox_lobby->setEnabled(true);
+    mUi->pushButton_iceadapter_connect->setEnabled(false);
+    mUi->pushButton_iceadapter_start->setEnabled(false);
     updateStatus();
   });
   connect(&mIceClient,
@@ -168,6 +170,8 @@ Testclient::Testclient(QWidget *parent) :
   {
     FAF_LOG_INFO << "GPGnet client disconnected";
     mUi->groupBox_lobby->setEnabled(false);
+    mUi->pushButton_iceadapter_connect->setEnabled(true);
+    mUi->pushButton_iceadapter_start->setEnabled(true);
   });
 
   /*
@@ -182,10 +186,19 @@ Testclient::Testclient(QWidget *parent) :
   */
 
   mLobbySocket.bind();
+  mUi->label_lobbyport->setText(QString::number(mLobbySocket.localPort()));
   connect(&mLobbySocket,
           &QUdpSocket::readyRead,
           this,
           &Testclient::onLobbyReadyRead);
+
+  if (mIcePort == 0)
+  {
+    QTcpServer server;
+    server.listen(QHostAddress::LocalHost, 0);
+    mIcePort = server.serverPort();
+    mUi->label_rpcport->setText(QString::number(mIcePort));
+  }
 }
 
 Testclient::~Testclient()
@@ -303,6 +316,22 @@ void Testclient::on_pushButton_refresh_clicked()
   updateStatus();
 }
 
+void Testclient::on_pushButton_iceadapter_connect_clicked()
+{
+    if (mIcePort > 0 &&
+        mIceClient.state() == QAbstractSocket::UnconnectedState)
+    {
+      mIceClient.connectToHost("localhost", mIcePort);
+    }
+}
+
+void Testclient::on_pushButton_iceadapter_start_clicked()
+{
+  QHostInfo::lookupHost("dev.faforever.com",
+                        this,
+                        SLOT(onStunLookup(QHostInfo)));
+}
+
 void Testclient::onPingStats(int peerId, float ping, int pendPings, int lostPings, int succPings)
 {
   if (mPeerIdPingtrackers.contains(peerId) &&
@@ -362,9 +391,9 @@ void Testclient::connectRpcMethods()
     }
     mPlayerId = paramsArray[0].asInt();
     mPlayerLogin = QString("Player%1").arg(mPlayerId);
-    mUi->label_myId->setText(mPlayerLogin);
+    mUi->label_playerid->setText(QString::number(mPlayerId));
+    mUi->label_playerlogin->setText(mPlayerLogin);
     FAF_LOG_INFO << "logged in as " << mPlayerLogin.toStdString() << " (" << mPlayerId << ")";
-    startIceAdapter();
   });
   mServerClient.setRpcCallback("onHostLeft",
                                [this](Json::Value const& paramsArray,
@@ -536,24 +565,6 @@ void Testclient::updateStatus(std::function<void()> finishedCallback)
       finishedCallback();
     }
   });
-
-}
-
-void Testclient::startIceAdapter()
-{
-  if (mIcePort == 0)
-  {
-    QTcpServer server;
-    server.listen(QHostAddress::LocalHost, 0);
-    mIcePort = server.serverPort();
-  }
-
-  QHostInfo::lookupHost("dev.faforever.com",
-                        this,
-                        SLOT(onStunLookup(QHostInfo)));
-  //QHostInfo::lookupHost("localhost",
-  //                      this,
-  //                      SLOT(onStunLookup(QHostInfo)));
 }
 
 void Testclient::startGpgnetClient()

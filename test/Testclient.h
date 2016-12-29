@@ -50,13 +50,14 @@ protected Q_SLOTS:
   void on_listWidget_games_itemClicked(QListWidgetItem *item);
   void on_pushButton_savelogs_clicked();
   void on_pushButton_refresh_clicked();
+  void on_pushButton_iceadapter_connect_clicked();
+  void on_pushButton_iceadapter_start_clicked();
   void onPingStats(int peerId, float ping, int pendPings, int lostPings, int succPings);
   void onStunLookup(QHostInfo const& stunHost);
 
 protected:
   void connectRpcMethods();
   void updateStatus(std::function<void()> finishedCallback = std::function<void()>());
-  void startIceAdapter();
   void startGpgnetClient();
   void onIceOutput();
   void onIceError();
