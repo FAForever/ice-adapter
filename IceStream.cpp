@@ -71,7 +71,6 @@ IceStream::IceStream(IceAgentPtr agent,
   mConnectedToPeer(false),
   mPeerConnectedToMe(false),
   mLocalCandidatesGathered(false),
-  mDoRead(true),
   mCanSend(false),
   mReadThread(nullptr),
   mReadCancellable(Gio::Cancellable::create())
@@ -135,7 +134,6 @@ IceStream::~IceStream()
 {
   mTimerConnection.disconnect();
   mTurnTimerConnection.disconnect();
-  mDoRead = false;
   mReadCancellable->cancel();
   if (mReadThread->joinable())
   {
@@ -201,10 +199,10 @@ void IceStream::addRemoteSdp(std::string const& sdp)
       FAF_LOG_ERROR << mPeerId << ":nice_agent_parse_remote_stream_sdp() failed for " << sdp;
       return;
     }
-    if (!nice_agent_set_remote_credentials (mAgent->handle(),
-                                            mStreamId,
-                                            ufrag,
-                                            pwd))
+    if (!nice_agent_set_remote_credentials(mAgent->handle(),
+                                           mStreamId,
+                                           ufrag,
+                                           pwd))
     {
       FAF_LOG_ERROR << mPeerId << ":nice_agent_set_remote_credentials() failed for " <<
                        sdp <<
@@ -217,10 +215,6 @@ void IceStream::addRemoteSdp(std::string const& sdp)
   }
   else
   {
-    if (mRemoteSdp.empty())
-    {
-      FAF_LOG_WARN << mPeerId << ": newCandidate without prior SDP";
-    }
     if (mState == IceStreamState::Ready)
     {
       FAF_LOG_DEBUG << mPeerId << ": connected - dropping remote SDP " << sdp;
@@ -236,6 +230,11 @@ void IceStream::addRemoteSdp(std::string const& sdp)
      }
     remote_candidates = g_slist_append(remote_candidates, c);
   }
+  if (remote_candidates == nullptr)
+  {
+    FAF_LOG_ERROR << mPeerId << ":addRemoteSdp() didn't parse SDP from " << sdp;
+    return;
+  }
   int numCandidatesAdded = nice_agent_set_remote_candidates(mAgent->handle(),
                                                             mStreamId,
                                                             COMPONENT_ID,
@@ -244,7 +243,8 @@ void IceStream::addRemoteSdp(std::string const& sdp)
   {
     FAF_LOG_WARN << "numCandidatesAdded " << numCandidatesAdded;
   }
-  g_slist_free_full(remote_candidates, (GDestroyNotify)&nice_candidate_free);
+  g_slist_free_full(remote_candidates,
+                    reinterpret_cast<GDestroyNotify>(&nice_candidate_free));
   mRemoteSdp += sdp;
 }
 
@@ -253,13 +253,35 @@ void IceStream::send(std::string const& msg)
   if (!mCanSend)
   {
     FAF_LOG_WARN << "!mCanSend: " << msg;
-    //return;
+    return;
   }
   nice_agent_send(mAgent->handle(),
                   mStreamId,
                   COMPONENT_ID,
                   msg.size(),
                   msg.c_str());
+#if 0
+  GOutputVector v = {msg.c_str(), msg.size()};
+  NiceOutputMessage m = { &v, 1};
+  GError* error = nullptr;
+  if (!mCanSend)
+  {
+    FAF_LOG_WARN << "!mCanSend: " << msg;
+    //return;
+  }
+  nice_agent_send_messages_nonblocking (mAgent->handle(),
+                                        mStreamId,
+                                        COMPONENT_ID,
+                                        &m,
+                                        1,
+                                        nullptr,
+                                        &error);
+  if (error)
+  {
+    FAF_LOG_ERROR << "error in nice_agent_send_messages_nonblocking(): " << error->message;
+    g_clear_error(&error);
+  }
+#endif
 }
 
 std::string IceStream::localCandidateInfo() const
@@ -332,7 +354,7 @@ void IceStream::onComponentStateChanged(unsigned int state)
   switch (state)
   {
     case NICE_COMPONENT_STATE_DISCONNECTED:
-      BOOST_LOG_TRIVIAL(warning) << "NICE_COMPONENT_STATE_DISCONNECTED";
+      FAF_LOG_WARN << "NICE_COMPONENT_STATE_DISCONNECTED";
       mState = IceStreamState::Disconnected;
       break;
     case NICE_COMPONENT_STATE_GATHERING:
@@ -450,16 +472,17 @@ void IceStream::doReadFromDifferentThread()
   char buf[2048];
   GInputVector vec = {buf, 2048};
   NiceInputMessage msg = {&vec, 1, NULL, 0 };
+  GError* error = nullptr;
 
-  while (mDoRead)
+  while (!mReadCancellable->is_cancelled())
   {
-    int messageCount = nice_agent_recv_messages (mAgent->handle(),
-                                                 mStreamId,
-                                                 COMPONENT_ID,
-                                                 &msg,
-                                                 1,
-                                                 mReadCancellable->gobj(),
-                                                 nullptr);
+    int messageCount = nice_agent_recv_messages(mAgent->handle(),
+                                                mStreamId,
+                                                COMPONENT_ID,
+                                                &msg,
+                                                1,
+                                                mReadCancellable->gobj(),
+                                                &error);
     if (messageCount > 0)
     {
       {
@@ -470,6 +493,11 @@ void IceStream::doReadFromDifferentThread()
         }
       }
       mReadSignaller.emit();
+    }
+    if (error)
+    {
+      FAF_LOG_ERROR << "error in nice_agent_recv_messages(): " << error->message;
+      g_clear_error(&error);
     }
   }
   FAF_LOG_INFO << "doReadFromDifferentThread() finished";
