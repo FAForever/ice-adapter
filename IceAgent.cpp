@@ -83,6 +83,22 @@ void cb_new_candidate(NiceAgent *agentHandle,
   streamIt->second->onNewCandidate(candidate);
 }
 
+void  cb_stream_writeable(NiceAgent *agentHandle,
+                          guint      stream_id,
+                          guint      component_id,
+                          gpointer   data)
+{
+  auto agent = static_cast<IceAgent*>(data);
+  auto streamIt = agent->mSteamIdStreams.find(stream_id);
+  if (streamIt == agent->mSteamIdStreams.end())
+  {
+    FAF_LOG_ERROR << "stream " << stream_id << " not found";
+    return;
+  }
+  streamIt->second->mCanSend = true;
+  FAF_LOG_INFO << streamIt->second->mPeerId << ": stream writeable";
+}
+
 IceAgent::IceAgent(GMainLoop* mainloop,
                    IceAdapterOptions const& options):
   mHandle(nullptr),
@@ -122,6 +138,10 @@ IceAgent::IceAgent(GMainLoop* mainloop,
   g_signal_connect(mHandle,
                    "new-candidate-full",
                    G_CALLBACK(cb_new_candidate),
+                   this);
+  g_signal_connect(mHandle,
+                   "reliable-transport-writable",
+                   G_CALLBACK(cb_stream_writeable),
                    this);
 
 }
