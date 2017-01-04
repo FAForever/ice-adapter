@@ -99,7 +99,6 @@ protected:
   bool mConnectedToPeer;
   bool mPeerConnectedToMe;
   bool mLocalCandidatesGathered;
-  bool mDoRead;
   bool mCanSend;
   std::string mLocalCandidateInfo;
   std::string mRemoteCandidateInfo;
@@ -131,6 +130,10 @@ protected:
   friend void cb_new_candidate(NiceAgent*,
                                NiceCandidate*,
                                void*);
+  friend void cb_stream_writeable(NiceAgent*,
+                                  unsigned int,
+                                  unsigned int,
+                                  void*);
 };
 
 typedef std::shared_ptr<IceStream> IceStreamPtr;
