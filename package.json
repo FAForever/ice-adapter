@@ -4,7 +4,7 @@
   "description": "P2P connection relay for Supreme Commander : Forged Alliance based on ICE",
   "main": "index.js",
   "scripts": {
-    "start": "./node_modules/.bin/ts-node -- ./index.ts",
+    "start": "node ./src/index.js",
     "format": "./node_modules/.bin/tsfmt -r *.ts",
     "test": "./node_modules/.bin/mocha tests --watch",
     "tscompile": "./node_modules/.bin/tsc",
@@ -22,7 +22,7 @@
   "author": "",
   "license": "GPL-3.0",
   "bin": {
-    "faf-ice-adapter": "./index.js"
+    "faf-ice-adapter": "./src/index.js"
   },
   "browser": {
     "wrtc": false
