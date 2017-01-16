@@ -1,0 +1,9 @@
+[submodule "thirdparty/webrtc"]
+	path = thirdparty/webrtc
+	url = https://github.com/golden1232004/webrtc_new.git
+[submodule "thirdparty/libsourcey"]
+	path = thirdparty/libsourcey
+	url = https://github.com/muellni/libsourcey.git
+[submodule "thirdparty/re"]
+	path = thirdparty/re
+	url = https://github.com/muellni/re.git
