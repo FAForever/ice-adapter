@@ -1,0 +1,25 @@
+{
+  "name": "faf-ice-adapter",
+  "version": "1.0.0",
+  "description": "P2P connection relay for Supreme Commander : Forged Alliance based on ICE",
+  "main": "index.js",
+  "scripts": {
+    "start": "./node_modules/.bin/ts-node -- ./index.ts",
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "GPL-3.0",
+  "bin" : {
+    "ice-adapter" : "./index.js"
+  },
+  "dependencies" : {
+    "commander" : "=2.9.0",
+    "wrtc" : "=0.0.61"
+  },
+  "devDependencies": {
+    "grunt": "~0.4.5",
+    "grunt-ts" : "6.0.0-beta.10",
+    "typescript" : "2.1.5"
+  }
+}

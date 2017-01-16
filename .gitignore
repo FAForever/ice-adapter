@@ -1,10 +1,16 @@
 # QtCreator files
 *.txt.user
 
-gefafwisp-licer/
+node_modules/
+.settings/
 
 # Pycharm files
 *.idea*
 
 # Python files
 *.pyc
+
+*.js
+!gruntfile.js
+
+*.js.map
