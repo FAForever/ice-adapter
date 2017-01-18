@@ -1,14 +1,18 @@
 import options from './options';
 import {GPGNetServer} from './GPGNetServer';
 import {GPGNetMessage} from './GPGNetMessage';
-import {Server as JsonRpcServer} from 'json-rpc2';
-import { RTCPeerConnection, RTCSessionDescription, RTCIceCandidate, RTCDataChannel } from 'wrtc';
+import {server as JsonRpcServer} from 'jayson';
+import {RTCPeerConnection, RTCSessionDescription, RTCIceCandidate, RTCDataChannel} from 'wrtc';
 import * as dgram from 'dgram';
+import {Server as TCPServer, Socket as TCPSocket} from 'net';
+import * as winston from 'winston';
 
 export class IceAdapter {
     
     gpgNetServer : GPGNetServer;
     rpcServer : JsonRpcServer;
+    rpcServerRaw : TCPServer;
+    rpcSocket : TCPSocket;
     tasks : Array<Object>;
     peerConnections : {[key: number]: RTCPeerConnection};
     peerLocalSockets : {[key: number]: dgram.Socket};
@@ -18,18 +22,40 @@ export class IceAdapter {
     constructor() {
         this.gpgNetState = 'None';
         this.tasks = new Array<Object>();
+        this.peerConnections = {};
+        this.peerLocalSockets = {};
+        this.peerLogins = {};
         this.gpgNetServer = new GPGNetServer((msg : GPGNetMessage) => {this.onGpgMsg(msg);});
-        this.rpcServer = JsonRpcServer.$create();
-        this.rpcServer.listenRaw(options.rpc_port, 'localhost');
+        this.rpcServer = JsonRpcServer({
+            'quit' :              (args, callback) => {process.exit();},
+            'hostGame' :          (args, callback) => {this.hostGame(args[0]);},
+            'joinGame' :          (args, callback) => {this.joinGame(args[0], args[1]);},
+            'connectToPeer' :     (args, callback) => {this.connectToPeer(args[0], args[1], args[2]);},
+            'disconnectFromPeer' :(args, callback) => {this.disconnectFromPeer(args[0]);},
+            'addSdp' :            (args, callback) => {this.addSdp(args[0], args[1]);},
+            'sendToGpgNet' :      (args, callback) => {this.sendToGpgNet(args[0], args[1]);},
+            'status' :            (args, callback) => {callback(null, this.status());}
+        })
+        this.rpcServerRaw = this.rpcServer.tcp();
+        this.rpcServerRaw.listen(options.rpc_port, 'localhost');;
+        this.rpcServerRaw.on('listening', ()=> {
+            winston.info(`JSONRPC server listening on port ${this.rpcServerRaw.address().port}`);
+        });
+        this.rpcServerRaw.on('connection', (s)=> {
+            this.rpcSocket = s;
+            /*
+            s.on('data', (data : Buffer) => {
+                console.log(`JSONRPC server recv data ${data}`);
+            });
+            */
+            s.on('close', () => {
+                if (s == this.rpcSocket) {
+                    winston.info(`JSONRPC server client disconnected`);
+                    delete this.rpcSocket;
+                }
+            });
+        });
 
-        this.rpcServer.expose('quit', ()=>{process.exit();});
-        this.rpcServer.expose('hostGame', (map : string)=>{this.hostGame(map);});
-        this.rpcServer.expose('joinGame', (remotePlayerLogin : string, remotePlayerId : number)=>{this.joinGame(remotePlayerLogin, remotePlayerId);});
-        this.rpcServer.expose('connectToPeer', (remotePlayerLogin : string, remotePlayerId : number, offer : boolean)=>{this.connectToPeer(remotePlayerLogin, remotePlayerId, offer);});
-        this.rpcServer.expose('disconnectFromPeer', (remotePlayerId : number)=>{this.disconnectFromPeer(remotePlayerId);});
-        this.rpcServer.expose('addSdp', (remotePlayerId : number, sdp : string)=>{this.addSdp(remotePlayerId, sdp);});
-        this.rpcServer.expose('sendToGpgNet', (header : string, chunks : Array<any>)=>{this.sendToGpgNet(header, chunks);});
-        this.rpcServer.expose('status', () : Object =>{return this.status();});
     }
 
     hostGame(map : string) {
@@ -143,37 +169,37 @@ export class IceAdapter {
         
         let dataChannel = pc.createDataChannel('faf');
         dataChannel.onopen = ()=> {
-            console.log(`Relay for ${remotePlayerLogin}(${remotePlayerId}): data channel open`);
+            winston.info(`Relay for ${remotePlayerLogin}(${remotePlayerId}): data channel open`);
             dataChannel.onmessage = (event) => {
                 let data = event.data;
-                console.log(`Relay for ${remotePlayerLogin}(${remotePlayerId}): received ${data}`);
+                winston.debug(`Relay for ${remotePlayerLogin}(${remotePlayerId}): received ${data}`);
                 this.peerLocalSockets[remotePlayerId].send(data, options.lobby_port, 'localhost');  
             }
         }
         
         if (offer) {
-            console.log(`Relay for ${remotePlayerLogin}(${remotePlayerId}): create offer`);
+            winston.info(`Relay for ${remotePlayerLogin}(${remotePlayerId}): create offer`);
             pc.createOffer((desc : RTCSessionDescription) => {
-                console.log(`Relay for ${remotePlayerLogin}(${remotePlayerId}): offer ${desc}`);
+                winston.info(`Relay for ${remotePlayerLogin}(${remotePlayerId}): offer ${desc}`);
             }, (error) => {
-                console.log(`Relay for ${remotePlayerLogin}(${remotePlayerId}): createOffer error ${error}`);
+                winston.info(`Relay for ${remotePlayerLogin}(${remotePlayerId}): createOffer error ${error}`);
             });
         }
         
         let socket = dgram.createSocket('udp4');
         this.peerLocalSockets[remotePlayerId] = socket;
         socket.on('listening', () => {
-            console.log(`Relay for ${remotePlayerLogin}(${remotePlayerId}): UDP socket listening`);
+            winston.info(`Relay for ${remotePlayerLogin}(${remotePlayerId}): UDP socket listening`);
         });
         socket.bind(0);
         socket.on('message', (msg, rinfo) => {
-            console.log(`Relay for ${remotePlayerLogin}(${remotePlayerId}): got ${msg} from ${rinfo.address}:${rinfo.port}`);
+            winston.info(`Relay for ${remotePlayerLogin}(${remotePlayerId}): got ${msg} from ${rinfo.address}:${rinfo.port}`);
             dataChannel.send(msg);
         });
     }
     
     queueGameTask(task : Object) {
-        console.log(`queueing task ${task}`);
+        winston.debug(`queueing task ${task}`);
         this.tasks.push(task);
         this.tryExecuteGameTasks();
     }
@@ -194,7 +220,7 @@ export class IceAdapter {
                         return;
                     }
                     if (!(this.tasks[0]['remotePlayerId'] in this.peerLocalSockets)) {
-                        console.error(`tryExecuteGameTasks(${this.tasks[0]['type']}): no local UDP socket found for this.tasks[0].remotePlayerId`);
+                        winston.error(`tryExecuteGameTasks(${this.tasks[0]['type']}): no local UDP socket found for this.tasks[0].remotePlayerId`);
                         return;
                     }
                     let socket = this.peerLocalSockets[this.tasks[0]['remotePlayerId']];
@@ -216,7 +242,6 @@ export class IceAdapter {
     }
     
     onGpgMsg(msg : GPGNetMessage) {
-        console.log(this);
         switch(msg.header) {
             case 'GameState':
                 this.gpgNetState = msg.chunks[0];
@@ -230,9 +255,17 @@ export class IceAdapter {
                 this.tryExecuteGameTasks();
                 break;
         }
+        this.rpcNotify('onGpgNetMessageReceived', [msg.header, msg.chunks]);
     }
     
     rpcNotify(method : string, params : Array<any>) {
-        console.error("implement rpcNotify")
+        if (this.rpcSocket) {
+            let data = JSON.stringify({
+              jsonrpc: '2.0',
+              method : method,
+              params : params
+            });
+            this.rpcSocket.write(data);
+        }
     }
 }
