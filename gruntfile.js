@@ -3,6 +3,9 @@ module.exports = function(grunt) {
         ts: {
             default : {
                 src: ["**/*.ts", "!node_modules/**"]
+            },
+            options: {
+            	moduleResolution: 'node'
             }
         }
     });

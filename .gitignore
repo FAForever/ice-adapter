@@ -1,8 +1,13 @@
 # QtCreator files
 *.txt.user
 
+*.js
+!gruntfile.js
+*.js.map
+*.log
 node_modules/
 .settings/
+.tscache/
 
 # Pycharm files
 *.idea*
@@ -10,7 +15,3 @@ node_modules/
 # Python files
 *.pyc
 
-*.js
-!gruntfile.js
-
-*.js.map
