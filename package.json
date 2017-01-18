@@ -7,22 +7,42 @@
     "start": "./node_modules/.bin/ts-node -- ./index.ts",
     "test": "./node_modules/.bin/mocha tests --watch"
   },
-  "keywords": [],
+  "keywords": [
+    "Supreme Commander",
+    "Forged Alliance",
+    "P2P",
+    "game",
+    "RTS",
+    "webrtc"
+  ],
   "author": "",
   "license": "GPL-3.0",
   "bin": {
-    "ice-adapter": "./index.js"
+    "faf-ice-adapter": "./index.js"
   },
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/faforever/ice-adapter"
+  },
+  "bugs": {
+    "url": "https://github.com/faforever/ice-adapter/issues"
+  },
+  "files": [
+    "*.js"
+  ],
   "dependencies": {
     "optimist": "0.6.1",
     "json-rpc2": "1.0.2",
     "wrtc": "0.0.61"
   },
   "devDependencies": {
+    "@types/node": "^7.0.0",
     "chai": "^3.5.0",
     "grunt": "0.4.5",
     "grunt-ts": "6.0.0-beta.10",
     "mocha": "3.2.0",
     "typescript": "2.1.4"
-  }
+  },
+  "preferGlobal": true,
+  "private": true
 }
