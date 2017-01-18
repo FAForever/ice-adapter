@@ -25,8 +25,8 @@ export class GPGNetMessage {
             }
         }
         return result;
-    }           
-    
+    }
+
     toBuffer() : Buffer {
         let result = Buffer.allocUnsafe(this.byteCount());
         try {

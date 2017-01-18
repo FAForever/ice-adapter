@@ -5,7 +5,8 @@ import {GPGNetMessage} from './GPGNetMessage';
 
 export class GPGNetServer {
     
-    socket : Socket;
+    public server : Server;
+    public socket : Socket;
     
     buffer : Buffer;
     
@@ -13,7 +14,7 @@ export class GPGNetServer {
         
         this.buffer = Buffer.alloc(0);
         
-        createServer( (socket) => {
+        this.server = createServer( (socket) => {
             console.log('GPGNet client connected');
             this.socket = socket;
             this.socket.on('data', (data : Buffer) => {
@@ -26,7 +27,7 @@ export class GPGNetServer {
                 console.log('GPGNet client disconnected');
             });
         }).listen(options.gpgnet_port, 'localhost', () => {
-            console.log(`GPGNet server listening on port ${options.gpgnet_port}`);
+            console.log(`GPGNet server listening on port ${this.server.address().port}`);
         });
     }
     
