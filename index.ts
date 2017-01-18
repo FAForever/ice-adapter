@@ -1,5 +1,6 @@
+#!/usr/bin/env node
+
 import options from './options';
-console.log(options);
 
 import {IceAdapter} from './IceAdapter';
 
