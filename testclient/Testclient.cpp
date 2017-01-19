@@ -455,12 +455,12 @@ void Testclient::connectRpcMethods()
     });
   }
 
-  mIceClient.setRpcCallback("onSdp", [this](Json::Value const& paramsArray,
+  mIceClient.setRpcCallback("onIceMsg", [this](Json::Value const& paramsArray,
                             Json::Value &,
                             Json::Value &,
                             Socket*)
   {
-    mServerClient.sendRequest("sendSdp",
+    mServerClient.sendRequest("sendIceMsg",
                               paramsArray);
     updateStatus();
   });
