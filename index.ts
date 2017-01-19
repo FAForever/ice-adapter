@@ -9,7 +9,7 @@ if (options.log_file.length > 0) {
 
 winston.info(`Starting faf-ice-adapter version ${require('./package.json').version}`);
 
-import {IceAdapter} from './IceAdapter';
+import { IceAdapter } from './IceAdapter';
 
 let a = new IceAdapter();
 
