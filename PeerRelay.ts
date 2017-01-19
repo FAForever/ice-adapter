@@ -30,7 +30,7 @@ class PeerRelay {
 
     this.dataChannel = this.peerConnection.createDataChannel('faf');
     this.dataChannel.onopen = () => {
-      winston.info(`Relay for ${remotePlayerLogin}(${remotePlayerId}): data channel open`);
+      winston.info(`Relay for ${this.remoteLogin}(${this.remoteId}): data channel open`);
       this.dataChannel.onmessage = (event) => {
         var data = event.data;
         console.log("PeerRelay for ${this.login} received ${event.data}");
