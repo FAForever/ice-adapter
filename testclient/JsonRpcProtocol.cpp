@@ -137,7 +137,7 @@ void JsonRpcProtocol::parseMessage(Socket* socket, std::vector<char>& msgBuffer)
               }
               catch (std::exception& e)
               {
-                FAF_LOG_ERROR << "exception in request handler for id " << jsonMessage["id"].asInt() << ": " << e.what();
+                FAF_LOG_ERROR << "exception in request handler for id " << jsonMessage["id"].asInt() << ": " << e.what() << "\nmessage was: " << doc;
               }
               mCurrentRequests.erase(reqIt);
             }

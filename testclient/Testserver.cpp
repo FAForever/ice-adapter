@@ -177,7 +177,7 @@ Testserver::Testserver():
       }
     }
   });
-  mServer.setRpcCallback("sendSdp",
+  mServer.setRpcCallback("sendIceMsg",
                          [this](Json::Value const& paramsArray,
                          Json::Value & result,
                          Json::Value & error,
@@ -185,7 +185,7 @@ Testserver::Testserver():
   {
     if (paramsArray.size() < 3)
     {
-      error = "Need 2 parameters: playerId (int), remotePlayerId (int), sdp (string)";
+      error = "Need 3 parameters: playerId (int), remotePlayerId (int), sdp (string)";
       return;
     }
     auto remoteId = paramsArray[1].asInt();
@@ -196,11 +196,11 @@ Testserver::Testserver():
       return;
     }
     Json::Value params(Json::arrayValue);
-    params.append("addSdp");
-    Json::Value setSdpParams(Json::arrayValue);
-    setSdpParams.append(mSocketPlayers[socket]);
-    setSdpParams.append(paramsArray[2]);
-    params.append(setSdpParams);
+    params.append("iceMsg");
+    Json::Value iceMsgParams(Json::arrayValue);
+    iceMsgParams.append(mSocketPlayers[socket]);
+    iceMsgParams.append(paramsArray[2]);
+    params.append(iceMsgParams);
     mServer.sendRequest("sendToIceAdapter",
                         params,
                         remoteIt->second);
