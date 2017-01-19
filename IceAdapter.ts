@@ -96,7 +96,7 @@ export class IceAdapter {
     });
   }
 
-  iceMsg(remotePlayerId: number, msg : any) {
+  iceMsg(remotePlayerId: number, msg: any) {
   }
 
   sendToGpgNet(header: string, chunks: Array<any>) {
