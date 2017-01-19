@@ -2,7 +2,7 @@ import { RTCPeerConnection, RTCSessionDescription, RTCIceCandidate, RTCDataChann
 import * as dgram from 'dgram';
 import options from './options';
 import * as winston from 'winston';
-import {EventEmitter} from 'events';
+import { EventEmitter } from 'events';
 
 export class PeerRelay extends EventEmitter {
   peerConnection: RTCPeerConnection;
@@ -10,7 +10,7 @@ export class PeerRelay extends EventEmitter {
   localPort: number;
   dataChannel: RTCDataChannel;
   constructor(public remoteId: number, public remoteLogin: string, public createOffer: boolean) {
-    super();  
+    super();
     let iceServer = { urls: [`stun:${options.stun_server}`, `turn:${options.stun_server}`] };
     if (options.turn_user != '') {
       iceServer['username'] = options.turn_user;
@@ -40,15 +40,15 @@ export class PeerRelay extends EventEmitter {
     if (createOffer) {
       winston.info(`Relay for ${remoteLogin}(${remoteId}): create offer`);
       this.peerConnection.createOffer((desc: RTCSessionDescription) => {
-          this.peerConnection.setLocalDescription(
-            new RTCSessionDescription(desc),
-            () => {
-              this.emit('iceMessage', desc);
-            },
-            (error) => {
-              this.handleError(error);
-            }
-          );
+        this.peerConnection.setLocalDescription(
+          new RTCSessionDescription(desc),
+          () => {
+            this.emit('iceMessage', desc);
+          },
+          (error) => {
+            this.handleError(error);
+          }
+        );
       }, (error) => {
         this.handleError(error);
       });
@@ -67,14 +67,14 @@ export class PeerRelay extends EventEmitter {
     winston.info(`Relay for ${remoteLogin}(${remoteId}): successfully created`);
   }
 
-  addIceMsg(msg : any) {    
+  addIceMsg(msg: any) {
     winston.info(`Relay for ${this.remoteLogin}(${this.remoteId}): received ICE msg: ${JSON.stringify(msg)}`);
 
     if (msg.type == 'offer') {
       this.peerConnection.setRemoteDescription(
         new RTCSessionDescription(msg),
         () => {
-          this.peerConnection.createAnswer( (desc: RTCSessionDescription) => {
+          this.peerConnection.createAnswer((desc: RTCSessionDescription) => {
             this.peerConnection.setLocalDescription(
               new RTCSessionDescription(desc),
               () => {
@@ -85,10 +85,11 @@ export class PeerRelay extends EventEmitter {
               }
             );
           },
-          (error) => {
-            this.handleError(error);
-          }
-        );},
+            (error) => {
+              this.handleError(error);
+            }
+          );
+        },
         (error) => {
           this.handleError(error);
         }
@@ -102,12 +103,11 @@ export class PeerRelay extends EventEmitter {
         },
         (error) => {
           this.handleError(error);
-      });
+        });
     }
   }
 
-  handleError(error)
-  {
+  handleError(error) {
     winston.error(`Relay for ${this.remoteLogin}(${this.remoteId}) error: ${JSON.stringify(error)}`);
   }
 }
