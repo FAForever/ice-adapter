@@ -6,7 +6,8 @@
   "scripts": {
     "start": "./node_modules/.bin/ts-node -- ./index.ts",
     "format": "./node_modules/.bin/tsfmt -r *.ts",
-    "test": "./node_modules/.bin/mocha tests --watch"
+    "test": "./node_modules/.bin/mocha tests --watch",
+    "build": "./node_modules/.bin/tsc"
   },
   "keywords": [
     "Supreme Commander",
@@ -38,14 +39,12 @@
     "wrtc": "0.0.61"
   },
   "devDependencies": {
-    "@types/node": "^7.0.0",
-    "@types/winston": "^2.2.0",
-    "chai": "^3.5.0",
-    "grunt": "0.4.5",
-    "grunt-ts": "6.0.0-beta.10",
+    "@types/node": "7.0.0",
+    "@types/winston": "2.2.0",
+    "chai": "3.5.0",
     "mocha": "3.2.0",
     "typescript": "2.1.4",
-    "typescript-formatter": "^4.0.1"
+    "typescript-formatter": "4.0.1"
   },
   "preferGlobal": true,
   "private": true
