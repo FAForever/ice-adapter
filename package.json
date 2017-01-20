@@ -7,7 +7,8 @@
     "start": "./node_modules/.bin/ts-node -- ./index.ts",
     "format": "./node_modules/.bin/tsfmt -r *.ts",
     "test": "./node_modules/.bin/mocha tests --watch",
-    "build": "./node_modules/.bin/tsc"
+    "tscompile": "./node_modules/.bin/tsc",
+    "bundlejs": "./node_modules/.bin/browserify --no-builtins --bare --no-bf --node index.js -o ./build/faf-ice-adapter.js"
   },
   "keywords": [
     "Supreme Commander",
@@ -41,10 +42,12 @@
   "devDependencies": {
     "@types/node": "7.0.0",
     "@types/winston": "2.2.0",
+    "browserify": "13.3.0",
     "chai": "3.5.0",
     "mocha": "3.2.0",
     "typescript": "2.1.4",
-    "typescript-formatter": "4.0.1"
+    "typescript-formatter": "4.0.1",
+    "uglifyjs": "^2.4.10"
   },
   "preferGlobal": true,
   "private": true

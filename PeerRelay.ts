@@ -1,7 +1,7 @@
 import { RTCPeerConnection, RTCSessionDescription, RTCIceCandidate, RTCDataChannel } from 'wrtc';
 import * as dgram from 'dgram';
 import options from './options';
-import * as winston from 'winston';
+import logger from './logger';
 import { EventEmitter } from 'events';
 
 export class PeerRelay extends EventEmitter {
@@ -9,6 +9,8 @@ export class PeerRelay extends EventEmitter {
   localSocket: dgram.Socket;
   localPort: number;
   dataChannel: RTCDataChannel;
+  iceConnectionState: string;
+  iceGatheringState: string;
   constructor(public remoteId: number, public remoteLogin: string, public createOffer: boolean) {
     super();
     let iceServer = { urls: [`stun:${options.stun_server}`, `turn:${options.stun_server}`] };
@@ -21,24 +23,55 @@ export class PeerRelay extends EventEmitter {
       iceServers: [iceServer]
     });
 
-    this.dataChannel = this.peerConnection.createDataChannel('faf');
-    this.dataChannel.onopen = () => {
-      winston.info(`Relay for ${this.remoteLogin}(${this.remoteId}): data channel open`);
+    this.peerConnection.ondatachannel = (event) => {
+      this.dataChannel = event.channel;
+      logger.info(`Relay for ${this.remoteLogin}(${this.remoteId}): data channel open`);
       this.dataChannel.onmessage = (event) => {
         var data = event.data;
-        winston.debug("PeerRelay for ${this.login} received ${event.data}");
-        this.localSocket.send(event.data, options.lobby_port, "localhost");
+        //logger.debug(`Relay for ${this.remoteLogin}(${this.remoteId}): data channel received ${data}`);
+        this.localSocket.send(Buffer.from(data), options.lobby_port, "localhost");
       }
-    }
+      this.emit('datachannelOpen');
+    };
 
     this.peerConnection.onicecandidate = (candidate) => {
       if (candidate.candidate) {
-        winston.error(`PeerRelay for ${remoteLogin} received candidate ${JSON.stringify(candidate.candidate)}`);
+        logger.debug(`PeerRelay for ${remoteLogin} received candidate ${JSON.stringify(candidate.candidate)}`);
+        this.emit('iceMessage', {
+          'type': 'candidate',
+          'candidate': candidate.candidate
+        });
       }
     }
 
+    this.peerConnection.oniceconnectionstatechange = (event) => {
+      this.iceConnectionState = this.peerConnection.iceConnectionState;
+      logger.debug(`Relay for ${this.remoteLogin}(${this.remoteId}): iceConnectionState changed to ${this.iceConnectionState}`);
+      this.emit('iceConnectionStateChanged', this.iceConnectionState);
+    };
+
+    this.peerConnection.onicegatheringstatechange = (event) => {
+      this.iceGatheringState = this.peerConnection.iceGatheringState;
+      logger.debug(`Relay for ${this.remoteLogin}(${this.remoteId}): iceGatheringState changed to ${this.iceGatheringState}`);
+    };
+
     if (createOffer) {
-      winston.info(`Relay for ${remoteLogin}(${remoteId}): create offer`);
+      logger.info(`Relay for ${remoteLogin}(${remoteId}): create offer`);
+
+      this.dataChannel = this.peerConnection.createDataChannel('faf', {
+        ordered : false,
+        maxRetransmits: 0,
+      });
+      this.dataChannel.onopen = () => {
+        logger.info(`Relay for ${this.remoteLogin}(${this.remoteId}): data channel open`);
+        this.dataChannel.onmessage = (event) => {
+          var data = event.data;
+          //logger.debug(`Relay for ${this.remoteLogin}(${this.remoteId}): data channel received ${data}`);
+          this.localSocket.send(Buffer.from(data), options.lobby_port, "localhost");
+        }
+        this.emit('datachannelOpen');
+      };
+
       this.peerConnection.createOffer((desc: RTCSessionDescription) => {
         this.peerConnection.setLocalDescription(
           new RTCSessionDescription(desc),
@@ -55,20 +88,21 @@ export class PeerRelay extends EventEmitter {
     }
 
     this.localSocket = dgram.createSocket('udp4');
+
     this.localSocket.bind(undefined, 'localhost', () => {
       this.localPort = this.localSocket.address().port;
-      winston.debug(`Relay for ${remoteLogin}(${remoteId}): listening on port ${this.localPort}`);
+      logger.info(`Relay for ${this.remoteLogin}(${this.remoteId}): listening on port ${this.localPort}`);
+      this.emit('localSocketListening');
     });
 
     this.localSocket.on('message', (msg, rinfo) => {
-      winston.debug(`server got: ${msg} from ${rinfo.address}:${rinfo.port}`);
       this.dataChannel.send(msg);
     });
-    winston.info(`Relay for ${remoteLogin}(${remoteId}): successfully created`);
+    logger.info(`Relay for ${remoteLogin}(${remoteId}): successfully created`);
   }
 
   addIceMsg(msg: any) {
-    winston.info(`Relay for ${this.remoteLogin}(${this.remoteId}): received ICE msg: ${JSON.stringify(msg)}`);
+    logger.info(`Relay for ${this.remoteLogin}(${this.remoteId}): received ICE msg: ${JSON.stringify(msg)}`);
 
     if (msg.type == 'offer') {
       this.peerConnection.setRemoteDescription(
@@ -99,15 +133,18 @@ export class PeerRelay extends EventEmitter {
       this.peerConnection.setRemoteDescription(
         new RTCSessionDescription(msg),
         () => {
-          winston.debug(`Relay for ${this.remoteLogin}(${this.remoteId}): set remote answer`);
+          logger.debug(`Relay for ${this.remoteLogin}(${this.remoteId}): set remote answer`);
         },
         (error) => {
           this.handleError(error);
         });
     }
+    else if (msg.type == 'candidate') {
+      this.peerConnection.addIceCandidate(msg.candidate);
+    }
   }
 
   handleError(error) {
-    winston.error(`Relay for ${this.remoteLogin}(${this.remoteId}) error: ${JSON.stringify(error)}`);
+    logger.error(`Relay for ${this.remoteLogin}(${this.remoteId}) error: ${JSON.stringify(error)}`);
   }
 }

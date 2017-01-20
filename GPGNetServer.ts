@@ -1,9 +1,10 @@
 import { createServer, Socket, Server } from 'net';
 import options from './options';
 import { GPGNetMessage } from './GPGNetMessage';
-import * as winston from 'winston';
+import logger from './logger';
+import { EventEmitter } from 'events';
 
-export class GPGNetServer {
+export class GPGNetServer extends EventEmitter {
 
   public server: Server;
   public socket: Socket;
@@ -11,11 +12,13 @@ export class GPGNetServer {
   buffer: Buffer;
 
   constructor(callback: (msg: GPGNetMessage) => void) {
+    super();
 
     this.buffer = Buffer.alloc(0);
 
     this.server = createServer((socket) => {
-      winston.info('GPGNet client connected');
+      logger.info('GPGNet client connected');
+      this.emit('connected');
       this.socket = socket;
       this.socket.on('data', (data: Buffer) => {
         //console.log(`GPGNet server received ${data.toString('hex')}`);
@@ -24,10 +27,11 @@ export class GPGNetServer {
       });
 
       this.socket.on('close', (had_error) => {
-        winston.info('GPGNet client disconnected');
+        logger.info('GPGNet client disconnected');
+        this.emit('disconnected');
       });
     }).listen(options.gpgnet_port, 'localhost', () => {
-      winston.info(`GPGNet server listening on port ${this.server.address().port}`);
+      logger.info(`GPGNet server listening on port ${this.server.address().port}`);
     });
   }
 
