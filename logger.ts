@@ -6,7 +6,7 @@ let transports = [new (winston.transports.Console)({
   colorize: 'none',
   level: 'debug',
   timestamp: true,
-  debugStdout : true
+  debugStdout: true
 })];
 
 if (options.log_file.length > 0) {

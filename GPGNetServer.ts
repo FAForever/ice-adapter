@@ -29,6 +29,13 @@ export class GPGNetServer extends EventEmitter {
       this.socket.on('close', (had_error) => {
         logger.info('GPGNet client disconnected');
         this.emit('disconnected');
+        if (this.socket) {
+          delete this.socket;
+        }
+      });
+
+      this.socket.on('error', (error) => {
+        logger.error(`GPGNet client socket error: ${JSON.stringify(error)}`);
       });
     }).listen(options.gpgnet_port, 'localhost', () => {
       logger.info(`GPGNet server listening on port ${this.server.address().port}`);
@@ -36,13 +43,9 @@ export class GPGNetServer extends EventEmitter {
   }
 
   send(msg: GPGNetMessage) {
-    let bufToSend: Buffer = msg.toBuffer();
-    /*console.log(`GPGNet server sending ${bufToSend.toString('hex')}`);
-    GPGNetMessage.fromBuffer(bufToSend, (msg : GPGNetMessage) => {
-        console.log(`GPGNet server sending ${msg}`);
-    });
-    */
-    this.socket.write(bufToSend);
+    if (this.socket) {
+      this.socket.write(msg.toBuffer());
+    }
   }
 
 }

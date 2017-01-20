@@ -24,14 +24,7 @@ export class PeerRelay extends EventEmitter {
     });
 
     this.peerConnection.ondatachannel = (event) => {
-      this.dataChannel = event.channel;
-      logger.info(`Relay for ${this.remoteLogin}(${this.remoteId}): data channel open`);
-      this.dataChannel.onmessage = (event) => {
-        var data = event.data;
-        //logger.debug(`Relay for ${this.remoteLogin}(${this.remoteId}): data channel received ${data}`);
-        this.localSocket.send(Buffer.from(data), options.lobby_port, "localhost");
-      }
-      this.emit('datachannelOpen');
+      this.initDataChannel(event.channel);
     };
 
     this.peerConnection.onicecandidate = (candidate) => {
@@ -58,19 +51,10 @@ export class PeerRelay extends EventEmitter {
     if (createOffer) {
       logger.info(`Relay for ${remoteLogin}(${remoteId}): create offer`);
 
-      this.dataChannel = this.peerConnection.createDataChannel('faf', {
-        ordered : false,
+      this.initDataChannel(this.peerConnection.createDataChannel('faf', {
+        ordered: false,
         maxRetransmits: 0,
-      });
-      this.dataChannel.onopen = () => {
-        logger.info(`Relay for ${this.remoteLogin}(${this.remoteId}): data channel open`);
-        this.dataChannel.onmessage = (event) => {
-          var data = event.data;
-          //logger.debug(`Relay for ${this.remoteLogin}(${this.remoteId}): data channel received ${data}`);
-          this.localSocket.send(Buffer.from(data), options.lobby_port, "localhost");
-        }
-        this.emit('datachannelOpen');
-      };
+      }));
 
       this.peerConnection.createOffer((desc: RTCSessionDescription) => {
         this.peerConnection.setLocalDescription(
@@ -96,9 +80,43 @@ export class PeerRelay extends EventEmitter {
     });
 
     this.localSocket.on('message', (msg, rinfo) => {
-      this.dataChannel.send(msg);
+      if (this.dataChannel) {
+        this.dataChannel.send(msg);
+      }
     });
+
+    this.localSocket.on('error', (error) => {
+      logger.info(`Relay for ${this.remoteLogin}(${this.remoteId}): error in localsocket: ${JSON.stringify(error)}`);
+    });
+    this.localSocket.on('close', () => {
+      logger.info(`Relay for ${this.remoteLogin}(${this.remoteId}): local socket closed`);
+      delete this.localSocket;
+    });
+
     logger.info(`Relay for ${remoteLogin}(${remoteId}): successfully created`);
+  }
+
+  initDataChannel(dc: RTCDataChannel) {
+    dc.onopen = () => {
+      this.dataChannel = dc;
+      logger.info(`Relay for ${this.remoteLogin}(${this.remoteId}): data channel open`);
+      this.dataChannel.onmessage = (event) => {
+        if (this.localSocket) {
+          this.localSocket.send(Buffer.from(event.data), options.lobby_port, 'localhost', (error, bytes) => {
+            if (error) {
+              logger.error(`Relay for ${this.remoteLogin}(${this.remoteId}): error sending to local socket: ${JSON.stringify(error)}`);
+            }
+          });
+        }
+      }
+      this.emit('datachannelOpen');
+    };
+    dc.onclose = () => {
+      logger.info(`Relay for ${this.remoteLogin}(${this.remoteId}): data channel close`);
+      if (this.dataChannel) {
+        delete this.dataChannel;
+      }
+    }
   }
 
   addIceMsg(msg: any) {
@@ -146,5 +164,10 @@ export class PeerRelay extends EventEmitter {
 
   handleError(error) {
     logger.error(`Relay for ${this.remoteLogin}(${this.remoteId}) error: ${JSON.stringify(error)}`);
+  }
+
+  close() {
+    this.peerConnection.close();
+    this.localSocket.close();
   }
 }
