@@ -28,6 +28,7 @@ Pingtracker::Pingtracker(int localPeerId,
 
 void Pingtracker::start()
 {
+  FAF_LOG_DEBUG << "Pingtracker for peer " << mRemotePeerId << " started";
   if (mPingTimer.isActive())
   {
     return;

@@ -442,9 +442,8 @@ void Testclient::connectRpcMethods()
 
   for(auto event: {"onConnectionStateChanged",
                    "onGpgNetMessageReceived",
-                   "onPeerStateChanged",
-                   "onNeedSdp",
-                   "onCandidateSelected"})
+                   "onIceConnectionStateChanged"
+                  })
   {
     mIceClient.setRpcCallback(event, [this](Json::Value const&,
                                Json::Value &,
@@ -465,34 +464,27 @@ void Testclient::connectRpcMethods()
     updateStatus();
   });
 
-  mIceClient.setRpcCallback("onConnectivityChanged", [this](Json::Value const& paramsArray,
+  mIceClient.setRpcCallback("onDatachannelOpen", [this](Json::Value const& paramsArray,
                             Json::Value & result,
                             Json::Value & error,
                             Socket*)
   {
-    if (paramsArray.size() < 4)
+    if (paramsArray.size() < 2)
     {
-      error = "Need 4 parameters.";
+      error = "Need 2 parameters.";
       return;
     }
     int peerId = paramsArray[1].asInt();
-    bool connectedToPeer = paramsArray[2].asBool();
-    if (connectedToPeer)
+    mPeersReady.insert(peerId);
+    if (mPeerIdPingtrackers.contains(peerId))
     {
-      mPeersReady.insert(peerId);
-      if (mPeerIdPingtrackers.contains(peerId))
-      {
-        mPeerIdPingtrackers.value(peerId)->start();
-      }
+      mPeerIdPingtrackers.value(peerId)->start();
     }
-    bool peerConnectedToMe = paramsArray[3].asBool();
-    if (peerConnectedToMe)
+    if (mPeerWidgets.contains(peerId))
     {
-      if (mPeerWidgets.contains(peerId))
-      {
-        mPeerWidgets.value(peerId)->ui->label_conntime->setStyleSheet("background-color: #00ff00;");
-      }
+      mPeerWidgets.value(peerId)->ui->label_conntime->setStyleSheet("background-color: #00ff00;");
     }
+    FAF_LOG_DEBUG << "onDatachannelOpen for peer " << peerId;
     updateStatus();
   });
 }

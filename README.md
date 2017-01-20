@@ -16,7 +16,7 @@ Note that all JSON messages are newline terminated.
 | joinGame | remotePlayerLogin (string), remotePlayerId (int) | "ok" | Tell the game to create the Lobby, create a PeerRelay and join the remote game. |
 | connectToPeer | remotePlayerLogin (string), remotePlayerId (int)| "ok" | Create a PeerRelay and tell the game to connect to the remote peer. |
 | disconnectFromPeer | remotePlayerId (int)| "ok" | Create a PeerRelay and tell the game to connect to the remote peer. |
-| addSdp | remotePlayerId (int), sdp (string) | "ok" | Add the remote SDP part to the PeerRelay to establish a connection. |
+| iceMsg | remotePlayerId (int), msg (object) | "ok" | Add the remote ICE message to the PeerRelay to establish a connection. |
 | sendToGpgNet | header (string), chunks (array) | "ok" | Send an arbitrary message to the game. |
 | status | | [status structure](#Status structure) | Polls the current status of the `faf-ice-adapter`. |
 
@@ -25,10 +25,9 @@ Note that all JSON messages are newline terminated.
 | --- | --- | --- |
 | onConnectionStateChanged | "Connected"/"Disconnected" (string) | The game connected to the internal GPGNetServer. |
 | onGpgNetMessageReceived | header (string), chunks (array) | The game sent a message to the `faf-ice-adapter` via the internal GPGNetServer. |
-| onSdp | localPlayerId (int), remotePlayerId (int), sdp (string) | The PeerRelays IceAgent gathered a local SDP part for connecting to the remote player. This message must be forwarded to the remote peer and set using the `addSdp` command. |
-| onPeerStateChanged | localPlayerId (int), remotePlayerId (int), "NeedRemoteSdp" / "Disconnected" / "Gathering" / "Connecting" / "Connected" / "Ready" / "Failed" | Informs the client about the ICE connectivity state change. |
-| onCandidateSelected | localPlayerId (int), remotePlayerId (int), localCandidate (string), remoteCandidate (string) | Informs the client that ICE connectivity is established one-directional to the peer with the provided candidates. |
-| onConnectivityChanged | localPlayerId (int), remotePlayerId (int), connectedToPeer (bool), peerConnectedToMe (bool) | Informs the client that ICE connectivity to the peer changed.. |
+| onIceMsg | localPlayerId (int), remotePlayerId (int), msg (object) | The PeerRelays gathered a local ICE message for connecting to the remote player. This message must be forwarded to the remote peer and set using the `iceMsg` command. |
+| onIceConnectionStateChanged | localPlayerId (int), remotePlayerId (int), state (string) | See https://developer.mozilla.org/en-US/docs/Web/API/RTCPeerConnection/iceConnectionState |
+| onDatachannelOpen | localPlayerId (int), remotePlayerId (int) | Informs the client that ICE connectivity to the peer is established. |
 
 #### Status structure
 ```
