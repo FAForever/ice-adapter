@@ -21,10 +21,10 @@ export class IceAdapter {
     this.tasks = new Array<Object>();
     this.peerRelays = {};
     this.gpgNetServer = new GPGNetServer((msg: GPGNetMessage) => { this.onGpgMsg(msg); });
-    this.gpgNetServer.on('connected', ()=>{
+    this.gpgNetServer.on('connected', () => {
       this.rpcNotify('onConnectionStateChanged', ['Connected']);
     });
-    this.gpgNetServer.on('disconnected', ()=>{
+    this.gpgNetServer.on('disconnected', () => {
       this.rpcNotify('onConnectionStateChanged', ['Disconnected']);
     });
     this.initRpcServer();
@@ -32,7 +32,7 @@ export class IceAdapter {
 
   initRpcServer() {
     this.rpcServer = JsonRpcServer({
-      'quit': (args, callback) => { throw("Exit"); },
+      'quit': (args, callback) => { throw ("Exit"); },
       'hostGame': (args, callback) => { this.hostGame(args[0]); },
       'joinGame': (args, callback) => { this.joinGame(args[0], args[1]); },
       'connectToPeer': (args, callback) => { this.connectToPeer(args[0], args[1], args[2]); },
@@ -64,8 +64,8 @@ export class IceAdapter {
 
   hostGame(map: string) {
     this.queueGameTask({
-      'type': 'HostGame',
-      'map': map
+      type: 'HostGame',
+      map: map
     });
   }
 
@@ -73,12 +73,12 @@ export class IceAdapter {
     let relay = this.createPeerRelay(remotePlayerId,
       remotePlayerLogin,
       false);
-    relay.on('localSocketListening', () =>{
-    this.queueGameTask({
-      'type': 'JoinGame',
-      'remotePlayerLogin': remotePlayerLogin,
-      'remotePlayerId': remotePlayerId
-    });
+    relay.on('localSocketListening', () => {
+      this.queueGameTask({
+        type: 'JoinGame',
+        remotePlayerLogin: remotePlayerLogin,
+        remotePlayerId: remotePlayerId
+      });
     });
   }
 
@@ -86,22 +86,23 @@ export class IceAdapter {
     let relay = this.createPeerRelay(remotePlayerId,
       remotePlayerLogin,
       offer);
-    relay.on('localSocketListening', () =>{
+    relay.on('localSocketListening', () => {
       this.queueGameTask({
-        'type': 'ConnectToPeer',
-        'remotePlayerLogin': remotePlayerLogin,
-        'remotePlayerId': remotePlayerId
+        type: 'ConnectToPeer',
+        remotePlayerLogin: remotePlayerLogin,
+        remotePlayerId: remotePlayerId
       });
     });
   }
 
   disconnectFromPeer(remotePlayerId: number) {
     if (remotePlayerId in this.peerRelays) {
+      this.peerRelays[remotePlayerId].close();
       delete this.peerRelays[remotePlayerId];
     }
     this.queueGameTask({
-      'type': 'DisconnectFromPeer',
-      'remotePlayerId': remotePlayerId
+      type: 'DisconnectFromPeer',
+      remotePlayerId: remotePlayerId
     });
   }
 
@@ -162,7 +163,7 @@ export class IceAdapter {
     return result;
   }
 
-  createPeerRelay(remotePlayerId: number, remotePlayerLogin: string, offer: boolean) : PeerRelay{
+  createPeerRelay(remotePlayerId: number, remotePlayerLogin: string, offer: boolean): PeerRelay {
     let relay = new PeerRelay(remotePlayerId, remotePlayerLogin, offer);
     this.peerRelays[remotePlayerId] = relay;
 
@@ -218,7 +219,7 @@ export class IceAdapter {
           this.gpgNetServer.send(new GPGNetMessage('HostGame', [task['map']]));
           break;
         case 'DisconnectFromPeer':
-          this.gpgNetServer.send(new GPGNetMessage('DisconnectFromPeer', [task['remoteId']]));
+          this.gpgNetServer.send(new GPGNetMessage('DisconnectFromPeer', [task['remotePlayerId']]));
           break;
       }
       this.tasks.shift();
