@@ -339,8 +339,8 @@ void Testclient::on_pushButton_iceadapter_start_clicked()
                            << "--rpc_port" << QString::number(mIcePort)
                            << "--gpgnet_port" << "0"
                            << "--lobby_port" << QString::number(mLobbySocket.localPort())
-                           << "--stun_host" << "dev.faforever.com"
-                           << "--turn_host" << "dev.faforever.com"
+                           //<< "--stun_host" << "dev.faforever.com"
+                           //<< "--turn_host" << "dev.faforever.com"
                            );
 }
 
@@ -404,15 +404,15 @@ void Testclient::connectRpcMethods()
       error = "Need 1 parameter: method (string), params (array)";
       return;
     }
-    if (paramsArray[0].asString() == "addSdp")
+    if (paramsArray[0].asString() == "iceMsg")
     {
       if (paramsArray[1].size() != 2)
       {
-        error = "Need 3 parameters: peer (int), sdp (string)";
+        error = "Need 2 parameters: peer (int), msg (object)";
         return;
       }
-      onAddSdp(paramsArray[1][0].asInt(),
-               paramsArray[1][1].asString());
+      onIceMessage(paramsArray[1][0].asInt(),
+                   paramsArray[1][1]);
     }
     else
     {
@@ -581,7 +581,7 @@ void showIceOutput(QByteArray const& output,
       item->setFlags(Qt::ItemIsSelectable | Qt::ItemIsEnabled | Qt::ItemIsEditable);
       if (error)
       {
-        if (msg.contains("<warning>"))
+        if (msg.contains("warning"))
         {
           item->setBackgroundColor(QColor::fromRgbF(1, 1, 0.5));
         }
@@ -590,11 +590,11 @@ void showIceOutput(QByteArray const& output,
           item->setBackgroundColor(QColor::fromRgbF(1, 0.5, 0.5));
         }
       }
-      else if (msg.contains("<debug>"))
+      else if (msg.contains("debug"))
       {
         item->setBackgroundColor(QColor::fromRgbF(0.8, 1, 0.8));
       }
-      else if (msg.contains("<info>"))
+      else if (msg.contains("info"))
       {
         item->setBackgroundColor(QColor::fromRgbF(0.8, 0.8, 1));
       }
@@ -730,64 +730,66 @@ void Testclient::onLobbyReadyRead()
 }
 
 
-void Testclient::onAddSdp(int peerId, std::string const& sdp)
+void Testclient::onIceMessage(int peerId, Json::Value const& msg)
 {
-  auto list = QString::fromStdString(sdp).split('\n', QString::SkipEmptyParts);
-
-  for (QString const& entry: list)
+  if (msg.isMember("type") && msg["type"].asString() == "candidate")
   {
-    if (entry.startsWith("a=candidate"))
+    bool omitCandidate = false;
+    auto candidateString = QString::fromStdString(msg["candidate"]["candidate"].asString());
+    if (candidateString.startsWith("candidate"))
     {
       if (!mUi->checkBox_c_udp_host->isChecked() &&
-          entry.contains("UDP") &&
-          entry.contains("typ host"))
+          candidateString.contains("udp") &&
+          candidateString.contains("typ host"))
       {
-        continue;
+        omitCandidate = true;
       }
       if (!mUi->checkBox_c_udp_srflx->isChecked() &&
-          entry.contains("UDP") &&
-          entry.contains("typ srflx"))
+          candidateString.contains("udp") &&
+          candidateString.contains("typ srflx"))
       {
-        continue;
+        omitCandidate = true;
       }
       if (!mUi->checkBox_c_udp_relay->isChecked() &&
-          entry.contains("UDP") &&
-          entry.contains("typ relay"))
+          candidateString.contains("udp") &&
+          candidateString.contains("typ relay"))
       {
-        continue;
+        omitCandidate = true;
       }
       if (!mUi->checkBox_c_tcp_active->isChecked() &&
-          entry.contains("TCP") &&
-          entry.contains("typ host tcptype active"))
+          candidateString.contains("tcp") &&
+          candidateString.contains("typ host tcptype active"))
       {
-        continue;
+        omitCandidate = true;
       }
       if (!mUi->checkBox_c_tcp_passive->isChecked() &&
-          entry.contains("TCP") &&
-          entry.contains("typ host tcptype passive"))
+          candidateString.contains("tcp") &&
+          candidateString.contains("typ host tcptype passive"))
       {
-        continue;
+        omitCandidate = true;
       }
       if (!mUi->checkBox_c_tcp_srflx->isChecked() &&
-          entry.contains("TCP") &&
-          entry.contains("typ srflx"))
+          candidateString.contains("tcp") &&
+          candidateString.contains("typ srflx"))
       {
-        continue;
+        omitCandidate = true;
       }
     }
-    mSdpCache[peerId] << entry.trimmed();
+    if (omitCandidate)
+    {
+      FAF_LOG_DEBUG << "omitting candidate " << candidateString.toStdString();
+      return;
+    }
+    else
+    {
+      FAF_LOG_DEBUG << "keeping candidate " << candidateString.toStdString();
+    }
   }
-
-  if (!mSdpCache[peerId].empty() &&
-      mSdpCache[peerId].last().contains("a=candidate"))
-  {
-    Json::Value params(Json::arrayValue);
-    params.append(peerId);
-    params.append(mSdpCache[peerId].join('\n').toStdString() + "\n");
-    mIceClient.sendRequest("addSdp",
-                           params);
-    mSdpCache[peerId].clear();
-  }
+  Json::Value params(Json::arrayValue);
+  params.append(peerId);
+  params.append(msg);
+  mIceClient.sendRequest("iceMsg",
+                         params);
 }
 
 } // namespace faf

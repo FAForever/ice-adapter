@@ -96,14 +96,14 @@ export class IceAdapter {
   }
 
   disconnectFromPeer(remotePlayerId: number) {
-    if (remotePlayerId in this.peerRelays) {
-      this.peerRelays[remotePlayerId].close();
-      delete this.peerRelays[remotePlayerId];
-    }
     this.queueGameTask({
       type: 'DisconnectFromPeer',
       remotePlayerId: remotePlayerId
     });
+    if (remotePlayerId in this.peerRelays) {
+      this.peerRelays[remotePlayerId].close();
+      delete this.peerRelays[remotePlayerId];
+    }
   }
 
   iceMsg(remotePlayerId: number, msg: any) {
@@ -148,13 +148,10 @@ export class IceAdapter {
         'remote_player_login': relay.remoteLogin,
         'local_game_udp_port': relay.localPort,
         'ice_agent': {
-          'state': 'implementme',
-          'peer_connected_to_me': false,
-          'connected_to_peer': false,
-          'local_candidate': 'implementme',
-          'remote_candidate': 'implementme',
-          'remote_sdp': 'implementme',
-          'time_to_connected': 1e10,
+          'state': relay.peerConnection.iceConnectionState,
+          'datachannel_open': relay.peerConnection.dataChannel ? true : false,
+          'remote_sdp': relay.peerConnection ? JSON.stringify(relay.peerConnection.currentRemoteDescription) : "none",
+          'time_to_connected': relay.connectedTime ? relay.connectedTime[1] / 1e9 : 0,
         }
       };
       result['relays'].push(relayInfo);
