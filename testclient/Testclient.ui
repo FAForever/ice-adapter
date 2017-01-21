@@ -231,16 +231,6 @@
            </widget>
           </item>
           <item>
-           <widget class="QCheckBox" name="checkBox_c_udp_srflx">
-            <property name="text">
-             <string>UDP srflx</string>
-            </property>
-            <property name="checked">
-             <bool>true</bool>
-            </property>
-           </widget>
-          </item>
-          <item>
            <widget class="QCheckBox" name="checkBox_c_tcp_active">
             <property name="text">
              <string>TCP active</string>
@@ -261,9 +251,19 @@
            </widget>
           </item>
           <item>
+           <widget class="QCheckBox" name="checkBox_c_udp_srflx">
+            <property name="text">
+             <string>UDP NAT-traversal</string>
+            </property>
+            <property name="checked">
+             <bool>true</bool>
+            </property>
+           </widget>
+          </item>
+          <item>
            <widget class="QCheckBox" name="checkBox_c_tcp_srflx">
             <property name="text">
-             <string>TCP srflx</string>
+             <string>TCP NAT-traversal</string>
             </property>
             <property name="checked">
              <bool>true</bool>
@@ -273,7 +273,7 @@
           <item>
            <widget class="QCheckBox" name="checkBox_c_udp_relay">
             <property name="text">
-             <string>UDP relay</string>
+             <string>UDP TURN proxy</string>
             </property>
             <property name="checked">
              <bool>true</bool>
