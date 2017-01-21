@@ -11,16 +11,56 @@ export class PeerRelay extends EventEmitter {
   dataChannel: RTCDataChannel;
   iceConnectionState: string;
   iceGatheringState: string;
+  iceMsgHistory: string;
+  startTime: [number, number];
+  connectedTime: [number, number];
   constructor(public remoteId: number, public remoteLogin: string, public createOffer: boolean) {
     super();
+    this.iceMsgHistory = '';
+    this.startTime = process.hrtime();
+    this.iceConnectionState = 'None';
+
+    this.initPeerConnection();
+    this.initLocalSocket();
+
+    logger.info(`Relay for ${remoteLogin}(${remoteId}): successfully created`);
+  }
+
+  initPeerConnection() {
     let iceServer = { urls: [`stun:${options.stun_server}`, `turn:${options.stun_server}`] };
     if (options.turn_user != '') {
       iceServer['username'] = options.turn_user;
       iceServer['credential'] = options.turn_pass;
     }
-
+    /* https://webrtc.github.io/samples/src/content/peerconnection/trickle-ice/ */
+    let iceServers = [
+      {
+        'url': `stun:${options.stun_server}`
+      },
+      {
+        'url': `turn:${options.turn_server}`,
+        'credential': options.turn_pass,
+        'username': options.turn_user
+      },
+      /*
+      {
+        url: 'turn:numb.viagenie.ca?transport=tcp',
+        credential: 'asdf',
+        username: 'mm+viagenie.ca@netlair.de'
+      },
+      {
+        url: 'turn:numb.viagenie.ca?transport=udp',
+        credential: 'asdf',
+        username: 'mm+viagenie.ca@netla-ir.de'
+      },
+      {
+        'url': `stun:numb.viagenie.ca`
+      },
+      */
+    ];
+    logger.debug(`ICE servers: ${JSON.stringify(iceServers)}`);
     this.peerConnection = new RTCPeerConnection({
-      iceServers: [iceServer]
+      iceServers: iceServers
     });
 
     this.peerConnection.ondatachannel = (event) => {
@@ -29,7 +69,7 @@ export class PeerRelay extends EventEmitter {
 
     this.peerConnection.onicecandidate = (candidate) => {
       if (candidate.candidate) {
-        logger.debug(`PeerRelay for ${remoteLogin} received candidate ${JSON.stringify(candidate.candidate)}`);
+        logger.debug(`PeerRelay for ${this.remoteLogin} received candidate ${JSON.stringify(candidate.candidate)}`);
         this.emit('iceMessage', {
           'type': 'candidate',
           'candidate': candidate.candidate
@@ -41,6 +81,10 @@ export class PeerRelay extends EventEmitter {
       this.iceConnectionState = this.peerConnection.iceConnectionState;
       logger.debug(`Relay for ${this.remoteLogin}(${this.remoteId}): iceConnectionState changed to ${this.iceConnectionState}`);
       this.emit('iceConnectionStateChanged', this.iceConnectionState);
+      if (this.iceConnectionState == 'connected' && !this.connectedTime) {
+        this.connectedTime = process.hrtime(this.startTime);
+        logger.info(`Relay for ${this.remoteLogin}(${this.remoteId}): connection established after ${this.connectedTime[1] / 1e9}s`);
+      }
     };
 
     this.peerConnection.onicegatheringstatechange = (event) => {
@@ -48,8 +92,8 @@ export class PeerRelay extends EventEmitter {
       logger.debug(`Relay for ${this.remoteLogin}(${this.remoteId}): iceGatheringState changed to ${this.iceGatheringState}`);
     };
 
-    if (createOffer) {
-      logger.info(`Relay for ${remoteLogin}(${remoteId}): create offer`);
+    if (this.createOffer) {
+      logger.info(`Relay for ${this.remoteLogin}(${this.remoteId}): create offer`);
 
       this.initDataChannel(this.peerConnection.createDataChannel('faf', {
         ordered: false,
@@ -70,30 +114,6 @@ export class PeerRelay extends EventEmitter {
         this.handleError(error);
       });
     }
-
-    this.localSocket = dgram.createSocket('udp4');
-
-    this.localSocket.bind(undefined, 'localhost', () => {
-      this.localPort = this.localSocket.address().port;
-      logger.info(`Relay for ${this.remoteLogin}(${this.remoteId}): listening on port ${this.localPort}`);
-      this.emit('localSocketListening');
-    });
-
-    this.localSocket.on('message', (msg, rinfo) => {
-      if (this.dataChannel) {
-        this.dataChannel.send(msg);
-      }
-    });
-
-    this.localSocket.on('error', (error) => {
-      logger.info(`Relay for ${this.remoteLogin}(${this.remoteId}): error in localsocket: ${JSON.stringify(error)}`);
-    });
-    this.localSocket.on('close', () => {
-      logger.info(`Relay for ${this.remoteLogin}(${this.remoteId}): local socket closed`);
-      delete this.localSocket;
-    });
-
-    logger.info(`Relay for ${remoteLogin}(${remoteId}): successfully created`);
   }
 
   initDataChannel(dc: RTCDataChannel) {
@@ -119,9 +139,33 @@ export class PeerRelay extends EventEmitter {
     }
   }
 
-  addIceMsg(msg: any) {
-    logger.info(`Relay for ${this.remoteLogin}(${this.remoteId}): received ICE msg: ${JSON.stringify(msg)}`);
+  initLocalSocket() {
+    this.localSocket = dgram.createSocket('udp4');
 
+    this.localSocket.bind(undefined, 'localhost', () => {
+      this.localPort = this.localSocket.address().port;
+      logger.info(`Relay for ${this.remoteLogin}(${this.remoteId}): listening on port ${this.localPort}`);
+      this.emit('localSocketListening');
+    });
+
+    this.localSocket.on('message', (msg, rinfo) => {
+      if (this.dataChannel) {
+        this.dataChannel.send(msg);
+      }
+    });
+
+    this.localSocket.on('error', (error) => {
+      logger.info(`Relay for ${this.remoteLogin}(${this.remoteId}): error in localsocket: ${JSON.stringify(error)}`);
+    });
+    this.localSocket.on('close', () => {
+      logger.info(`Relay for ${this.remoteLogin}(${this.remoteId}): local socket closed`);
+      delete this.localSocket;
+    });
+  }
+
+  addIceMsg(msg: any) {
+    logger.debug(`Relay for ${this.remoteLogin}(${this.remoteId}): received ICE msg: ${JSON.stringify(msg)}`);
+    this.iceMsgHistory += JSON.stringify(msg) + '\n';
     if (msg.type == 'offer') {
       this.peerConnection.setRemoteDescription(
         new RTCSessionDescription(msg),
@@ -159,6 +203,9 @@ export class PeerRelay extends EventEmitter {
     }
     else if (msg.type == 'candidate') {
       this.peerConnection.addIceCandidate(msg.candidate);
+    }
+    else {
+      logger.error(`Relay for ${this.remoteLogin}(${this.remoteId}): unknown ICE message type: ${JSON.stringify(msg)}`);
     }
   }
 
