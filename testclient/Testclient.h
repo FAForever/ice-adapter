@@ -62,7 +62,7 @@ protected:
   void changeEvent(QEvent *e);
   void onGPGNetMessageFromIceAdapter(GPGNetMessage const& msg);
   void onLobbyReadyRead();
-  void onAddSdp(int peerId, std::string const& sdp);
+  void onIceMessage(int peerId, Json::Value const& msg);
 
 private:
   Ui::Testclient *mUi;
@@ -80,7 +80,6 @@ private:
   QMap<int, std::shared_ptr<Pingtracker>> mPeerIdPingtrackers;
   QMap<int, PeerWidget*> mPeerWidgets;
   QSet<int> mPeersReady;
-  QMap<int, QStringList> mSdpCache;
 };
 
 

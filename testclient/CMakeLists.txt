@@ -30,7 +30,7 @@ if(MINGW)
   link_directories(${QT5N_LIBRARY_DIRS})
   link_directories(${QT5S_LIBRARY_DIRS})
   set(faf_test_libs
-    Qt5::QWindowsIntegrationPlugin
+    #Qt5::QWindowsIntegrationPlugin
     libQt5PlatformSupport.a
     ${QT5W_LIBRARIES}
     ${QT5N_LIBRARIES}
