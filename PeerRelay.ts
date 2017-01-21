@@ -27,41 +27,49 @@ export class PeerRelay extends EventEmitter {
   }
 
   initPeerConnection() {
-    let iceServer = { urls: [`stun:${options.stun_server}`, `turn:${options.stun_server}`] };
-    if (options.turn_user != '') {
-      iceServer['username'] = options.turn_user;
-      iceServer['credential'] = options.turn_pass;
-    }
-    /* https://webrtc.github.io/samples/src/content/peerconnection/trickle-ice/ */
+    /* https://webrtc.github.io/samples/src/content/peerconnection/trickle-ice/ 
+       TURN servers require credentials with webrtc! */
     let iceServers = [
       {
-        'url': `stun:${options.stun_server}`
+        urls: [`turn:${options.turn_server}?transport=tcp`],
+        credential: options.turn_pass,
+        username: options.turn_user
       },
       {
-        'url': `turn:${options.turn_server}`,
-        'credential': options.turn_pass,
-        'username': options.turn_user
+        urls: [`turn:${options.turn_server}?transport=udp`],
+        credential: options.turn_pass,
+        username: options.turn_user
       },
-      /*
       {
-        url: 'turn:numb.viagenie.ca?transport=tcp',
+        urls: [`stun:${options.stun_server}`],
+        credential: '',
+        username: ''
+  },
+  /*
+      {
+        urls: [`turn:numb.viagenie.ca?transport=tcp`],
         credential: 'asdf',
         username: 'mm+viagenie.ca@netlair.de'
       },
       {
-        url: 'turn:numb.viagenie.ca?transport=udp',
+        urls: [`turn:numb.viagenie.ca?transport=udp`],
         credential: 'asdf',
-        username: 'mm+viagenie.ca@netla-ir.de'
+        username: 'mm+viagenie.ca@netlair.de'
       },
       {
-        'url': `stun:numb.viagenie.ca`
-      },
-      */
-    ];
-    logger.debug(`ICE servers: ${JSON.stringify(iceServers)}`);
+        urls: [`stun:numb.viagenie.ca`],
+        credential: '',
+        username: ''
+      }*/];
+
+    logger.debug(`Relay for ${this.remoteLogin}(${this.remoteId}): iceServers: ${JSON.stringify(iceServers)}`);
     this.peerConnection = new RTCPeerConnection({
       iceServers: iceServers
     });
+
+    this.peerConnection.onerror = (event) => {
+      this.handleError(event);
+    };
 
     this.peerConnection.ondatachannel = (event) => {
       this.initDataChannel(event.channel);
@@ -100,12 +108,10 @@ export class PeerRelay extends EventEmitter {
         maxRetransmits: 0,
       }));
 
-      this.peerConnection.createOffer((desc: RTCSessionDescription) => {
-        this.peerConnection.setLocalDescription(
-          new RTCSessionDescription(desc),
-          () => {
-            this.emit('iceMessage', desc);
-          },
+      this.peerConnection.createOffer().then((desc: RTCSessionDescription) => {
+        this.peerConnection.setLocalDescription(new RTCSessionDescription(desc)).then(() => {
+          this.emit('iceMessage', desc);
+        },
           (error) => {
             this.handleError(error);
           }
@@ -167,42 +173,41 @@ export class PeerRelay extends EventEmitter {
     logger.debug(`Relay for ${this.remoteLogin}(${this.remoteId}): received ICE msg: ${JSON.stringify(msg)}`);
     this.iceMsgHistory += JSON.stringify(msg) + '\n';
     if (msg.type == 'offer') {
-      this.peerConnection.setRemoteDescription(
-        new RTCSessionDescription(msg),
-        () => {
-          this.peerConnection.createAnswer((desc: RTCSessionDescription) => {
-            this.peerConnection.setLocalDescription(
-              new RTCSessionDescription(desc),
-              () => {
-                this.emit('iceMessage', desc);
-              },
-              (error) => {
-                this.handleError(error);
-              }
-            );
+      this.peerConnection.setRemoteDescription(new RTCSessionDescription(msg)).then(() => {
+        this.peerConnection.createAnswer().then((desc: RTCSessionDescription) => {
+          this.peerConnection.setLocalDescription(new RTCSessionDescription(desc)).then(() => {
+            this.emit('iceMessage', desc);
           },
             (error) => {
               this.handleError(error);
             }
           );
         },
+          (error) => {
+            this.handleError(error);
+          }
+        );
+      },
         (error) => {
           this.handleError(error);
         }
       );
     }
     else if (msg.type == 'answer') {
-      this.peerConnection.setRemoteDescription(
-        new RTCSessionDescription(msg),
-        () => {
-          logger.debug(`Relay for ${this.remoteLogin}(${this.remoteId}): set remote answer`);
-        },
+      this.peerConnection.setRemoteDescription(new RTCSessionDescription(msg)).then(() => {
+        logger.debug(`Relay for ${this.remoteLogin}(${this.remoteId}): set remote answer`);
+      },
         (error) => {
           this.handleError(error);
         });
     }
     else if (msg.type == 'candidate') {
-      this.peerConnection.addIceCandidate(msg.candidate);
+      this.peerConnection.addIceCandidate(new RTCIceCandidate(msg.candidate)).then(() => {
+        logger.debug(`Relay for ${this.remoteLogin}(${this.remoteId}): added ICE candidate ${JSON.stringify(msg.candidate)}`);
+      },
+        (error) => {
+          this.handleError(error);
+        });
     }
     else {
       logger.error(`Relay for ${this.remoteLogin}(${this.remoteId}): unknown ICE message type: ${JSON.stringify(msg)}`);
