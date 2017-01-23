@@ -277,7 +277,7 @@ Testclient::~Testclient()
 
 void Testclient::on_pushButton_connect_clicked()
 {
-  mServerClient.socket()->connectToHost("localhost", 54321);
+  mServerClient.socket()->connectToHost("fafsdp.erreich.bar", 54321);
 }
 
 void Testclient::on_pushButton_disconnect_clicked()
@@ -390,16 +390,19 @@ void Testclient::on_pushButton_iceadapter_connect_clicked()
 
 void Testclient::on_pushButton_iceadapter_start_clicked()
 {
+  QString adapterSrc = QDir(qApp->applicationDirPath()).absoluteFilePath("faf-ice-adapter.js");
+  if (!QFile::exists(adapterSrc))
+  {
+    adapterSrc = "/home/sws/projPriv/2017/faf-ice-adapter/index.js";
+  }
   mIceAdapterProcess.start("node",
                            QStringList()
-                           << "/home/sws/projPriv/2017/faf-ice-adapter/index.js"
+                           << adapterSrc
                            << "--id" << QString::number(mPlayerId)
                            << "--login" << mPlayerLogin
                            << "--rpc_port" << QString::number(mIcePort)
                            << "--gpgnet_port" << "0"
                            << "--lobby_port" << QString::number(mLobbySocket.localPort())
-                           //<< "--stun_host" << "dev.faforever.com"
-                           //<< "--turn_host" << "dev.faforever.com"
                            );
 }
 
