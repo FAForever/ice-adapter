@@ -150,8 +150,9 @@ export class IceAdapter {
         'ice_agent': {
           'state': relay.peerConnection.iceConnectionState,
           'datachannel_open': relay.peerConnection.dataChannel ? true : false,
-          'remote_sdp': relay.peerConnection ? JSON.stringify(relay.peerConnection.currentRemoteDescription) : "none",
-          'time_to_connected': relay.connectedTime ? relay.connectedTime[1] / 1e9 : 0,
+          'loc_cand_addr': relay.loc_cand_addr,
+          'rem_cand_addr': relay.rem_cand_addr,
+          'time_to_connected': relay.connectedTime ? relay.connectedTime[1] / 1e9 : -1,
         }
       };
       result['relays'].push(relayInfo);
