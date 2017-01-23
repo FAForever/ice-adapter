@@ -97,53 +97,14 @@ export class PeerRelay extends EventEmitter {
         logger.info(`Relay for ${this.remoteLogin}(${this.remoteId}): connection established after ${this.connectedTime[1] / 1e9}s`);
       }
 
-      let reqFields = ['googLocalAddress',
-        'googLocalCandidateType',
-        'googRemoteAddress',
-        'googRemoteCandidateType'
-      ];
       this.peerConnection.getStats((stats) => {
         stats.result().forEach((stat) => {
           if (stat.type == 'googCandidatePair' &&
-              stat.stat('googActiveConnection') === 'true') {
-                this.loc_cand_addr = stat.stat('googLocalAddress');
-                this.rem_cand_addr = stat.stat('googRemoteAddress');
-                /*
-              logger.info(`Relay for ${this.remoteLogin}(${this.remoteId}): active:  ${stat.stat('googActiveConnection')}`);
-              logger.info(`Relay for ${this.remoteLogin}(${this.remoteId}): locadd:  ${stat.stat('googLocalAddress')}`);
-              logger.info(`Relay for ${this.remoteLogin}(${this.remoteId}): remadd:  ${stat.stat('googRemoteAddress')}`);
-              */
+            stat.stat('googActiveConnection') === 'true') {
+            this.loc_cand_addr = stat.stat('googLocalAddress');
+            this.rem_cand_addr = stat.stat('googRemoteAddress');
           }
-        /*
-        this.stats = stats.result();
-        */
-                /*
-        let r = stats.result();
-        logger.info(`Relay for ${this.remoteLogin}(${this.remoteId}): r: ${JSON.stringify(r)}, ${JSON.stringify(Object.getOwnPropertyNames(r))}`);
-        r.forEach((stat) => {
-          if (stat.type == 'googCandidatePair') {
-              logger.info(`Relay for ${this.remoteLogin}(${this.remoteId}): active:  ${stat.stat('googActiveConnection')}`);
-              logger.info(`Relay for ${this.remoteLogin}(${this.remoteId}): locadd:  ${stat.stat('googLocalAddress')}`);
-              logger.info(`Relay for ${this.remoteLogin}(${this.remoteId}): remadd:  ${stat.stat('googRemoteAddress')}`);
-          }
-              */
-          /*
-          if (stat.type == 'remotecandidate') {
-            logger.info(`Relay for ${this.remoteLogin}(${this.remoteId}): remotecandidate: ${JSON.stringify(stat.getValue())}`);
-          }
-          */
         });
-
-        //console.log(r.stat('googLocalAddress'));
-        //console.log(r.stat('googLocalCandidateType'));
-        //console.log(r.stat('googRemoteAddress'));
-        //console.log(r.stat('googRemoteCandidateType'));
-        /*
-        let filtered = stats.result().filter(function(e) { return e.id.indexOf('Conn-audio') == 0 && e.stat('googActiveConnection') == 'true' })[0];
-        let res = {};
-        reqFields.forEach(function(e) { res[e.replace('goog', '')] = filtered.stat(e) });
-        logger.info(`Relay for ${this.remoteLogin}(${this.remoteId}): stats: ${JSON.stringify(res)}`);
-        */
       },
         (error) => {
           this.handleError(error);
