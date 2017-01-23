@@ -13,23 +13,6 @@ Testserver::Testserver():
   mCurrentPlayerId(0)
 {
   QObject::connect(&mServer,
-                   &JsonRpcQTcpServer::newConnection,
-                   [this](JsonRpcQTcpSocket* socket)
-  {
-    FAF_LOG_TRACE << "login " << mCurrentPlayerId;
-    mPlayerSockets.insert(std::make_pair(mCurrentPlayerId, socket));
-    mSocketPlayers.insert(std::make_pair(socket, mCurrentPlayerId));
-    mPlayersLogins.insert(std::make_pair(mCurrentPlayerId, std::string("Player") + std::to_string(mCurrentPlayerId)));
-
-    Json::Value params(Json::arrayValue);
-    params.append(mCurrentPlayerId);
-    mServer.sendRequest("onLogin",
-                        params,
-                        socket);
-    ++mCurrentPlayerId;
-    sendGamelist(socket);
-  });
-  QObject::connect(&mServer,
                    &JsonRpcQTcpServer::disconnected,
                    [this](JsonRpcQTcpSocket* socket)
   {
@@ -43,6 +26,61 @@ Testserver::Testserver():
       mSocketPlayers.erase(it);
       mPlayersLogins.erase(leavingPlayerId);
     }
+  });
+
+  mServer.setRpcCallback("login",
+                         [this](Json::Value const& paramsArray,
+                         Json::Value & result,
+                         Json::Value & error,
+                         Socket* socket)
+  {
+    if (mSocketPlayers.find(socket) != mSocketPlayers.end())
+    {
+      error = "Already logged in";
+      return;
+    }
+    if (paramsArray.size() < 1)
+    {
+      error = "Need 1 parameters: login (string)";
+      return;
+    }
+
+    auto loginExists = [this](std::string const& login)
+    {
+      for (auto it = mPlayersLogins.cbegin(), end = mPlayersLogins.cend(); it != end; ++it)
+      {
+        if (login == it->second)
+        {
+          return true;
+        }
+      }
+      return false;
+    };
+
+    auto login = paramsArray[0].asString();
+    if (loginExists(login))
+    {
+      int suffix = 1;
+      while (true)
+      {
+        auto newLogin = login + std::to_string(suffix++);
+        if (!loginExists(newLogin))
+        {
+          login = newLogin;
+          break;
+        }
+      }
+    }
+
+    FAF_LOG_TRACE << "login " << mCurrentPlayerId;
+    mPlayerSockets.insert(std::make_pair(mCurrentPlayerId, socket));
+    mSocketPlayers.insert(std::make_pair(socket, mCurrentPlayerId));
+    mPlayersLogins.insert(std::make_pair(mCurrentPlayerId, login));
+
+    result["id"] = mCurrentPlayerId;
+    result["login"] = login;
+    result["games"] = gamelistJson();
+    ++mCurrentPlayerId;
   });
 
   mServer.setRpcCallback("hostGame",
@@ -120,7 +158,7 @@ Testserver::Testserver():
       Json::Value params(Json::arrayValue);
       params.append("connectToPeer");
       Json::Value connectToPeerParams(Json::arrayValue);
-      connectToPeerParams.append(std::string("Player") + std::to_string(joiningPlayerId));
+      connectToPeerParams.append(mPlayersLogins.at(joiningPlayerId));
       connectToPeerParams.append(joiningPlayerId);
       connectToPeerParams.append(true);
       params.append(connectToPeerParams);
@@ -154,7 +192,7 @@ Testserver::Testserver():
         Json::Value params(Json::arrayValue);
         params.append("connectToPeer");
         Json::Value connectToPeerParams(Json::arrayValue);
-        connectToPeerParams.append(std::string("Player") + std::to_string(joiningPlayerId));
+        connectToPeerParams.append(mPlayersLogins.at(joiningPlayerId));
         connectToPeerParams.append(joiningPlayerId);
         connectToPeerParams.append(true);
         params.append(connectToPeerParams);
@@ -167,7 +205,7 @@ Testserver::Testserver():
         Json::Value params(Json::arrayValue);
         params.append("connectToPeer");
         Json::Value connectToPeerParams(Json::arrayValue);
-        connectToPeerParams.append(std::string("Player") + std::to_string(existingPlayerId));
+        connectToPeerParams.append(mPlayersLogins.at(existingPlayerId));
         connectToPeerParams.append(existingPlayerId);
         connectToPeerParams.append(false);
         params.append(connectToPeerParams);
@@ -207,15 +245,20 @@ Testserver::Testserver():
   });
 }
 
+Json::Value Testserver::gamelistJson() const
+{
+  Json::Value result(Json::objectValue);
+  for (auto it = mGames.cbegin(), end = mGames.cend(); it != end; ++it)
+  {
+    result[mPlayersLogins.at(it->first)] = it->first;
+  }
+  return result;
+}
+
 void Testserver::sendGamelist(Socket* s)
 {
   Json::Value params(Json::arrayValue);
-  Json::Value gameObject(Json::objectValue);
-  for (auto it = mGames.cbegin(), end = mGames.cend(); it != end; ++it)
-  {
-    gameObject[mPlayersLogins[it->first]] = it->first;
-  }
-  params.append(gameObject);
+  params.append(gamelistJson());
   mServer.sendRequest("onGamelist",
                       params,
                       s);

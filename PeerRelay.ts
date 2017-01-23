@@ -1,4 +1,4 @@
-import { RTCPeerConnection, RTCSessionDescription, RTCIceCandidate, RTCDataChannel } from 'wrtc';
+import { RTCPeerConnection, RTCSessionDescription, RTCIceCandidate, RTCDataChannel, RTCStatsResponse } from 'wrtc';
 import * as dgram from 'dgram';
 import options from './options';
 import logger from './logger';
@@ -14,11 +14,15 @@ export class PeerRelay extends EventEmitter {
   iceMsgHistory: string;
   startTime: [number, number];
   connectedTime: [number, number];
+  loc_cand_addr: string;
+  rem_cand_addr: string;
   constructor(public remoteId: number, public remoteLogin: string, public createOffer: boolean) {
     super();
     this.iceMsgHistory = '';
     this.startTime = process.hrtime();
     this.iceConnectionState = 'None';
+    this.loc_cand_addr = 'none';
+    this.rem_cand_addr = 'none';
 
     this.initPeerConnection();
     this.initLocalSocket();
@@ -44,7 +48,7 @@ export class PeerRelay extends EventEmitter {
         urls: [`stun:${options.stun_server}`],
         credential: '',
         username: ''
-  },
+      },
   /*
       {
         urls: [`turn:numb.viagenie.ca?transport=tcp`],
@@ -88,11 +92,64 @@ export class PeerRelay extends EventEmitter {
     this.peerConnection.oniceconnectionstatechange = (event) => {
       this.iceConnectionState = this.peerConnection.iceConnectionState;
       logger.debug(`Relay for ${this.remoteLogin}(${this.remoteId}): iceConnectionState changed to ${this.iceConnectionState}`);
-      this.emit('iceConnectionStateChanged', this.iceConnectionState);
       if (this.iceConnectionState == 'connected' && !this.connectedTime) {
         this.connectedTime = process.hrtime(this.startTime);
         logger.info(`Relay for ${this.remoteLogin}(${this.remoteId}): connection established after ${this.connectedTime[1] / 1e9}s`);
       }
+
+      let reqFields = ['googLocalAddress',
+        'googLocalCandidateType',
+        'googRemoteAddress',
+        'googRemoteCandidateType'
+      ];
+      this.peerConnection.getStats((stats) => {
+        stats.result().forEach((stat) => {
+          if (stat.type == 'googCandidatePair' &&
+              stat.stat('googActiveConnection') === 'true') {
+                this.loc_cand_addr = stat.stat('googLocalAddress');
+                this.rem_cand_addr = stat.stat('googRemoteAddress');
+                /*
+              logger.info(`Relay for ${this.remoteLogin}(${this.remoteId}): active:  ${stat.stat('googActiveConnection')}`);
+              logger.info(`Relay for ${this.remoteLogin}(${this.remoteId}): locadd:  ${stat.stat('googLocalAddress')}`);
+              logger.info(`Relay for ${this.remoteLogin}(${this.remoteId}): remadd:  ${stat.stat('googRemoteAddress')}`);
+              */
+          }
+        /*
+        this.stats = stats.result();
+        */
+                /*
+        let r = stats.result();
+        logger.info(`Relay for ${this.remoteLogin}(${this.remoteId}): r: ${JSON.stringify(r)}, ${JSON.stringify(Object.getOwnPropertyNames(r))}`);
+        r.forEach((stat) => {
+          if (stat.type == 'googCandidatePair') {
+              logger.info(`Relay for ${this.remoteLogin}(${this.remoteId}): active:  ${stat.stat('googActiveConnection')}`);
+              logger.info(`Relay for ${this.remoteLogin}(${this.remoteId}): locadd:  ${stat.stat('googLocalAddress')}`);
+              logger.info(`Relay for ${this.remoteLogin}(${this.remoteId}): remadd:  ${stat.stat('googRemoteAddress')}`);
+          }
+              */
+          /*
+          if (stat.type == 'remotecandidate') {
+            logger.info(`Relay for ${this.remoteLogin}(${this.remoteId}): remotecandidate: ${JSON.stringify(stat.getValue())}`);
+          }
+          */
+        });
+
+        //console.log(r.stat('googLocalAddress'));
+        //console.log(r.stat('googLocalCandidateType'));
+        //console.log(r.stat('googRemoteAddress'));
+        //console.log(r.stat('googRemoteCandidateType'));
+        /*
+        let filtered = stats.result().filter(function(e) { return e.id.indexOf('Conn-audio') == 0 && e.stat('googActiveConnection') == 'true' })[0];
+        let res = {};
+        reqFields.forEach(function(e) { res[e.replace('goog', '')] = filtered.stat(e) });
+        logger.info(`Relay for ${this.remoteLogin}(${this.remoteId}): stats: ${JSON.stringify(res)}`);
+        */
+      },
+        (error) => {
+          this.handleError(error);
+        });
+
+      this.emit('iceConnectionStateChanged', this.iceConnectionState);
     };
 
     this.peerConnection.onicegatheringstatechange = (event) => {

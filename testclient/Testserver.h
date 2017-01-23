@@ -16,6 +16,7 @@ class Testserver
 public:
   Testserver();
 protected:
+  Json::Value gamelistJson() const;
   void sendGamelist(Socket* s = nullptr);
   void disconnectPlayerFromGame(PlayerIdType leavingPlayerId);
   JsonRpcQTcpServer mServer;

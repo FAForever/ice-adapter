@@ -25,6 +25,21 @@
 namespace faf
 {
 
+enum
+{
+  PeerColumnLogin = 0,
+  PeerColumnIceState,
+  PeerColumnConn,
+  PeerColumnPing
+};
+
+enum
+{
+  IceColumnType = 0,
+  IceColumnProtocol,
+  IceColumnAddress
+};
+
 class LogSink : public boost::log::sinks::basic_formatted_sink_backend<char, boost::log::sinks::synchronized_feeding>
 {
 public:
@@ -104,22 +119,22 @@ Testclient::Testclient(QWidget *parent) :
 {
   mUi->setupUi(this);
 
-  mUi->scrollAreaWidgetContents->setLayout(new QVBoxLayout(mUi->peers));
-  mUi->scrollAreaWidgetContents->layout()->addWidget(mUi->pushButton_refresh);
-
   QSettings s;
   this->restoreGeometry(s.value("mainGeometry").toByteArray());
   this->restoreState(s.value("mainState").toByteArray());
+  mUi->lineEdit_login->setText(s.value("login", "Player").toString());
   mUi->tableWidget_clientLog->horizontalHeader()->restoreState(s.value("clientLogHeaderState").toByteArray());
   mUi->tableWidget_iceLog->horizontalHeader()->restoreState(s.value("iceLogHeaderState").toByteArray());
   mUi->checkBox_c_udp_host->setChecked(s.value("c_udp_host", true).toBool());
   mUi->checkBox_c_udp_srflx->setChecked(s.value("c_udp_srflx", true).toBool());
   mUi->checkBox_c_udp_relay->setChecked(s.value("c_udp_relay", true).toBool());
-  mUi->checkBox_c_tcp_active->setChecked(s.value("c_tcp_active", true).toBool());
-  mUi->checkBox_c_tcp_passive->setChecked(s.value("c_tcp_passive", true).toBool());
+  mUi->checkBox_c_tcp_host->setChecked(s.value("c_tcp_host", true).toBool());
   mUi->checkBox_c_tcp_srflx->setChecked(s.value("c_tcp_srflx", true).toBool());
+  mUi->checkBox_c_udp_relay->setChecked(s.value("c_tcp_relay", true).toBool());
 
   mUi->pushButton_leave->setEnabled(false);
+  mUi->pushButton_disconnect->setEnabled(false);
+  mUi->groupBox_ice->setEnabled(false);
   mUi->groupBox_lobby->setEnabled(false);
 
   typedef boost::log::sinks::synchronous_sink<LogSink> sink_t;
@@ -130,8 +145,6 @@ Testclient::Testclient(QWidget *parent) :
   connectRpcMethods();
 
   //mServerClient.socket()->connectToHost("fafsdp.erreich.bar", 54321);
-  mServerClient.socket()->connectToHost("localhost", 54321);
-
   connect(&mIceAdapterProcess,
           &QProcess::readyReadStandardError,
           this,
@@ -202,6 +215,43 @@ Testclient::Testclient(QWidget *parent) :
     mIcePort = server.serverPort();
     mUi->label_rpcport->setText(QString::number(mIcePort));
   }
+
+  connect(mServerClient.socket(),
+          &QTcpSocket::connected,
+          [this] ()
+  {
+    mUi->pushButton_disconnect->setEnabled(true);
+    mUi->pushButton_connect->setEnabled(false);
+    mUi->lineEdit_login->setReadOnly(true);
+    mUi->groupBox_ice->setEnabled(true);
+    Json::Value params(Json::arrayValue);
+    params.append(mUi->lineEdit_login->text().toStdString());
+    mServerClient.sendRequest("login", params, nullptr,
+                              [this](Json::Value const& result, Json::Value const& error)
+    {
+      mPlayerId = result["id"].asInt();
+      mPlayerLogin = QString::fromStdString(result["login"].asString());
+      mUi->label_playerid->setText(QString::number(mPlayerId));
+      mUi->label_playerlogin->setText(mPlayerLogin);
+      FAF_LOG_INFO << "logged in as " << mPlayerLogin.toStdString() << " (" << mPlayerId << ")";
+      mUi->groupBox_ice->setEnabled(true);
+      updateGamelist(result["games"]);
+    });
+  });
+
+  connect(mServerClient.socket(),
+          &QTcpSocket::disconnected,
+          [this] ()
+  {
+    if (mUi)
+    {
+      mUi->pushButton_disconnect->setEnabled(false);
+      mUi->pushButton_connect->setEnabled(true);
+      mUi->lineEdit_login->setReadOnly(false);
+      mUi->groupBox_ice->setEnabled(false);
+      mUi->groupBox_lobby->setEnabled(false);
+    }
+  });
 }
 
 Testclient::~Testclient()
@@ -213,15 +263,26 @@ Testclient::~Testclient()
   s.setValue("clientLogHeaderState", mUi->tableWidget_clientLog->horizontalHeader()->saveState());
   s.setValue("mainState", this->saveState());
   s.setValue("mainGeometry", this->saveGeometry());
+  s.setValue("login", mUi->lineEdit_login->text());
   s.setValue("c_udp_host", mUi->checkBox_c_udp_host->isChecked());
   s.setValue("c_udp_srflx", mUi->checkBox_c_udp_srflx->isChecked());
   s.setValue("c_udp_relay", mUi->checkBox_c_udp_relay->isChecked());
-  s.setValue("c_tcp_active", mUi->checkBox_c_tcp_active->isChecked());
-  s.setValue("c_tcp_passive", mUi->checkBox_c_tcp_passive->isChecked());
+  s.setValue("c_tcp_host", mUi->checkBox_c_tcp_host->isChecked());
   s.setValue("c_tcp_srflx", mUi->checkBox_c_tcp_srflx->isChecked());
+  s.setValue("c_tcp_relay", mUi->checkBox_c_tcp_relay->isChecked());
 
   delete mUi;
   mUi = nullptr;
+}
+
+void Testclient::on_pushButton_connect_clicked()
+{
+  mServerClient.socket()->connectToHost("localhost", 54321);
+}
+
+void Testclient::on_pushButton_disconnect_clicked()
+{
+  mServerClient.socket()->disconnectFromHost();
 }
 
 void Testclient::on_pushButton_hostGame_clicked()
@@ -244,15 +305,13 @@ void Testclient::on_pushButton_leave_clicked()
   mServerClient.sendRequest("leaveGame", Json::Value(Json::arrayValue));
   mUi->listWidget_games->setEnabled(true);
   mUi->pushButton_hostGame->setEnabled(true);
-  mUi->christmasWidget->clear();
+  mUi->tableWidget_peers->setRowCount(0);
+  mPeerRow.clear();
   mGameId = -1;
   mPeerIdPingtrackers.clear();
   mPeersReady.clear();
-  for (PeerWidget* pw : mPeerWidgets.values())
-  {
-    delete pw;
-  }
-  mPeerWidgets.clear();
+  mOmittedCandidates.clear();
+  mKeptCandidates.clear();
 }
 
 void Testclient::on_listWidget_games_itemClicked(QListWidgetItem *item)
@@ -346,16 +405,18 @@ void Testclient::on_pushButton_iceadapter_start_clicked()
 
 void Testclient::onPingStats(int peerId, float ping, int pendPings, int lostPings, int succPings)
 {
-  if (mPeerIdPingtrackers.contains(peerId) &&
-      mPeerWidgets.contains(peerId))
+  peerItem(peerId, PeerColumnPing)->setText(QString("%1 ms").arg(ping));
+  if (selectedPeer() == peerId)
   {
-    auto peerWidget = mPeerWidgets.value(peerId);
-    auto tracker = mPeerIdPingtrackers.value(peerId);
-    peerWidget->ui->label_ping->setText(QString("%1 ms").arg(ping));
-    peerWidget->ui->label_pendpings->setText(QString::number(pendPings));
-    peerWidget->ui->label_succpings->setText(QString::number(succPings));
-    peerWidget->ui->label_lostpings->setText(QString::number(lostPings));
+    mUi->label_det_succ_pings->setText(QString::number(succPings));
+    mUi->label_det_pend_pings->setText(QString::number(pendPings));
+    mUi->label_det_lost_pings->setText(QString::number(lostPings));
   }
+}
+
+void Testclient::on_tableWidget_peers_itemSelectionChanged()
+{
+  updatePeerInfo();
 }
 
 void Testclient::connectRpcMethods()
@@ -366,13 +427,13 @@ void Testclient::connectRpcMethods()
                                       Json::Value & error,
                                       Socket* socket)
   {
-    if (paramsArray.size() < 1)
+    if (paramsArray.size() < 2)
     {
-      error = "Need 1 parameter: playerId (int)";
+      error = "Need 2 parameters: playerId (int), playerLogin (string)";
       return;
     }
     mPlayerId = paramsArray[0].asInt();
-    mPlayerLogin = QString("Player%1").arg(mPlayerId);
+    mPlayerLogin = QString::fromStdString(paramsArray[1].asString());
     mUi->label_playerid->setText(QString::number(mPlayerId));
     mUi->label_playerlogin->setText(mPlayerLogin);
     FAF_LOG_INFO << "logged in as " << mPlayerLogin.toStdString() << " (" << mPlayerId << ")";
@@ -430,14 +491,7 @@ void Testclient::connectRpcMethods()
       error = "Need 1 parameter: gameObject";
       return;
     }
-    mUi->listWidget_games->clear();
-    auto members = paramsArray[0].getMemberNames();
-    for (auto it = members.begin(), end = members.end(); it != end; ++it)
-    {
-      auto item = new QListWidgetItem(QString::fromStdString(*it));
-      item->setData(Qt::UserRole, paramsArray[0][*it].asInt());
-      mUi->listWidget_games->addItem(item);
-    }
+    updateGamelist(paramsArray[0]);
   });
 
   for(auto event: {"onConnectionStateChanged",
@@ -480,9 +534,9 @@ void Testclient::connectRpcMethods()
     {
       mPeerIdPingtrackers.value(peerId)->start();
     }
-    if (mPeerWidgets.contains(peerId))
+    if (mPeerRow.contains(peerId))
     {
-      mPeerWidgets.value(peerId)->ui->label_conntime->setStyleSheet("background-color: #00ff00;");
+      peerItem(peerId, PeerColumnConn)->setBackgroundColor(Qt::green);
     }
     FAF_LOG_DEBUG << "onDatachannelOpen for peer " << peerId;
     updateStatus();
@@ -501,6 +555,7 @@ void Testclient::updateStatus(std::function<void()> finishedCallback)
                          [this, finishedCallback] (Json::Value const& result,
                                                    Json::Value const& error)
   {
+    mCurrentStatus = result;
     if (mGpgnetPort == 0)
     {
       mGpgnetPort = result["gpgnet"]["local_port"].asInt();
@@ -512,26 +567,31 @@ void Testclient::updateStatus(std::function<void()> finishedCallback)
     for(Json::Value const& relayInfo: result["relays"])
     {
       auto id = relayInfo["remote_player_id"].asInt();
-      if (!mPeerWidgets.contains(id))
+      if (!mPeerRow.contains(id))
       {
-        auto w = new PeerWidget(this);
-        mUi->scrollAreaWidgetContents->layout()->addWidget(w);
-        w->setTitle(QString::fromStdString(relayInfo["remote_player_login"].asString()));
-        mPeerWidgets[id] = w;
+        int row = mUi->tableWidget_peers->rowCount();
+        mUi->tableWidget_peers->setRowCount(row + 1);
+        mPeerRow[id] = row;
+        mUi->tableWidget_peers->setItem(row, PeerColumnLogin, new QTableWidgetItem);
+        mUi->tableWidget_peers->setItem(row, PeerColumnIceState, new QTableWidgetItem);
+        mUi->tableWidget_peers->setItem(row, PeerColumnConn, new QTableWidgetItem);
+        mUi->tableWidget_peers->setItem(row, PeerColumnPing, new QTableWidgetItem);
       }
-      auto peerWidget = mPeerWidgets.value(id);
-      peerWidget->ui->label_login->setText(QString::fromStdString(relayInfo["remote_player_login"].asString()));
-      peerWidget->ui->label_id->setText(QString::number(id));
-      peerWidget->ui->label_icestate->setText(QString::fromStdString(relayInfo["ice_agent"]["state"].asString()));
-      peerWidget->ui->label_laddress->setText(QString::fromStdString(relayInfo["ice_agent"]["local_candidate"].asString()));
-      peerWidget->ui->label_raddess->setText(QString::fromStdString(relayInfo["ice_agent"]["remote_candidate"].asString()));
-      peerWidget->ui->label_conntime->setText(QString("%1 s").arg(relayInfo["ice_agent"]["time_to_connected"].asDouble()));
-      peerWidget->ui->label_conntime->setText(QString("%1 s").arg(relayInfo["ice_agent"]["time_to_connected"].asDouble()));
-      peerWidget->ui->label_connstate->setText(QString("%1 ⇆ %2")
-                                               .arg(relayInfo["ice_agent"]["peer_connected_to_me"].asBool())
-                                               .arg(relayInfo["ice_agent"]["connected_to_peer"].asBool()));
-      peerWidget->ui->sdp->clear();
-      peerWidget->ui->sdp->appendPlainText(QString::fromStdString(relayInfo["ice_agent"]["remote_sdp"].asString()));
+      peerItem(id, PeerColumnLogin)->setText(QString::fromStdString(relayInfo["remote_player_login"].asString()));
+      peerItem(id, PeerColumnIceState)->setText(QString::fromStdString(relayInfo["ice_agent"]["state"].asString()));
+      peerItem(id, PeerColumnConn)->setText(QString("%1 s").arg(relayInfo["ice_agent"]["time_to_connected"].asDouble()));
+    }
+
+    if (mUi->tableWidget_peers->rowCount() > 0)
+    {
+      if (selectedPeer() < 0)
+      {
+        mUi->tableWidget_peers->selectRow(0);
+      }
+      else
+      {
+        updatePeerInfo();
+      }
     }
 
     if (finishedCallback)
@@ -674,10 +734,6 @@ void Testclient::onGPGNetMessageFromIceAdapter(GPGNetMessage const& msg)
             &Pingtracker::pingStats,
             this,
             &Testclient::onPingStats);
-    connect(pingtracker.get(),
-            &Pingtracker::pingStats,
-            mUi->christmasWidget,
-            &ChristmasWidget::onPingStats);
     FAF_LOG_DEBUG << "Pingtracker for peer " << peerId << " port " << peerPort << " created";
   }
   else if (msg.header == "DisconnectFromPeer")
@@ -688,14 +744,11 @@ void Testclient::onGPGNetMessageFromIceAdapter(GPGNetMessage const& msg)
       return;
     }
     int peerId = msg.chunks.at(0).asInt();
-    mUi->christmasWidget->switchOff(peerId);
     mPeerIdPingtrackers.remove(peerId);
     mPeersReady.remove(peerId);
-    if (mPeerWidgets.contains(peerId))
-    {
-      delete mPeerWidgets.value(peerId);
-      mPeerWidgets.remove(peerId);
-    }
+    mUi->tableWidget_peers->setRowCount(0);
+    mPeerRow.clear();
+    updateStatus();
   }
 }
 
@@ -736,53 +789,54 @@ void Testclient::onIceMessage(int peerId, Json::Value const& msg)
   {
     bool omitCandidate = false;
     auto candidateString = QString::fromStdString(msg["candidate"]["candidate"].asString());
+    auto candidate = IceCandidate::fromString(candidateString);
     if (candidateString.startsWith("candidate"))
     {
       if (!mUi->checkBox_c_udp_host->isChecked() &&
-          candidateString.contains("udp") &&
-          candidateString.contains("typ host"))
+          candidate.protocol == "udp" &&
+          candidate.type == "host")
       {
         omitCandidate = true;
       }
       if (!mUi->checkBox_c_udp_srflx->isChecked() &&
-          candidateString.contains("udp") &&
-          candidateString.contains("typ srflx"))
+          candidate.protocol == "udp" &&
+          candidate.type == "srflx")
       {
         omitCandidate = true;
       }
       if (!mUi->checkBox_c_udp_relay->isChecked() &&
-          candidateString.contains("udp") &&
-          candidateString.contains("typ relay"))
+          candidate.protocol == "udp" &&
+          candidate.type == "relay")
       {
         omitCandidate = true;
       }
-      if (!mUi->checkBox_c_tcp_active->isChecked() &&
-          candidateString.contains("tcp") &&
-          candidateString.contains("typ host tcptype active"))
-      {
-        omitCandidate = true;
-      }
-      if (!mUi->checkBox_c_tcp_passive->isChecked() &&
-          candidateString.contains("tcp") &&
-          candidateString.contains("typ host tcptype passive"))
+      if (!mUi->checkBox_c_tcp_host->isChecked() &&
+          candidate.protocol == "tcp" &&
+          candidate.type == "host")
       {
         omitCandidate = true;
       }
       if (!mUi->checkBox_c_tcp_srflx->isChecked() &&
-          candidateString.contains("tcp") &&
-          candidateString.contains("typ srflx"))
+          candidate.protocol == "tcp" &&
+          candidate.type == "srflx")
+      {
+        omitCandidate = true;
+      }
+      if (!mUi->checkBox_c_tcp_relay->isChecked() &&
+          candidate.protocol == "tcp" &&
+          candidate.type == "relay")
       {
         omitCandidate = true;
       }
     }
     if (omitCandidate)
     {
-      FAF_LOG_DEBUG << "omitting candidate " << candidateString.toStdString();
+      mOmittedCandidates[peerId].push_back(candidate);
       return;
     }
     else
     {
-      FAF_LOG_DEBUG << "keeping candidate " << candidateString.toStdString();
+      mKeptCandidates[peerId].push_back(candidate);
     }
   }
   Json::Value params(Json::arrayValue);
@@ -790,6 +844,90 @@ void Testclient::onIceMessage(int peerId, Json::Value const& msg)
   params.append(msg);
   mIceClient.sendRequest("iceMsg",
                          params);
+}
+
+void Testclient::updateGamelist(Json::Value const& gamelist)
+{
+  mUi->listWidget_games->clear();
+  auto members = gamelist.getMemberNames();
+  for (auto it = members.begin(), end = members.end(); it != end; ++it)
+  {
+    auto item = new QListWidgetItem(QString::fromStdString(*it));
+    item->setData(Qt::UserRole, gamelist[*it].asInt());
+    mUi->listWidget_games->addItem(item);
+  }
+}
+
+int Testclient::selectedPeer() const
+{
+  auto list = mUi->tableWidget_peers->selectedItems();
+  if (list.empty())
+  {
+    return -1;
+  }
+  return mPeerRow.key(list.first()->row());
+}
+
+QTableWidgetItem* Testclient::peerItem(int peerId, int column)
+{
+  if (!mPeerRow.contains(peerId))
+  {
+    return nullptr;
+  }
+  return mUi->tableWidget_peers->item(mPeerRow.value(peerId), column);
+}
+
+QString Testclient::peerLogin(int peerId) const
+{
+  for(Json::Value const& relayInfo: mCurrentStatus["relays"])
+  {
+    if (peerId == relayInfo["remote_player_id"].asInt())
+    {
+      return QString::fromStdString(relayInfo["remote_player_login"].asString());
+    }
+  }
+  return QString();
+}
+
+void Testclient::updatePeerInfo()
+{
+  int peerId = selectedPeer();
+  if (peerId >= 0)
+  {
+    for(Json::Value const& relayInfo: mCurrentStatus["relays"])
+    {
+      auto id = relayInfo["remote_player_id"].asInt();
+      if (id == selectedPeer())
+      {
+        mUi->label_det_id->setText(QString::number(id));
+        mUi->label_det_loccand->setText(QString::fromStdString(relayInfo["ice_agent"]["loc_cand_addr"].asString()));
+        mUi->label_det_remcand->setText(QString::fromStdString(relayInfo["ice_agent"]["rem_cand_addr"].asString()));
+      }
+    }
+    mUi->tableWidget_det_cands->setRowCount(0);
+
+    for(IceCandidate const& cand : mKeptCandidates[peerId])
+    {
+      addCandidate(cand, true);
+    }
+    for(IceCandidate const& cand : mOmittedCandidates[peerId])
+    {
+      addCandidate(cand, false);
+    }
+  }
+}
+
+void Testclient::addCandidate(IceCandidate const& c, bool kept)
+{
+  int row = mUi->tableWidget_det_cands->rowCount();
+  mUi->tableWidget_det_cands->setRowCount(row + 1);
+  mUi->tableWidget_det_cands->setItem(row, IceColumnType, new QTableWidgetItem(c.type));
+  mUi->tableWidget_det_cands->setItem(row, IceColumnProtocol, new QTableWidgetItem(c.protocol));
+  mUi->tableWidget_det_cands->setItem(row, IceColumnAddress, new QTableWidgetItem(c.address + ":" + c.port));
+  if (!kept)
+  {
+    mUi->tableWidget_det_cands->item(row, IceColumnType)->setBackgroundColor(Qt::red);
+  }
 }
 
 } // namespace faf
