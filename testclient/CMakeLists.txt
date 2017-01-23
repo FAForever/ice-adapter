@@ -19,27 +19,22 @@ include_directories(${CMAKE_CURRENT_SOURCE_DIR})
 
 find_package(Qt5Widgets REQUIRED)
 find_package(Qt5Network REQUIRED)
-find_package(Qt5Svg REQUIRED)
 set(CMAKE_AUTOMOC ON)
 
 if(MINGW)
   pkg_search_module(QT5W REQUIRED Qt5Widgets)
   pkg_search_module(QT5N REQUIRED Qt5Network)
-  pkg_search_module(QT5S REQUIRED Qt5Svg)
   link_directories(${QT5W_LIBRARY_DIRS})
   link_directories(${QT5N_LIBRARY_DIRS})
-  link_directories(${QT5S_LIBRARY_DIRS})
   set(faf_test_libs
     #Qt5::QWindowsIntegrationPlugin
     libQt5PlatformSupport.a
     ${QT5W_LIBRARIES}
     ${QT5N_LIBRARIES}
-    ${QT5S_LIBRARIES}
     )
 else()
   set(faf_test_libs
     Qt5::Widgets
-    Qt5::Svg
     Qt5::Network
     pthread)
 endif()
@@ -77,28 +72,21 @@ endif()
 
 
 qt5_wrap_ui(FAF_TEST_UIS_H Testclient.ui)
-qt5_wrap_ui(FAF_TEST_UIS_H PeerWidget.ui)
 include_directories(${CMAKE_CURRENT_BINARY_DIR})
-
-qt5_add_resources(FAF_TEST_QRC ChristmasWidget.qrc)
 
 add_executable(faf-ice-testclient WIN32
     ${FAF_TEST_UIS_H}
-    ${FAF_TEST_QRC}
-    GPGNetMessage.cpp
-    JsonRpcProtocol.cpp
-    ChristmasWidget.cpp
-    ChristmasWidget.svg
     GPGNetClient.cpp
+    GPGNetMessage.cpp
+    IceCandidate.cpp
+    JsonRpcProtocol.cpp
     JsonRpcQTcpServer.cpp
     JsonRpcQTcpSocket.cpp
-    Testclient.cpp
-    Testclient.ui
-    PeerWidget.cpp
-    PeerWidget.ui
+    logging.cpp
     Pingtracker.cpp
     Socket.cpp
-    logging.cpp
+    Testclient.cpp
+    Testclient.ui
 )
 target_link_libraries(faf-ice-testclient
   ${faf_test_libs}
