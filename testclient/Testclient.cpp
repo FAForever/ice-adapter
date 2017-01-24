@@ -390,20 +390,26 @@ void Testclient::on_pushButton_iceadapter_connect_clicked()
 
 void Testclient::on_pushButton_iceadapter_start_clicked()
 {
-  QString adapterSrc = QDir(qApp->applicationDirPath()).absoluteFilePath("faf-ice-adapter.js");
+  QString adapterSrc = QDir::toNativeSeparators(QDir(qApp->applicationDirPath()).absoluteFilePath("faf-ice-adapter.js"));
   if (!QFile::exists(adapterSrc))
   {
-    adapterSrc = "/home/sws/projPriv/2017/faf-ice-adapter/index.js";
+    FAF_LOG_INFO << "ice-adapter app " << adapterSrc.toStdString() << " does not exist, using index.js";
+    adapterSrc = QDir::toNativeSeparators(QDir(qApp->applicationDirPath()).absoluteFilePath("index.js"));
+    if (!QFile::exists(adapterSrc))
+    {
+      FAF_LOG_INFO << "ice-adapter app " << adapterSrc.toStdString() << " does not exist, using /home/sws/projPriv/2017/faf-ice-adapter/index.js";
+      adapterSrc = "/home/sws/projPriv/2017/faf-ice-adapter/index.js";
+    }
   }
-  mIceAdapterProcess.start("node",
-                           QStringList()
-                           << adapterSrc
-                           << "--id" << QString::number(mPlayerId)
-                           << "--login" << mPlayerLogin
-                           << "--rpc_port" << QString::number(mIcePort)
-                           << "--gpgnet_port" << "0"
-                           << "--lobby_port" << QString::number(mLobbySocket.localPort())
-                           );
+  auto args = QStringList()
+              << adapterSrc
+              << "--id" << QString::number(mPlayerId)
+              << "--login" << mPlayerLogin
+              << "--rpc_port" << QString::number(mIcePort)
+              << "--gpgnet_port" << "0"
+              << "--lobby_port" << QString::number(mLobbySocket.localPort());
+  FAF_LOG_INFO << "going to start node with arguments " << args.join(" ").toStdString();
+  mIceAdapterProcess.start("node", args);
 }
 
 void Testclient::onPingStats(int peerId, float ping, int pendPings, int lostPings, int succPings)
