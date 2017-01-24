@@ -1,7 +1,8 @@
+import * as twilio from 'twilio';
+import { server as JsonRpcServer } from 'jayson';
 import options from './options';
 import { GPGNetServer } from './GPGNetServer';
 import { GPGNetMessage } from './GPGNetMessage';
-import { server as JsonRpcServer } from 'jayson';
 import { PeerRelay } from './PeerRelay';
 import { Server as TCPServer, Socket as TCPSocket } from 'net';
 import logger from './logger';
@@ -15,6 +16,7 @@ export class IceAdapter {
   tasks: Array<Object>;
   peerRelays: { [key: number]: PeerRelay };
   gpgNetState: string;
+  twilioToken: any;
 
   constructor() {
     this.gpgNetState = 'None';
@@ -28,6 +30,14 @@ export class IceAdapter {
       this.rpcNotify('onConnectionStateChanged', ['Disconnected']);
     });
     this.initRpcServer();
+
+    let accountSid = 'ACb82a0676aa0e83e2b21d109d7499495a';
+    let authToken = "f3de19e194bc7d16f66cd33e1c4c07ce";
+    let twilioClient = twilio(accountSid, authToken);
+    twilioClient.tokens.create({}, (err, twilioToken)=> {
+        this.twilioToken = twilioToken;
+        logger.info(`twilio token: ${JSON.stringify(twilioToken)}`);
+    });
   }
 
   initRpcServer() {
@@ -162,7 +172,12 @@ export class IceAdapter {
   }
 
   createPeerRelay(remotePlayerId: number, remotePlayerLogin: string, offer: boolean): PeerRelay {
-    let relay = new PeerRelay(remotePlayerId, remotePlayerLogin, offer);
+    if (!this.twilioToken) {
+      logger.error("!this.twilioToken");
+      return;
+    }
+
+    let relay = new PeerRelay(remotePlayerId, remotePlayerLogin, offer, this.twilioToken);
     this.peerRelays[remotePlayerId] = relay;
 
     relay.on('iceMessage', (msg) => {

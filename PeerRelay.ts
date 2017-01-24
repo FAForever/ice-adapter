@@ -16,7 +16,7 @@ export class PeerRelay extends EventEmitter {
   connectedTime: [number, number];
   loc_cand_addr: string;
   rem_cand_addr: string;
-  constructor(public remoteId: number, public remoteLogin: string, public createOffer: boolean) {
+  constructor(public remoteId: number, public remoteLogin: string, public createOffer: boolean, public twilioToken : any) {
     super();
     this.iceMsgHistory = '';
     this.startTime = process.hrtime();
@@ -66,9 +66,12 @@ export class PeerRelay extends EventEmitter {
         username: ''
       }*/];
 
+    if (!this.twilioToken) {
+      logger.error("!this.twilioToken");
+    }
     logger.debug(`Relay for ${this.remoteLogin}(${this.remoteId}): iceServers: ${JSON.stringify(iceServers)}`);
     this.peerConnection = new RTCPeerConnection({
-      iceServers: iceServers
+      iceServers: this.twilioToken['ice_servers']
     });
 
     this.peerConnection.onerror = (event) => {
