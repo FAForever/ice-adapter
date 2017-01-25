@@ -1,7 +1,7 @@
 var nodeExternals = require('webpack-node-externals');
 
 module.exports = {  
-  entry: './index.ts',
+  entry: './src/index.ts',
   output: {
     path: __dirname + "/dist",
     filename: 'faf-ice-adapter.js',
