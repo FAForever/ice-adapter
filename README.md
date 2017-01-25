@@ -127,3 +127,18 @@ The easiest way seems to be MSYS2, but it should also compile with MSVC.
 
 ## Building for Linux
 Install libnice, jsoncpp, boost, giomm (may be part of glibmm) and cmake and compile.
+
+
+# Testing
+1. Install nodejs: https://nodejs.org
+2. Run `npm install`
+3. Run `npm run bundle`
+4. Run `node dist/faf-ice-adapter.js --id 1 --login 2`
+5. Download the TestClient: https://github.com/FAForever/ice-adapter/wiki/Testclient https://github.com/FAForever/ice-adapter/releases
+6. Copy the TestClient to theh `dist` folder
+7. Start the TestClient
+8. Press `Connect` in Server
+9. Press `Start` in ICE adapter
+
+You can start multiple TestClient's.
+One client must host the game, the other Client's can then join the game.
