@@ -11,29 +11,18 @@ export class PeerRelay extends EventEmitter {
   dataChannel: RTCDataChannel;
   iceConnectionState: string;
   iceGatheringState: string;
-  iceMsgHistory: string;
   startTime: [number, number];
   connectedTime: [number, number];
   loc_cand_addr: string;
   rem_cand_addr: string;
-  constructor(public remoteId: number, public remoteLogin: string, public createOffer: boolean, public twilioToken : any) {
+  iceServers: Array<any>;
+  constructor(public remoteId: number, public remoteLogin: string, public createOffer: boolean, public twilioToken: any) {
     super();
-    this.iceMsgHistory = '';
     this.startTime = process.hrtime();
     this.iceConnectionState = 'None';
     this.loc_cand_addr = 'none';
     this.rem_cand_addr = 'none';
-
-    this.initPeerConnection();
-    this.initLocalSocket();
-
-    logger.info(`Relay for ${remoteLogin}(${remoteId}): successfully created`);
-  }
-
-  initPeerConnection() {
-    /* https://webrtc.github.io/samples/src/content/peerconnection/trickle-ice/ 
-       TURN servers require credentials with webrtc! */
-    let iceServers = [
+    this.iceServers = [
       {
         urls: [`turn:${options.turn_server}?transport=tcp`],
         credential: options.turn_pass,
@@ -48,30 +37,31 @@ export class PeerRelay extends EventEmitter {
         urls: [`stun:${options.stun_server}`],
         credential: '',
         username: ''
-      },
-  /*
-      {
-        urls: [`turn:numb.viagenie.ca?transport=tcp`],
-        credential: 'asdf',
-        username: 'mm+viagenie.ca@netlair.de'
-      },
-      {
-        urls: [`turn:numb.viagenie.ca?transport=udp`],
-        credential: 'asdf',
-        username: 'mm+viagenie.ca@netlair.de'
-      },
-      {
-        urls: [`stun:numb.viagenie.ca`],
-        credential: '',
-        username: ''
-      }*/];
+      }];
+
+    if (this.twilioToken) {
+      this.iceServers = this.iceServers.concat(this.twilioToken['ice_servers']);
+    }
+    else {
+      logger.warn("missing twilio token");
+    }
+
+    this.initPeerConnection();
+    this.initLocalSocket();
+
+    logger.info(`Relay for ${remoteLogin}(${remoteId}): successfully created`);
+  }
+
+  initPeerConnection() {
+    /* https://webrtc.github.io/samples/src/content/peerconnection/trickle-ice/ 
+       TURN servers require credentials with webrtc! */
 
     if (!this.twilioToken) {
       logger.error("!this.twilioToken");
     }
-    logger.debug(`Relay for ${this.remoteLogin}(${this.remoteId}): iceServers: ${JSON.stringify(iceServers)}`);
+    logger.debug(`Relay for ${this.remoteLogin}(${this.remoteId}): iceServers: ${JSON.stringify(this.iceServers)}`);
     this.peerConnection = new RTCPeerConnection({
-      iceServers: this.twilioToken['ice_servers']
+      iceServers: this.iceServers
     });
 
     this.peerConnection.onerror = (event) => {
@@ -192,7 +182,6 @@ export class PeerRelay extends EventEmitter {
 
   addIceMsg(msg: any) {
     logger.debug(`Relay for ${this.remoteLogin}(${this.remoteId}): received ICE msg: ${JSON.stringify(msg)}`);
-    this.iceMsgHistory += JSON.stringify(msg) + '\n';
     if (msg.type == 'offer') {
       this.peerConnection.setRemoteDescription(new RTCSessionDescription(msg)).then(() => {
         this.peerConnection.createAnswer().then((desc: RTCSessionDescription) => {
