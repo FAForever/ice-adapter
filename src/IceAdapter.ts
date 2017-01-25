@@ -34,9 +34,9 @@ export class IceAdapter {
     let accountSid = 'ACb82a0676aa0e83e2b21d109d7499495a';
     let authToken = "f3de19e194bc7d16f66cd33e1c4c07ce";
     let twilioClient = twilio(accountSid, authToken);
-    twilioClient.tokens.create({}, (err, twilioToken)=> {
-        this.twilioToken = twilioToken;
-        logger.info(`twilio token: ${JSON.stringify(twilioToken)}`);
+    twilioClient.tokens.create({}, (err, twilioToken) => {
+      this.twilioToken = twilioToken;
+      logger.info(`twilio token: ${JSON.stringify(twilioToken)}`);
     });
   }
 
