@@ -1,6 +1,6 @@
-import * as optimist from 'optimist';
+import * as yargs from "yargs";
 
-export let options = optimist
+export let options = yargs
   .usage('Usage: $0 --id [num] --login [string]')
   .demand(['id', 'login'])
   .describe('id', 'set the ID of the local player')
