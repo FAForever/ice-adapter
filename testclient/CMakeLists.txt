@@ -41,7 +41,6 @@ endif()
 
 include_directories(${Qt5Widgets_INCLUDE_DIRS})
 include_directories(${Qt5Network_INCLUDE_DIRS})
-include_directories(${Qt5Svg_INCLUDE_DIRS})
 
 add_executable(faf-ice-testserver
     Testserver.cpp
