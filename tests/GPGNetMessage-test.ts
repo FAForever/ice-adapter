@@ -1,4 +1,4 @@
-import {GPGNetMessage} from '../GPGNetMessage';
+import {GPGNetMessage} from '../src/GPGNetMessage';
 import {expect} from 'chai';
 
 

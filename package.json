@@ -8,7 +8,8 @@
     "format": "./node_modules/.bin/tsfmt -r *.ts",
     "test": "./node_modules/.bin/mocha tests --watch",
     "tscompile": "./node_modules/.bin/tsc",
-    "bundlejs": "./node_modules/.bin/browserify --no-builtins --bare --no-bf --node --dg true index.js -o ./build/faf-ice-adapter.js"
+    "bundle": "webpack --progress --colors -p",
+    "bundle2": "browserify --node index.js -o dist/test.js"
   },
   "keywords": [
     "Supreme Commander",
@@ -23,6 +24,9 @@
   "bin": {
     "faf-ice-adapter": "./index.js"
   },
+  "browser": {
+    "wrtc": false
+  },
   "repository": {
     "type": "git",
     "url": "https://github.com/faforever/ice-adapter"
@@ -35,9 +39,12 @@
   ],
   "dependencies": {
     "jayson": "2.0.2",
-    "optimist": "0.6.1",
+    "noderify": "^2.0.0",
+    "ts-loader": "^2.0.0",
+    "twilio": "2.11.1",
     "winston": "2.3.0",
     "wrtc": "0.0.61",
+    "yargs": "^6.6.0"
     "twilio": "2.11.1"
   },
   "devDependencies": {
@@ -45,10 +52,14 @@
     "@types/winston": "2.2.0",
     "browserify": "13.3.0",
     "chai": "3.5.0",
+    "json-loader": "^0.5.4",
     "mocha": "3.2.0",
+    "shebang-loader": "0.0.1",
     "typescript": "2.1.4",
     "typescript-formatter": "4.0.1",
-    "uglifyjs": "^2.4.10"
+    "uglifyjs": "^2.4.10",
+    "webpack": "^1.14.0",
+    "webpack-node-externals": "^1.5.4"
   },
   "preferGlobal": true,
   "private": true
