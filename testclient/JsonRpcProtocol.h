@@ -31,8 +31,8 @@ public:
                    Socket* socket = nullptr,
                    RpcRequestResult resultCb = RpcRequestResult());
 
-protected:
   void parseMessage(Socket* socket, std::vector<char>& msgBuffer);
+protected:
   virtual bool sendJson(Socket* socket, std::string const& message) = 0;
   Json::Value processRequest(Json::Value const& request, Socket* socket);
 

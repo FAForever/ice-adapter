@@ -2,6 +2,8 @@
 
 #include "GPGNetMessage.h"
 
+#include <vector>
+
 #include <QtNetwork/QTcpSocket>
 
 namespace faf

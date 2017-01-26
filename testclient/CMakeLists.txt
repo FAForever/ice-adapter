@@ -55,9 +55,8 @@ target_link_libraries(faf-ice-testserver
   ${JSON_LIBRARIES}
   ${Boost_LIBRARIES}
 )
-set_property(TARGET faf-ice-testserver
-  PROPERTY CXX_STANDARD 11
-  PROPERTY POSITION_INDEPENDENT_CODE ON)
+set_property(TARGET faf-ice-testserver PROPERTY CXX_STANDARD 11)
+set_property(TARGET faf-ice-testserver PROPERTY CXX_STANDARD_REQUIRED ON)
 if(NOT MINGW)
   target_compile_definitions(faf-ice-testserver PUBLIC BOOST_LOG_DYN_LINK)
 endif()
@@ -92,9 +91,8 @@ target_link_libraries(faf-ice-testclient
   ${JSON_LIBRARIES}
   ${Boost_LIBRARIES}
 )
-set_property(TARGET faf-ice-testclient
-  PROPERTY CXX_STANDARD 11
-  PROPERTY POSITION_INDEPENDENT_CODE ON)
+set_property(TARGET faf-ice-testclient PROPERTY CXX_STANDARD 11)
+set_property(TARGET faf-ice-testclient PROPERTY CXX_STANDARD_REQUIRED ON)
 if(NOT MINGW)
   target_compile_definitions(faf-ice-testclient PUBLIC BOOST_LOG_DYN_LINK)
 endif()
