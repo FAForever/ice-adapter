@@ -1,6 +1,6 @@
 language: cpp
 os: linux
-dist: trusty
+dist: xenial
 sudo: required
 compiler: gcc
 env:
@@ -9,29 +9,19 @@ install:
 - echo "deb http://pkg.mxe.cc/repos/apt/debian wheezy main" | sudo tee /etc/apt/sources.list.d/mxeapt.list
 - sudo apt-key adv --keyserver x-hkp://keys.gnupg.net --recv-keys D43A795B73B16ABE9643FE1AFD8FFF16DB45C6AB
 - sudo apt-get update
-- sudo apt-get --yes install mxe-$MXE_TARGET-jsoncpp mxe-$MXE_TARGET-glib mxe-$MXE_TARGET-glibmm mxe-$MXE_TARGET-qtbase mxe-$MXE_TARGET-qtsvg gtk-doc-tools
-  mxe-$MXE_TARGET-boost
+- sudo apt-get --yes install mxe-$MXE_TARGET-jsoncpp mxe-$MXE_TARGET-qtbase mxe-$MXE_TARGET-boost
 script:
-- export LIBNICE_SHA=2803a0b4b70af9684e05ef5ed3f0c2fbca4b6c93
 - export MXE_DIR=/usr/lib/mxe
 - export PATH=/usr/lib/mxe/usr/bin:$PATH
-- wget https://github.com/libnice/libnice/archive/$LIBNICE_SHA.tar.gz
-- tar xzf $LIBNICE_SHA.tar.gz
-- cd libnice-$LIBNICE_SHA
-- "./autogen.sh --prefix=$MXE_DIR/usr/$MXE_TARGET --host=$MXE_TARGET --enable-compile-warnings=no PKG_CONFIG=$MXE_DIR/usr/bin/$MXE_TARGET-pkg-config CC=$MXE_DIR/usr/bin/$MXE_TARGET-gcc"
-- make -j2
-- sudo "PATH=$MXE_DIR/usr/bin:$PATH" make install
-- cd ..
 - mkdir build && cd build
-- "$MXE_DIR/usr/bin/$MXE_TARGET-cmake -DCMAKE_BUILD_TYPE=Release -DFAF_BUILD_TEST=ON -DCMAKE_CXX_FLAGS=\"-march=i686\" .."
-- make -j8
+- "$MXE_DIR/usr/bin/$MXE_TARGET-cmake -DCMAKE_BUILD_TYPE=Release -DCMAKE_CXX_FLAGS=\"-march=i686\" ../testclient"
+- make -j8 faf-ice-testclient
 - cd ..
 deploy:
   provider: releases
   api_key:
     secure: dXe34Fx7IZJHnCDr1POgDI2Klm+R+PSh/r7oPFZwAN3A2Rgwmj5zLD3EeFIOUNqsB2ROtqzInhRAuHvPsEauPqSk2cgoWNQA3BpemgiXvaVGsMXsEFl05bURcC1ViWsI0DNGJSyLGlWphXV1LmqBXMcbUwv2dv4hVBU3ZR3FYVtd2dYgq1Ee3FRy1ZjTbTF495F4kEtYbQYYaq8jpW+cn5LTATu0enRZ/TC4b9AmgoTMYcjarw8DOZW59jogHFJYoTAdjklhyzpDdhuFS7ASkedX/ZsGYKbl9cllHBPo8hjxLGtLWbclHN2qob6n7QT4oa6k7pEnw2/TCjglKB4cuG0vhmtexNKFD4UMLdqxIqaSj2tsIyopXSf/qjwq9PMdxlY3Po+v1I/BdcT6U4c14wDpUE+ouyO5yhTF3zDJidJNnu8B0BgbVENuvax06Mw6/ho7Tt8YUANQ6h0RrrU71TBmG430S2hdOct2Fu9HNs+9zPGyX97lGPEVkYflaAtN83//oWijdxvh52UsRYdyu9n6rTdOr6CCeNY2TH7qe0kVTGZECCSW4fZ+/gNkFk5Xg2kx4R+jm0PsYEaFLVzZsWR0RnbJVFYZiBiWPABKAA3DtesRdL0DPI6VkvJx1bKJ9Ltwtu7fH6CVAQrHaL0gI7Bsk5t6ZwMONMBO8uAgOuA=
   file:
-    - "./build/faf-ice-adapter.exe"
     - "./build/faf-ice-testclient.exe"
   skip_cleanup: true
   on:
