@@ -66,17 +66,10 @@ faf-ice-adapter usage:
 --help                               produce help message
 --id arg                             set the ID of the local player
 --login arg                          set the login of the local player, e.g. "Rhiza"
---rpc-port arg (=7236)               set the port of internal JSON-RPC server
---ice-port-min arg (=-1)             start of port range to use for ICE local host candidates
---ice-port-max arg (=-1)             end of port range to use for ICE local host candidates
---upnp arg (=1)                      use UPNP for NAT router port configuration
---gpgnet-port arg (=7237)            set the port of internal GPGNet server
---lobby-port arg (=7238)             set the port the game lobby should use for incoming UDP packets from the PeerRelay
---stun-ip arg (=37.58.123.3)         set the STUN IP address
---turn-ip arg (=37.58.123.3)         set the TURN IP address
---turn-user arg                      set the TURN username
---turn-pass arg                      set the TURN password
---log-file arg                       set a verbose log file
+--rpc_port arg (=7236)               set the port of internal JSON-RPC server
+--gpgnet_port arg (=7237)            set the port of internal GPGNet server
+--lobby_port arg (=7238)             set the port the game lobby should use for incoming UDP packets from the PeerRelay
+--log_file arg                       set a verbose log file
 ```
 
 ## Example usage sequence
@@ -89,56 +82,23 @@ faf-ice-adapter usage:
 | 4 | The client sends `hostGame('monument_valley.v0001')`||
 | 5 | The game should now wait in the lobby and the client receives a lot of `onGpgNetMessageReceived` notifications from `faf-ice-adapter`||
 | 6 |  | Now Bob want to join Alices game, starts the client, the client starts `faf-ice-adapter` and the game like Alice did. |
-| 7 | The client sends `connectToPeer('Bob', 2)` | The client sends `joinGame('Alice', 1)` |
-| 8 | The client receives `onNeedSdp(1,2)` | The client receives `rpcNeedSdp(2,1)` |
-| 9 | The game should connect to the internal PeerRelay, and shows that it's connecting to the peer. | The game should connect to the internal PeerRelay, and shows that it's connecting to the peer. |
-| 10 | After some time the client receives `onSdpGathered(1,2,'asdf')` and must now transfer the SDP string to the peer. | After some time the client receives `onSdpGathered(2,1,'qwer')` and must now transfer the SDP string to the peer. |
-| 11 | The client must set the transferred SDP for the peer using `setSdp(2, 'qwer')`. | The client must set the transferred SDP for the peer using `setSdp(1, 'asdf')`. |
-| 12 | The client received multiple `onPeerStateChanged(...)` notifications which would finally show the `'Ready'` state, which should also let the game connect to the peer. | The client received multiple `onPeerStateChanged(...)` notifications which would finally show the `'Ready'` state, which should also let the game connect to the peer. |
+| 7 | The client sends `connectToPeer('Bob', 2, true)` | The client sends `joinGame('Alice', 1)` |
+| 8 | The game should connect to the internal PeerRelay, and shows that it's connecting to the peer. | The game should connect to the internal PeerRelay, and shows that it's connecting to the peer. |
+| 9 | The client receives multiple `onIceMsg(1, 2, someIceMsg)`notifications and must now transfer these messages string ordered to the peer. | The client receives multiple `onIceMsg(1, 2, someIceMsg)`notifications and must now transfer these messages string ordered to the peer. |
+| 10 | The client must set the transferred ICE messages for the peer using `iceMsg(2, someIceMsg)`. | The client must set the transferred ICE messages for the peer using `iceMsg(1, someIceMsg)`. |
+| 11 | The client received multiple `iceConnectionStateChanged(...)` notifications which would finally show the `'Connected'` or `'Complete'` state, which should also let the game connect to the peer. Another indicator for a connection is the `onDatachannelOpen` notification.| The client received multiple `iceConnectionStateChanged(...)` notifications which would finally show the `'Connected'` or `'Complete'` state, which should also let the game connect to the peer. |
 
 ## Building `faf-ice-adapter`
-`faf-ice-adapter` is using [libnice](https://nice.freedesktop.org/wiki/), a glib-based [ICE](https://en.wikipedia.org/wiki/Interactive_Connectivity_Establishment) implementation.
-`faf-ice-adapter` is intentionally single-threaded to keep things simple.
-`faf-ice-adapter` uses mostly async I/O to keep things responsive.
 
-To circumvent mixing of mainloops, the remaining networking part of `faf-ice-adapter` is also using gio, more precisely [glibmm/giomm](https://developer.gnome.org/glibmm/stable/), to keep C++ development simple.
-
-All current dependencies are
-- libnice for ICE
-- jsoncpp for JSON
-- boost for logging and program options (totally negotiable, since boost is not a lightweight dependency)
-- giomm for network sockets
-
-### Cross compile for Windows
-The easy way I used to build the static Windows exe is the remarkable [MXE project](https://github.com/mxe/mxe). These build instructions should work on Linux:
-```
-git clone https://github.com/mxe/mxe.git mxe
-cd mxe
-make MXE_TARGETS=i686-w64-mingw32.static MXE_PLUGIN_DIRS=plugins/gcc6 JOBS=8 -j4 libnice jsoncpp boost glibmm
-cd ..
-git clone https://github.com/FAForever/ice-adapter.git ice-adapter && cd ice-adapter
-mkdir build && cd build
-../../mxe/usr/bin/i686-w64-mingw32.static-cmake ..
-make
-```
-
-### From Windows
-The easiest way seems to be MSYS2, but it should also compile with MSVC.
-
-## Building for Linux
-Install libnice, jsoncpp, boost, giomm (may be part of glibmm) and cmake and compile.
-
-
-# Testing
+## Testing
 1. Install nodejs: https://nodejs.org
 2. Run `npm install`
-3. Run `npm run bundle`
-4. Run `node dist/faf-ice-adapter.js --id 1 --login 2`
+4. Run `node src/index.js --id 1 --login 2`
 5. Download the TestClient: https://github.com/FAForever/ice-adapter/wiki/Testclient https://github.com/FAForever/ice-adapter/releases
-6. Copy the TestClient to the `dist` folder
+6. Copy the TestClient to the current folder
 7. Start the TestClient
 8. Press in the Testclient `Connect` at Server
 9. Press in the Testclient `Start` at ICE adapter
 
-You can start multiple TestClient's.
-One client must host the game, the other Client's can then join the game.
+You can start multiple TestClients.
+One client must host the game, the other clients can then join the game.
