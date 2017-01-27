@@ -1,3 +1,4 @@
+#!/usr/bin/env node
 import options from './options';
 import logger from './logger';
 
