@@ -24,17 +24,17 @@ export class PeerRelay extends EventEmitter {
     this.rem_cand_addr = 'none';
     this.iceServers = [
       {
-        urls: [`turn:${options.turn_server}?transport=tcp`],
-        credential: options.turn_pass,
-        username: options.turn_user
+        urls: [`turn:test.faforever.com?transport=tcp`],
+        credential: 'test',
+        username: 'test'
       },
       {
-        urls: [`turn:${options.turn_server}?transport=udp`],
-        credential: options.turn_pass,
-        username: options.turn_user
+        urls: [`turn:test.faforever.com?transport=udp`],
+        credential: 'test',
+        username: 'test'
       },
       {
-        urls: [`stun:${options.stun_server}`],
+        urls: [`stun:test.faforever.com`],
         credential: '',
         username: ''
       }];
