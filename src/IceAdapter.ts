@@ -17,6 +17,8 @@ export class IceAdapter {
   peerRelays: { [key: number]: PeerRelay };
   gpgNetState: string;
   twilioToken: any;
+  version: string; 
+  gametaskString: string;
 
   constructor() {
     this.gpgNetState = 'None';
@@ -38,6 +40,9 @@ export class IceAdapter {
       this.twilioToken = twilioToken;
       logger.info(`twilio token: ${JSON.stringify(twilioToken)}`);
     });
+
+    this.version = require('../package.json').version;
+    this.gametaskString = 'Idle';
   }
 
   initRpcServer() {
@@ -77,6 +82,7 @@ export class IceAdapter {
       type: 'HostGame',
       map: map
     });
+    this.gametaskString = `Hosting map ${map}.`;
   }
 
   joinGame(remotePlayerLogin: string, remotePlayerId: number) {
@@ -90,6 +96,7 @@ export class IceAdapter {
         remotePlayerId: remotePlayerId
       });
     });
+    this.gametaskString = `Joining game from player ${remotePlayerLogin}.`;
   }
 
   connectToPeer(remotePlayerLogin: string, remotePlayerId: number, offer: boolean) {
@@ -130,6 +137,7 @@ export class IceAdapter {
 
   status(): Object {
     let result = {
+      'version': this.version,
       'options': {
         'player_id': options.id,
         'player_login': options.login,
@@ -145,7 +153,8 @@ export class IceAdapter {
       'gpgnet': {
         'local_port': this.gpgNetServer.server.address().port,
         'connected': this.gpgNetServer.socket ? true : false,
-        'game_state': this.gpgNetState
+        'game_state': this.gpgNetState,
+        'task_string': this.gametaskString
       },
       'relays': []
     };
