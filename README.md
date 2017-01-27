@@ -38,6 +38,7 @@ Note that all JSON messages are newline terminated.
   "local_port" : /* int: The port the game should connect to via /gpgnet 127.0.0.1:port */
   "connected" : /* boolean: Is the game connected? */
   "game_state" : /* string: The last received "GameState" */
+  "task_string" : /* string: A string describing the task/role of the game (joining/hosting)*/
   }
 "relays" : [/* An array of relay information*/
   {
@@ -46,11 +47,10 @@ Note that all JSON messages are newline terminated.
     "local_game_udp_port" : /* int: The UDP port opened for the game to connect to */
     "ice_agent": {/* Information about the IceAgent for this peer */
       "state": /* string: The connection state*/
-      "peer_connected_to_me": /* bool: Is the remote peer connected to me? Determined by receiving a ping or ICE state is Ready */
-      "connected_to_peer": /* bool: Am I connected to the peer? Determined by having a candidate pair */
-      "local_candidate": /* string: The local connection information negotiated */
-      "remote_candidate": /* string: The remote connection information negotiated */
-      "time_to_connected": /* double: The time it took to connect to the peer */
+      "datachannel_open": /* bool: Is the remote peer connected to me? Determined by receiving a ping or ICE state is Ready */
+      "loc_cand_addr": /* string: The local address used for the connection */
+      "rem_cand_addr": /* string: The remote address used for the connection */
+      "time_to_connected": /* double: The time it took to connect to the peer in seconds */
       }
     },
   ...

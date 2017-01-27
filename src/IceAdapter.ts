@@ -144,10 +144,6 @@ export class IceAdapter {
         'rpc_port': options.rpc_port,
         'gpgnet_port': options.gpgnet_port,
         'lobby_port': options.lobby_port,
-        'stun_server': options.stun_server,
-        'turn_server': options.turn_server,
-        'turn_user': options.turn_user,
-        'turn_pass': options.turn_pass,
         'log_file': options.log_file,
       },
       'gpgnet': {
