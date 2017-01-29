@@ -56,9 +56,6 @@ export class IceAdapter {
       'iceMsg': (args, callback) => { this.iceMsg(args[0], args[1]); },
       'sendToGpgNet': (args, callback) => { this.sendToGpgNet(args[0], args[1]); },
       'status': (args, callback) => { callback(null, this.status()); }
-    },
-    {
-      replacer: shared.replacer
     })
     this.rpcServerRaw = this.rpcServer.tcp();
     this.rpcServerRaw.listen(options.rpc_port, 'localhost');;
