@@ -31,7 +31,6 @@ export class IceAdapter {
     this.gpgNetServer.on('disconnected', () => {
       this.rpcNotify('onConnectionStateChanged', ['Disconnected']);
     });
-    this.initRpcServer();
 
     let accountSid = 'ACb82a0676aa0e83e2b21d109d7499495a';
     let authToken = "f3de19e194bc7d16f66cd33e1c4c07ce";
@@ -43,6 +42,8 @@ export class IceAdapter {
 
     this.version = require('../package.json').version;
     this.gametaskString = 'Idle';
+
+    this.initRpcServer();
   }
 
   initRpcServer() {
@@ -55,6 +56,9 @@ export class IceAdapter {
       'iceMsg': (args, callback) => { this.iceMsg(args[0], args[1]); },
       'sendToGpgNet': (args, callback) => { this.sendToGpgNet(args[0], args[1]); },
       'status': (args, callback) => { callback(null, this.status()); }
+    },
+    {
+      replacer: shared.replacer
     })
     this.rpcServerRaw = this.rpcServer.tcp();
     this.rpcServerRaw.listen(options.rpc_port, 'localhost');;
@@ -267,7 +271,7 @@ export class IceAdapter {
         jsonrpc: '2.0',
         method: method,
         params: params
-      }) + '\n';
+      });
       logger.debug(`sending notification to client: ${data}`);
       this.rpcSocket.write(data);
     }

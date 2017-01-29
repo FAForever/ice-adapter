@@ -3,7 +3,8 @@
 #include <functional>
 #include <string>
 #include <map>
-#include <vector>
+
+#include <QtCore/QByteArray>
 
 #include <json/json.h>
 
@@ -31,7 +32,7 @@ public:
                    Socket* socket = nullptr,
                    RpcRequestResult resultCb = RpcRequestResult());
 
-  void parseMessage(Socket* socket, std::vector<char>& msgBuffer);
+  QByteArray processBuffer(Socket* socket, QByteArray const& msgBuffer);
 protected:
   virtual bool sendJson(Socket* socket, std::string const& message) = 0;
   Json::Value processRequest(Json::Value const& request, Socket* socket);

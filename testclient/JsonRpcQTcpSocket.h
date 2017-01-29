@@ -16,10 +16,11 @@ public:
   virtual ~JsonRpcQTcpSocket();
   QTcpSocket* socket() const;
 protected:
+  void init();
   virtual bool send(std::string const& msg) override;
   virtual bool sendJson(Socket* socket, std::string const& message) override;
 
-  std::vector<char> mMessage;
+  QByteArray mBuffer;
   QTcpSocket* mSocket;
   bool mOwnSocket;
 };

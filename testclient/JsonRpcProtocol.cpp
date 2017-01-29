@@ -80,76 +80,102 @@ void JsonRpcProtocol::sendRequest(std::string const& method,
   }
 }
 
-void JsonRpcProtocol::parseMessage(Socket* socket, std::vector<char>& msgBuffer)
+/* https://github.com/joncol/jcon-cpp/blob/master/src/jcon/json_rpc_endpoint.cpp#L107 */
+QByteArray JsonRpcProtocol::processBuffer(Socket* socket, QByteArray const& msgBuffer)
 {
-  try
+  if (msgBuffer.isEmpty())
   {
-    Json::Value jsonMessage;
-    Json::Reader r;
+    return QByteArray();
+  }
+  QByteArray buf(msgBuffer);
 
-    std::istringstream is(std::string(msgBuffer.data(), msgBuffer.size()));
-    msgBuffer.clear();
-    while (true)
+  if (buf[0] != '{')
+  {
+    FAF_LOG_ERROR << "buf[0] == '{' expected: " << msgBuffer.toStdString();
+    return QByteArray();
+  }
+
+  bool in_string = false;
+  int brace_nesting_level = 0;
+
+  int i = 0;
+  while (i < buf.size() )
+  {
+    const char curr_ch = buf[i++];
+
+    if (curr_ch == '"')
+        in_string = !in_string;
+
+    if (!in_string)
     {
-      std::string doc;
-      std::getline(is, doc, '\n');
-      if (doc.empty())
-      {
-        break;
-      }
-      FAF_LOG_TRACE << "parsing JSON:" << doc;
-      if(!r.parse(doc, jsonMessage))
-      {
-        FAF_LOG_TRACE << "storing doc:" << doc;
-        msgBuffer.insert(msgBuffer.end(),
-                        doc.c_str(),
-                        doc.c_str() + doc.size());
-        break;
-      }
-      if (jsonMessage.isMember("method"))
-      {
-        /* this message is a request */
-        Json::Value response = processRequest(jsonMessage, socket);
+      if (curr_ch == '{')
+          ++brace_nesting_level;
 
-        /* we don't need to respond to notifications */
-        if (jsonMessage.isMember("id"))
-        {
-          std::string responseString = Json::FastWriter().write(response);
-          FAF_LOG_TRACE << "sending response:" << responseString;
-          socket->send(responseString);
-        }
-      }
-      else if (jsonMessage.isMember("error") ||
-               jsonMessage.isMember("result"))
+      if (curr_ch == '}')
       {
-        /* this message is a response */
-        if (jsonMessage.isMember("id"))
+        --brace_nesting_level;
+        if (brace_nesting_level < 0)
         {
-          if (jsonMessage["id"].isInt())
+          FAF_LOG_ERROR << "error parsing " << msgBuffer.toStdString() << ": brace_nesting_level < 0";
+          return QByteArray();
+        }
+
+        if (brace_nesting_level == 0) {
+          Json::Value jsonMessage;
+          Json::Reader r;
+          FAF_LOG_TRACE << "parsing JSON:" << std::string(buf.data(), i);
+          if(!r.parse(buf.data(),
+                      buf.data() + i,
+                      jsonMessage))
           {
-            auto reqIt = mCurrentRequests.find(jsonMessage["id"].asInt());
-            if (reqIt != mCurrentRequests.end())
+            return buf;
+          }
+          if (jsonMessage.isMember("method"))
+          {
+            /* this message is a request */
+            Json::Value response = processRequest(jsonMessage, socket);
+
+            /* we don't need to respond to notifications */
+            if (jsonMessage.isMember("id"))
             {
-              try
-              {
-                reqIt->second(jsonMessage.isMember("result") ? jsonMessage["result"] : Json::Value(),
-                              jsonMessage.isMember("error") ? jsonMessage["error"] : Json::Value());
-              }
-              catch (std::exception& e)
-              {
-                FAF_LOG_ERROR << "exception in request handler for id " << jsonMessage["id"].asInt() << ": " << e.what() << "\nmessage was: " << doc;
-              }
-              mCurrentRequests.erase(reqIt);
+              std::string responseString = Json::FastWriter().write(response);
+              FAF_LOG_TRACE << "sending response:" << responseString;
+              socket->send(responseString);
             }
           }
+          else if (jsonMessage.isMember("error") ||
+                   jsonMessage.isMember("result"))
+          {
+            /* this message is a response */
+            if (jsonMessage.isMember("id"))
+            {
+              if (jsonMessage["id"].isInt())
+              {
+                auto reqIt = mCurrentRequests.find(jsonMessage["id"].asInt());
+                if (reqIt != mCurrentRequests.end())
+                {
+                  try
+                  {
+                    reqIt->second(jsonMessage.isMember("result") ? jsonMessage["result"] : Json::Value(),
+                                  jsonMessage.isMember("error") ? jsonMessage["error"] : Json::Value());
+                  }
+                  catch (std::exception& e)
+                  {
+                    FAF_LOG_ERROR << "exception in request handler for id " << jsonMessage["id"].asInt() << ": " << e.what() << "\nmessage was: " << std::string(buf.data(), i);
+                  }
+                  mCurrentRequests.erase(reqIt);
+                }
+              }
+            }
+          }
+          buf = buf.mid(i).trimmed();
+          i = 0;
+          continue;
         }
       }
     }
   }
-  catch (std::exception& e)
-  {
-    FAF_LOG_ERROR << "error in receive: " << e.what();
-  }
+  return buf;
 }
 
 Json::Value JsonRpcProtocol::processRequest(Json::Value const& request, Socket* socket)

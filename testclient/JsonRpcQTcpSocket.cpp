@@ -9,16 +9,7 @@ JsonRpcQTcpSocket::JsonRpcQTcpSocket(QObject* parent):
   mSocket(new QTcpSocket),
   mOwnSocket(true)
 {
-  QObject::connect(mSocket,
-                   &QTcpSocket::readyRead,
-                   [this]()
-  {
-    auto data = mSocket->readAll();
-    mMessage.insert(mMessage.end(),
-                    data.begin(),
-                    data.begin() + data.size());
-    JsonRpcProtocol::parseMessage(this, mMessage);
-  });
+  init();
 }
 
 JsonRpcQTcpSocket::JsonRpcQTcpSocket(QTcpSocket* socket, QObject* parent):
@@ -26,16 +17,7 @@ JsonRpcQTcpSocket::JsonRpcQTcpSocket(QTcpSocket* socket, QObject* parent):
   mSocket(socket),
   mOwnSocket(false)
 {
-  QObject::connect(mSocket,
-                   &QTcpSocket::readyRead,
-                   [this]()
-  {
-    auto data = mSocket->readAll();
-    mMessage.insert(mMessage.end(),
-                    data.begin(),
-                    data.begin() + data.size());
-    JsonRpcProtocol::parseMessage(this, mMessage);
-  });
+  init();
 }
 
 JsonRpcQTcpSocket::~JsonRpcQTcpSocket()
@@ -49,6 +31,17 @@ JsonRpcQTcpSocket::~JsonRpcQTcpSocket()
 QTcpSocket* JsonRpcQTcpSocket::socket() const
 {
   return mSocket;
+}
+
+void JsonRpcQTcpSocket::init()
+{
+  QObject::connect(mSocket,
+                   &QTcpSocket::readyRead,
+                   [this]()
+  {
+    mBuffer += mSocket->readAll();
+    mBuffer = JsonRpcProtocol::processBuffer(this, mBuffer.trimmed());
+  });
 }
 
 bool JsonRpcQTcpSocket::send(std::string const& msg)
