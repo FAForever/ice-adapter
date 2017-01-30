@@ -16,7 +16,7 @@ The `faf-ice-adapter` is controlled using a bi-directional [JSON-RPC](http://www
 | disconnectFromPeer | remotePlayerId (int)| "ok" | Create a PeerRelay and tell the game to connect to the remote peer. |
 | iceMsg | remotePlayerId (int), msg (object) | "ok" | Add the remote ICE message to the PeerRelay to establish a connection. |
 | sendToGpgNet | header (string), chunks (array) | "ok" | Send an arbitrary message to the game. |
-| status | | [status structure](#Status structure) | Polls the current status of the `faf-ice-adapter`. |
+| status | | [status structure](#status structure) | Polls the current status of the `faf-ice-adapter`. |
 
 ### Notifications (faf-ice-adapter ➠ client )
 | Name | Parameters | Description |
