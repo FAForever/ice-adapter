@@ -9,13 +9,13 @@ The `faf-ice-adapter` is controlled using a bi-directional [JSON-RPC](http://www
 
 | Name | Parameters | Returns | Description |
 | --- | --- | --- | --- |
-| quit | | "ok" | Gracefully shuts down the `faf-ice-adapter`. |
-| hostGame | mapName (string) | "ok" | Tell the game to create the lobby and host game on Lobby-State. |
-| joinGame | remotePlayerLogin (string), remotePlayerId (int) | "ok" | Tell the game to create the Lobby, create a PeerRelay and join the remote game. |
-| connectToPeer | remotePlayerLogin (string), remotePlayerId (int)| "ok" | Create a PeerRelay and tell the game to connect to the remote peer. |
-| disconnectFromPeer | remotePlayerId (int)| "ok" | Create a PeerRelay and tell the game to connect to the remote peer. |
-| iceMsg | remotePlayerId (int), msg (object) | "ok" | Add the remote ICE message to the PeerRelay to establish a connection. |
-| sendToGpgNet | header (string), chunks (array) | "ok" | Send an arbitrary message to the game. |
+| quit | | | Gracefully shuts down the `faf-ice-adapter`. |
+| hostGame | mapName (string) | | Tell the game to create the lobby and host game on Lobby-State. |
+| joinGame | remotePlayerLogin (string), remotePlayerId (int) | | Tell the game to create the Lobby, create a PeerRelay and join the remote game. |
+| connectToPeer | remotePlayerLogin (string), remotePlayerId (int)| | Create a PeerRelay and tell the game to connect to the remote peer. |
+| disconnectFromPeer | remotePlayerId (int)| | Create a PeerRelay and tell the game to connect to the remote peer. |
+| iceMsg | remotePlayerId (int), msg (object) | | Add the remote ICE message to the PeerRelay to establish a connection. |
+| sendToGpgNet | header (string), chunks (array) | | Send an arbitrary message to the game. |
 | status | | [status structure](#status-structure) | Polls the current status of the `faf-ice-adapter`. |
 
 ### Notifications (faf-ice-adapter ➠ client )
