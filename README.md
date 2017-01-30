@@ -1,6 +1,6 @@
 # ❆ faf-ice-adapter ❆
 
-An [ICE](https://en.wikipedia.org/wiki/Interactive_Connectivity_Establishment) adapter to proxy Forged Alliance network packets between players.
+ A P2P connection proxy for Supreme Commander: Forged Alliance using [ICE](https://en.wikipedia.org/wiki/Interactive_Connectivity_Establishment).
 
 ## JSONRPC Protocol
 The `faf-ice-adapter` is controlled using a bi-directional [JSON-RPC](http://www.jsonrpc.org/specification) interface over TCP.
