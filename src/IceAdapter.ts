@@ -30,6 +30,12 @@ export class IceAdapter {
     });
     this.gpgNetServer.on('disconnected', () => {
       this.rpcNotify('onConnectionStateChanged', ['Disconnected']);
+
+      //disconnect all peers when the game exits
+      for (let peerId in this.peerRelays) {
+        delete this.peerRelays[peerId];
+      }
+
     });
 
     let accountSid = 'ACb82a0676aa0e83e2b21d109d7499495a';
