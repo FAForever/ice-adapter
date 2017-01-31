@@ -229,7 +229,7 @@ export class IceAdapter {
             return;
           }
           let port = this.peerRelays[task['remotePlayerId']].localPort;
-          this.gpgNetServer.send(new GPGNetMessage(task['type'], ['127.0.0.1:' + port, task['remoteLogin'], remoteId]));
+          this.gpgNetServer.send(new GPGNetMessage(task['type'], ['127.0.0.1:' + port, task['remotePlayerLogin'], remoteId]));
           break;
         case 'HostGame':
           if (this.gpgNetState != "Lobby") {
