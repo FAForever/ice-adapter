@@ -165,7 +165,7 @@ export class IceAdapter {
         'local_game_udp_port': relay.localPort,
         'ice_agent': {
           'state': relay.peerConnection.iceConnectionState,
-          'datachannel_open': relay.peerConnection.dataChannel ? true : false,
+          'datachannel_open': relay.dataChannel ? true : false,
           'loc_cand_addr': relay.loc_cand_addr,
           'rem_cand_addr': relay.rem_cand_addr,
           'time_to_connected': relay.connectedTime ? relay.connectedTime[1] / 1e9 : -1,
