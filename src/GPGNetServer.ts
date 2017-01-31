@@ -43,6 +43,7 @@ export class GPGNetServer extends EventEmitter {
   }
 
   send(msg: GPGNetMessage) {
+    logger.info(`GPGNet server sending msg ${JSON.stringify(msg)}`);
     if (this.socket) {
       this.socket.write(msg.toBuffer());
     }

@@ -166,6 +166,7 @@ export class PeerRelay extends EventEmitter {
     });
 
     this.localSocket.on('message', (msg, rinfo) => {
+      logger.info(`Relay for ${this.remoteLogin}(${this.remoteId}): received msg ${msg} from ${JSON.stringify(rinfo)}}`);
       if (this.dataChannel) {
         this.dataChannel.send(msg);
       }
