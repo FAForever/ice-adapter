@@ -489,7 +489,7 @@
    <attribute name="dockWidgetArea">
     <number>2</number>
    </attribute>
-   <widget class="QWidget" name="blubb">
+   <widget class="QWidget" name="widget_details">
     <layout class="QVBoxLayout" name="verticalLayout_10" stretch="0,0,1">
      <item>
       <layout class="QFormLayout" name="formLayout_3">

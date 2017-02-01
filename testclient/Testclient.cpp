@@ -136,6 +136,7 @@ Testclient::Testclient(QWidget *parent) :
   mUi->pushButton_disconnect->setEnabled(false);
   mUi->groupBox_ice->setEnabled(false);
   mUi->groupBox_lobby->setEnabled(false);
+  mUi->widget_details->setEnabled(false);
 
   typedef boost::log::sinks::synchronous_sink<LogSink> sink_t;
   boost::shared_ptr<LogSink> backend(new LogSink(mUi->tableWidget_clientLog));
@@ -312,6 +313,7 @@ void Testclient::on_pushButton_leave_clicked()
   mPeersReady.clear();
   mOmittedCandidates.clear();
   mKeptCandidates.clear();
+  updatePeerInfo();
 }
 
 void Testclient::on_listWidget_games_itemClicked(QListWidgetItem *item)
@@ -543,7 +545,7 @@ void Testclient::connectRpcMethods()
     {
       mPeerIdPingtrackers.value(peerId)->start();
     }
-    if (mPeerRow.contains(peerId))
+    if (peerItem(peerId, PeerColumnConn))
     {
       peerItem(peerId, PeerColumnConn)->setBackgroundColor(Qt::green);
     }
@@ -589,6 +591,10 @@ void Testclient::updateStatus(std::function<void()> finishedCallback)
       peerItem(id, PeerColumnLogin)->setText(QString::fromStdString(relayInfo["remote_player_login"].asString()));
       peerItem(id, PeerColumnIceState)->setText(QString::fromStdString(relayInfo["ice_agent"]["state"].asString()));
       peerItem(id, PeerColumnConn)->setText(QString("%1 s").arg(relayInfo["ice_agent"]["time_to_connected"].asDouble()));
+      if (relayInfo["ice_agent"]["time_to_connected"].asDouble() > 0)
+      {
+        peerItem(id, PeerColumnConn)->setBackgroundColor(Qt::green);
+      }
     }
 
     if (mUi->tableWidget_peers->rowCount() > 0)
@@ -755,8 +761,12 @@ void Testclient::onGPGNetMessageFromIceAdapter(GPGNetMessage const& msg)
     int peerId = msg.chunks.at(0).asInt();
     mPeerIdPingtrackers.remove(peerId);
     mPeersReady.remove(peerId);
+    mOmittedCandidates.remove(peerId);
+    mKeptCandidates.remove(peerId);
+
     mUi->tableWidget_peers->setRowCount(0);
     mPeerRow.clear();
+
     updateStatus();
   }
 }
@@ -903,6 +913,7 @@ void Testclient::updatePeerInfo()
   int peerId = selectedPeer();
   if (peerId >= 0)
   {
+    mUi->widget_details->setEnabled(true);
     for(Json::Value const& relayInfo: mCurrentStatus["relays"])
     {
       auto id = relayInfo["remote_player_id"].asInt();
@@ -923,6 +934,10 @@ void Testclient::updatePeerInfo()
     {
       addCandidate(cand, false);
     }
+  }
+  else
+  {
+    mUi->widget_details->setEnabled(false);
   }
 }
 
