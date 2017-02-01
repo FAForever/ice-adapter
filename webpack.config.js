@@ -1,22 +1,25 @@
-var nodeExternals = require('webpack-node-externals');
+const UglifyJSPlugin = require('uglifyjs-webpack-plugin');
+const webpack = require('webpack');
 
 module.exports = {  
-  entry: './src/index.ts',
+  entry: './src/index.js',
   output: {
     path: __dirname + "/dist",
-    filename: 'faf-ice-adapter.js',
-    libraryTarget: 'umd'
-  },
-  resolve: {
-    extensions: ['', '.webpack.js', '.web.js', '.ts', '.js']
+    filename: 'faf-ice-adapter.js'
   },
   module: {
     loaders: [
       { test: /\.js$/, loader: 'shebang-loader' },
-      { test: /\.ts$/, loader: 'ts-loader' },
       { test: /\.json$/, loader: 'json-loader' }
     ]
   },
   target: 'node',
-  externals: [nodeExternals()]
+  externals: [
+    { 'require-main-filename': true },
+    { './wrtc.node': './wrtc.node' }
+  ],
+  plugins: [
+    new UglifyJSPlugin(),
+    new webpack.BannerPlugin('#!/usr/bin/env node', { raw: true })
+  ]
 }
