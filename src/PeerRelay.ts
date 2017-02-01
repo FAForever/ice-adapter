@@ -85,7 +85,8 @@ export class PeerRelay extends EventEmitter {
     this.peerConnection.oniceconnectionstatechange = (event) => {
       this.iceConnectionState = this.peerConnection.iceConnectionState;
       logger.debug(`Relay for ${this.remoteLogin}(${this.remoteId}): iceConnectionState changed to ${this.iceConnectionState}`);
-      if (this.iceConnectionState == 'connected' && !this.connectedTime) {
+      if ((this.iceConnectionState == 'connected' || this.iceConnectionState == 'completed')
+          && !this.connectedTime) {
         this.connectedTime = process.hrtime(this.startTime);
         logger.info(`Relay for ${this.remoteLogin}(${this.remoteId}): connection established after ${this.connectedTime[1] / 1e9}s`);
       }
@@ -147,6 +148,10 @@ export class PeerRelay extends EventEmitter {
         }
       }
       this.emit('datachannelOpen');
+      if (!this.connectedTime) {
+        this.connectedTime = process.hrtime(this.startTime);
+        logger.info(`Relay for ${this.remoteLogin}(${this.remoteId}): connection established after ${this.connectedTime[1] / 1e9}s`);
+      }
     };
     dc.onclose = () => {
       logger.info(`Relay for ${this.remoteLogin}(${this.remoteId}): data channel close`);
