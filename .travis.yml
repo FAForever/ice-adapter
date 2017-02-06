@@ -16,8 +16,8 @@ script:
 - npm install
 - patch -p1 < ./wrtc.patch
 - npm run bundle
-- wget https://github.com/FAForever/ice-adapter/releases/download/v5.0.0/wrtc.node -O ./dist/wrtc.node
-- wget https://nodejs.org/dist/v6.9.5/win-x64/node.exe -O ./dist/node.exe
+- wget https://github.com/FAForever/node-webrtc/releases/download/v0.0.61-faf/wrtc.node -O ./dist/wrtc.node
+- wget https://nodejs.org/dist/v7.5.0/win-x86/node.exe -O ./dist/node.exe
 - export MXE_DIR=/usr/lib/mxe
 - "$MXE_DIR/usr/bin/$MXE_TARGET-cmake --version"
 - mkdir build && cd build
