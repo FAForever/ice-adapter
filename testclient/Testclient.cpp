@@ -400,7 +400,7 @@ void Testclient::on_pushButton_iceadapter_start_clicked()
     if (!QFile::exists(adapterSrc))
     {
       FAF_LOG_INFO << "ice-adapter app " << adapterSrc.toStdString() << " does not exist, using /home/sws/projPriv/2017/faf-ice-adapter/src/index.js";
-      adapterSrc = "/home/sws/projPriv/2017/faf-ice-adapter/src/index.js";
+      adapterSrc = "/usr/bin/faf-ice-adapter";
     }
   }
   auto args = QStringList()
