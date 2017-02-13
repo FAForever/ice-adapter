@@ -35,6 +35,7 @@ export class IceAdapter {
       }
 
       this.gametaskString = 'Idle';
+      this.gpgNetState = 'None';
 
       this.rpcNotify('onConnectionStateChanged', ['Disconnected']);
     });
