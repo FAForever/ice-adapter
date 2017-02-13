@@ -62,31 +62,28 @@ export class GPGNetMessage {
         let msg = new GPGNetMessage;
         let offset: number = 0;
         let headerLength = result.readInt32LE(offset);
-        //console.log(`parsing headerLength ${headerLength} offset ${offset}`);
         offset += 4;
         msg.header = result.toString('latin1', offset, offset + headerLength);
-        //console.log(`parsing header ${msg.header} offset ${offset}`);
         offset += headerLength;
         let chunkCount = result.readInt32LE(offset);
-        //console.log(`parsing chunkCount ${chunkCount} offset ${offset}`);
         offset += 4;
         for (let chunkIndex = 0; chunkIndex < chunkCount; chunkIndex++) {
-          //console.log(`parsing chunk ${chunkIndex}/${chunkCount}`);
           let chunkType = result.readInt8(offset);
-          //console.log(`parsing chunkType ${chunkType} offset ${offset}`);
           offset += 1;
           switch (chunkType) {
             case 0:
               msg.chunks.push(result.readInt32LE(offset));
-              //console.log(`parsing non-string chunk ${msg.chunks[msg.chunks.length -1]} offset ${offset}`);
               offset += 4;
               break;
             case 1:
               let strlen = result.readInt32LE(offset);
-              //console.log(`parsing string of size ${strlen} offset %{offset}`);
               offset += 4;
-              msg.chunks.push(result.toString('latin1', offset, offset + strlen));
-              //console.log(`parsing string chunk ${msg.chunks[msg.chunks.length -1]} offset ${offset}`);
+              const string_chunk = result.toString('latin1', offset, offset + strlen);
+              //check length of string, since no RangeError is triggered upon premature end of buffer
+              if (string_chunk.length != strlen) {
+                return result;
+              }
+              msg.chunks.push(string_chunk);
               offset += strlen;
               break;
 
@@ -96,8 +93,14 @@ export class GPGNetMessage {
         callback(msg);
       }
     }
-    catch (e) /* TODO: catch only RangeError exceptions */ {
-      //console.log(e);
+    catch (e) {
+      if(e instanceof RangeError){
+        /* thrown by Buffer parsing methods like readInt32LE */
+      }
+      else
+      {
+        throw e;
+      }
     }
 
     return result;

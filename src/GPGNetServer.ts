@@ -22,7 +22,7 @@ export class GPGNetServer extends EventEmitter {
       this.socket = socket;
       this.socket.on('data', (data: Buffer) => {
         //console.log(`GPGNet server received ${data.toString('hex')}`);
-        this.buffer = Buffer.concat([this.buffer, data], this.buffer.length + data.length);
+        this.buffer = Buffer.concat([this.buffer, data]);
         this.buffer = GPGNetMessage.fromBuffer(this.buffer, callback);
       });
 
