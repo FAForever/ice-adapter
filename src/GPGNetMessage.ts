@@ -94,11 +94,10 @@ export class GPGNetMessage {
       }
     }
     catch (e) {
-      if(e instanceof RangeError){
+      if (e instanceof RangeError) {
         /* thrown by Buffer parsing methods like readInt32LE */
       }
-      else
-      {
+      else {
         throw e;
       }
     }

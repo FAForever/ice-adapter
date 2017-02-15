@@ -5,7 +5,7 @@
   "main": "index.js",
   "scripts": {
     "start": "node ./src/index.js",
-    "format": "./node_modules/.bin/tsfmt -r *.ts",
+    "format": "./node_modules/.bin/tsfmt -r src/*.ts",
     "test": "./node_modules/.bin/mocha tests --watch",
     "prepublish": "./node_modules/.bin/tsc",
     "bundle": "./node_modules/.bin/webpack"

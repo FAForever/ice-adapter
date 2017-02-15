@@ -17,8 +17,9 @@ export class IceAdapter {
   peerRelays: { [key: number]: PeerRelay };
   gpgNetState: string;
   twilioToken: any;
-  version: string; 
+  version: string;
   gametaskString: string;
+  dummyInitialPeerRelay: PeerRelay;
 
   constructor() {
     this.gpgNetState = 'None';
@@ -52,6 +53,12 @@ export class IceAdapter {
     this.gametaskString = 'Idle';
 
     this.initRpcServer();
+
+    /* create a dummy relay to trigger Windows firewall prompt */
+    this.dummyInitialPeerRelay = new PeerRelay(-1, 'test', true);
+    setTimeout(() => {
+      delete this.dummyInitialPeerRelay;
+    }, 100);
   }
 
   initRpcServer() {
@@ -188,10 +195,6 @@ export class IceAdapter {
   }
 
   createPeerRelay(remotePlayerId: number, remotePlayerLogin: string, offer: boolean): PeerRelay {
-    if (!this.twilioToken) {
-      logger.error("!this.twilioToken");
-      return;
-    }
 
     let relay = new PeerRelay(remotePlayerId, remotePlayerLogin, offer, this.twilioToken);
     this.peerRelays[remotePlayerId] = relay;
