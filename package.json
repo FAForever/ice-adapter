@@ -1,6 +1,6 @@
 {
   "name": "faf-ice-adapter",
-  "version": "5.1.3",
+  "version": "5.1.4",
   "description": "P2P connection relay for Supreme Commander : Forged Alliance based on ICE",
   "main": "index.js",
   "scripts": {
