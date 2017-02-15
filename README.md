@@ -44,10 +44,12 @@ The `faf-ice-adapter` is controlled using a bi-directional [JSON-RPC](http://www
     "remote_player_login" : /* string: The name of the remote player */
     "local_game_udp_port" : /* int: The UDP port opened for the game to connect to */
     "ice_agent": {/* Information about the IceAgent for this peer */
-      "state": /* string: The connection state*/
-      "datachannel_open": /* bool: Is the remote peer connected to me? Determined by receiving a ping or ICE state is Ready */
+      "state": /* string: The connection state https://developer.mozilla.org/en-US/docs/Web/API/RTCPeerConnection/iceConnectionState */
+      "datachannel_open": /* bool: Is the data channel open for sending/receiving game packets */
       "loc_cand_addr": /* string: The local address used for the connection */
       "rem_cand_addr": /* string: The remote address used for the connection */
+      "loc_cand_type": /* string: The type of the local candidate 'local'/'stun'/'relay' */
+      "rem_cand_type": /* string: The type of the remote candidate 'local'/'stun'/'relay' */
       "time_to_connected": /* double: The time it took to connect to the peer in seconds */
       }
     },

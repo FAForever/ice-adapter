@@ -176,6 +176,8 @@ export class IceAdapter {
           'datachannel_open': relay.dataChannel ? true : false,
           'loc_cand_addr': relay.loc_cand_addr,
           'rem_cand_addr': relay.rem_cand_addr,
+          'loc_cand_type': relay.loc_cand_type,
+          'rem_cand_type': relay.rem_cand_type,
           'time_to_connected': relay.connectedTime ? relay.connectedTime[1] / 1e9 : -1,
         }
       };

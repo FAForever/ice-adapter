@@ -15,13 +15,17 @@ export class PeerRelay extends EventEmitter {
   connectedTime: [number, number];
   loc_cand_addr: string;
   rem_cand_addr: string;
+  loc_cand_type: string;
+  rem_cand_type: string;
   iceServers: Array<any>;
-  constructor(public remoteId: number, public remoteLogin: string, public createOffer: boolean, public twilioToken: any) {
+  constructor(public remoteId: number, public remoteLogin: string, public createOffer: boolean, public twilioToken?: any) {
     super();
     this.startTime = process.hrtime();
     this.iceConnectionState = 'None';
     this.loc_cand_addr = 'none';
     this.rem_cand_addr = 'none';
+    this.loc_cand_type = 'none';
+    this.rem_cand_type = 'none';
     this.iceServers = [
       {
         urls: [`turn:test.faforever.com?transport=tcp`],
@@ -97,6 +101,8 @@ export class PeerRelay extends EventEmitter {
             stat.stat('googActiveConnection') === 'true') {
             this.loc_cand_addr = stat.stat('googLocalAddress');
             this.rem_cand_addr = stat.stat('googRemoteAddress');
+            this.loc_cand_type = stat.stat('googLocalCandidateType');
+            this.rem_cand_type = stat.stat('googRemoteCandidateType');
           }
         });
       },
