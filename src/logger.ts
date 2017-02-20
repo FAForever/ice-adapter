@@ -2,6 +2,7 @@
 import options from './options';
 import * as winston from 'winston';
 
+console.log(options);
 let transports = [new (winston.transports.Console)({
   colorize: 'none',
   level: 'debug',
@@ -9,9 +10,9 @@ let transports = [new (winston.transports.Console)({
   debugStdout: true
 })];
 
-if (options.log_file.length > 0) {
+if (options.logFile.length > 0) {
   transports.push(new (winston.transports.File)({
-    filename: options.log_file
+    filename: options.logFile
   }))
 };
 

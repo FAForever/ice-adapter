@@ -146,7 +146,7 @@ export class PeerRelay extends EventEmitter {
       logger.info(`Relay for ${this.remoteLogin}(${this.remoteId}): data channel open`);
       this.dataChannel.onmessage = (event) => {
         if (this.localSocket) {
-          this.localSocket.send(Buffer.from(event.data), options.lobby_port, 'localhost', (error, bytes) => {
+          this.localSocket.send(Buffer.from(event.data), options.lobbyPort, 'localhost', (error, bytes) => {
             if (error) {
               logger.error(`Relay for ${this.remoteLogin}(${this.remoteId}): error sending to local socket: ${JSON.stringify(error)}`);
             }

@@ -73,7 +73,7 @@ export class IceAdapter {
       'status': (args, callback) => { callback(null, this.status()); }
     })
     this.rpcServerRaw = this.rpcServer.tcp();
-    this.rpcServerRaw.listen(options.rpc_port, 'localhost');;
+    this.rpcServerRaw.listen(options.rpcPort, 'localhost');;
     this.rpcServerRaw.on('listening', () => {
       logger.info(`JSONRPC server listening on port ${this.rpcServerRaw.address().port}`);
     });
@@ -157,10 +157,10 @@ export class IceAdapter {
       'options': {
         'player_id': options.id,
         'player_login': options.login,
-        'rpc_port': options.rpc_port,
-        'gpgnet_port': options.gpgnet_port,
-        'lobby_port': options.lobby_port,
-        'log_file': options.log_file,
+        'rpc_port': options.rpcPort,
+        'gpgnet_port': options.gpgnetPort,
+        'lobby_port': options.lobbyPort,
+        'log_file': options.logFile,
       },
       'gpgnet': {
         'local_port': this.gpgNetServer.server.address().port,
@@ -264,7 +264,7 @@ export class IceAdapter {
         this.gpgNetState = msg.chunks[0];
         if (this.gpgNetState == 'Idle') {
           this.gpgNetServer.send(new GPGNetMessage('CreateLobby', [0,
-            options.lobby_port,
+            options.lobbyPort,
             options.login,
             options.id,
             1]));

@@ -37,7 +37,7 @@ export class GPGNetServer extends EventEmitter {
       this.socket.on('error', (error) => {
         logger.error(`GPGNet client socket error: ${JSON.stringify(error)}`);
       });
-    }).listen(options.gpgnet_port, 'localhost', () => {
+    }).listen(options.gpgnetPort, 'localhost', () => {
       logger.info(`GPGNet server listening on port ${this.server.address().port}`);
     });
   }
