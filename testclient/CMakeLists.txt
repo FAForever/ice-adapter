@@ -22,14 +22,13 @@ find_package(Qt5Network REQUIRED)
 set(CMAKE_AUTOMOC ON)
 
 if(MINGW)
-  pkg_search_module(QT5W REQUIRED Qt5Widgets)
-  pkg_search_module(QT5N REQUIRED Qt5Network)
-  link_directories(${QT5W_LIBRARY_DIRS})
-  link_directories(${QT5N_LIBRARY_DIRS})
+  pkg_check_modules(QT5ALL REQUIRED Qt5Widgets Qt5Gui Qt5Network freetype2)
   set(faf_test_libs
     Qt5::QWindowsIntegrationPlugin
-    ${QT5W_LIBRARIES}
-    ${QT5N_LIBRARIES}
+    libQt5FontDatabaseSupport.a
+    libQt5ThemeSupport.a
+    libQt5EventDispatcherSupport.a
+    ${QT5ALL_LDFLAGS}
     )
 else()
   set(faf_test_libs
