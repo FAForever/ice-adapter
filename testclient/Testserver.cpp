@@ -83,6 +83,38 @@ Testserver::Testserver():
     ++mCurrentPlayerId;
   });
 
+  mServer.setRpcCallback("reconnect",
+                         [this](Json::Value const& paramsArray,
+                         Json::Value & result,
+                         Json::Value & error,
+                         Socket* socket)
+  {
+    if (mSocketPlayers.find(socket) != mSocketPlayers.end())
+    {
+      error = "Already logged in";
+      return;
+    }
+    if (paramsArray.size() < 1)
+    {
+      error = "Need 1 parameters: id (int)";
+      return;
+    }
+
+    auto id = paramsArray[0].asInt();
+    auto socketIt = mPlayerSockets.find(id);
+    if (socketIt == mPlayerSockets.end())
+    {
+      error = "id not found";
+      return;
+    }
+
+    mSocketPlayers.erase(socketIt->second);
+    mPlayerSockets.erase(id);
+    mPlayerSockets.insert(std::make_pair(id, socket));
+    mSocketPlayers.insert(std::make_pair(socket, id));
+    result = "ok";
+  });
+
   mServer.setRpcCallback("hostGame",
                          [this](Json::Value const& paramsArray,
                          Json::Value & result,
