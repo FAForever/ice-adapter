@@ -4,6 +4,15 @@
 #include <set>
 #include <iostream>
 
+#if defined(Q_OS_LINUX)
+#  include <sys/socket.h>
+#  include <netinet/in.h>
+#  include <netinet/tcp.h>
+#elif defined(Q_OS_WIN)
+#  include <winsock2.h>
+#  include <ws2tcpip.h>
+#endif
+
 #include <QtCore/QVariant>
 #include <QtCore/QTimer>
 #include <QtCore/QSettings>
@@ -114,8 +123,11 @@ private:
 Testclient::Testclient(QWidget *parent) :
   QMainWindow(parent),
   mUi(new Ui::Testclient),
+  //mLobbyServerHost("fafsdp.erreich.bar"),
+  mLobbyServerHost("192.168.23.26"),
   mGpgnetPort(0),
-  mIcePort(0)
+  mIcePort(0),
+  mKeepServerConnection(false)
 {
   mUi->setupUi(this);
 
@@ -145,7 +157,6 @@ Testclient::Testclient(QWidget *parent) :
 
   connectRpcMethods();
 
-  //mServerClient.socket()->connectToHost("fafsdp.erreich.bar", 54321);
   connect(&mIceAdapterProcess,
           &QProcess::readyReadStandardError,
           this,
@@ -221,23 +232,78 @@ Testclient::Testclient(QWidget *parent) :
           &QTcpSocket::connected,
           [this] ()
   {
-    mUi->pushButton_disconnect->setEnabled(true);
-    mUi->pushButton_connect->setEnabled(false);
-    mUi->lineEdit_login->setReadOnly(true);
-    mUi->groupBox_ice->setEnabled(true);
-    Json::Value params(Json::arrayValue);
-    params.append(mUi->lineEdit_login->text().toStdString());
-    mServerClient.sendRequest("login", params, nullptr,
-                              [this](Json::Value const& result, Json::Value const& error)
+#if defined(Q_OS_LINUX)
     {
-      mPlayerId = result["id"].asInt();
-      mPlayerLogin = QString::fromStdString(result["login"].asString());
-      mUi->label_playerid->setText(QString::number(mPlayerId));
-      mUi->label_playerlogin->setText(mPlayerLogin);
-      FAF_LOG_INFO << "logged in as " << mPlayerLogin.toStdString() << " (" << mPlayerId << ")";
+      int fd = mServerClient.socket()->socketDescriptor();
+      int keepalive = 1;
+      int keepcnt = 1;
+      int keepidle = 3;
+      int keepintvl = 5;
+      setsockopt(fd, SOL_SOCKET, SO_KEEPALIVE, &keepalive, sizeof(keepalive));
+      setsockopt(fd, IPPROTO_TCP, TCP_KEEPIDLE, &keepidle, sizeof(keepidle));
+      setsockopt(fd, SOL_TCP, TCP_KEEPCNT, &keepcnt, sizeof(keepcnt));
+      setsockopt(fd, SOL_TCP, TCP_KEEPINTVL, &keepintvl, sizeof(keepintvl));
+    }
+#elif defined(Q_OS_WIN)
+    {
+      int fd = mServerClient.socket()->socketDescriptor();
+      DWORD dwBytesRet=0;
+      struct tcp_keepalive alive;
+      alive.onoff = TRUE;
+      alive.keepalivetime = 1000;
+      alive.keepaliveinterval = 1000;
+
+      if (WSAIoctl(fd,
+                   SIO_KEEPALIVE_VALS,
+                   &alive,
+                   sizeof(alive),
+                   NULL,
+                   0,
+                   &dwBytesRet,
+                   NULL,
+                   NULL) == SOCKET_ERROR)
+      {
+        FAF_LOG_ERROR << "WSAIotcl(SIO_KEEPALIVE_VALS) failed: " << WSAGetLastError();
+      }
+      //int keepalive = 1;
+      //setsockopt(fd, SOL_SOCKET, SO_KEEPALIVE, reinterpret_cast<const char*>(&keepalive), sizeof(keepalive));
+    }
+#endif
+    mUi->label_connected->setText("True");
+    if (!mUi->pushButton_disconnect->isEnabled())
+    {
+      mUi->pushButton_disconnect->setEnabled(true);
+      mUi->pushButton_connect->setEnabled(false);
+      mUi->lineEdit_login->setReadOnly(true);
       mUi->groupBox_ice->setEnabled(true);
-      updateGamelist(result["games"]);
-    });
+      Json::Value params(Json::arrayValue);
+      params.append(mUi->lineEdit_login->text().toStdString());
+      mServerClient.sendRequest("login", params, nullptr,
+                                [this](Json::Value const& result, Json::Value const& error)
+      {
+        mPlayerId = result["id"].asInt();
+        mPlayerLogin = QString::fromStdString(result["login"].asString());
+        mUi->label_playerid->setText(QString::number(mPlayerId));
+        mUi->label_playerlogin->setText(mPlayerLogin);
+        FAF_LOG_INFO << "logged in as " << mPlayerLogin.toStdString() << " (" << mPlayerId << ")";
+        mUi->groupBox_ice->setEnabled(true);
+        updateGamelist(result["games"]);
+      });
+    }
+    else
+    {
+      Json::Value params(Json::arrayValue);
+      params.append(mPlayerId);
+      mServerClient.sendRequest("reconnect", params, nullptr,
+                                [this](Json::Value const& result, Json::Value const& error)
+      {
+        if (error.isNull())
+        {
+          FAF_LOG_INFO << "reconnected";
+        }
+      });
+    }
+
   });
 
   connect(mServerClient.socket(),
@@ -246,13 +312,31 @@ Testclient::Testclient(QWidget *parent) :
   {
     if (mUi)
     {
-      mUi->pushButton_disconnect->setEnabled(false);
-      mUi->pushButton_connect->setEnabled(true);
-      mUi->lineEdit_login->setReadOnly(false);
-      mUi->groupBox_ice->setEnabled(false);
-      mUi->groupBox_lobby->setEnabled(false);
+      mUi->label_connected->setText("False");
+      if (!mKeepServerConnection)
+      {
+        mUi->pushButton_disconnect->setEnabled(false);
+        mUi->pushButton_connect->setEnabled(true);
+        mUi->lineEdit_login->setReadOnly(false);
+        mUi->groupBox_ice->setEnabled(false);
+        mUi->groupBox_lobby->setEnabled(false);
+      }
     }
   });
+
+
+  auto reconnectTimer = new QTimer(this);
+  connect(reconnectTimer,
+          &QTimer::timeout,
+          [this]()
+  {
+    if (mKeepServerConnection &&
+        mServerClient.socket()->state() != QAbstractSocket::ConnectedState)
+    {
+      mServerClient.socket()->connectToHost(mLobbyServerHost, 54321);
+    }
+  });
+  reconnectTimer->start(1000);
 }
 
 Testclient::~Testclient()
@@ -278,11 +362,13 @@ Testclient::~Testclient()
 
 void Testclient::on_pushButton_connect_clicked()
 {
-  mServerClient.socket()->connectToHost("fafsdp.erreich.bar", 54321);
+  mKeepServerConnection = true;
+  mServerClient.socket()->connectToHost(mLobbyServerHost, 54321);
 }
 
 void Testclient::on_pushButton_disconnect_clicked()
 {
+  mKeepServerConnection = false;
   mServerClient.socket()->disconnectFromHost();
 }
 
@@ -393,10 +479,12 @@ void Testclient::on_pushButton_iceadapter_connect_clicked()
 void Testclient::on_pushButton_iceadapter_start_clicked()
 {
   QString adapterSrc = QDir::toNativeSeparators(QDir(qApp->applicationDirPath()).absoluteFilePath("faf-ice-adapter.js"));
+  //QString adapterSrc = "/home/sws/projPriv/2017/faf-ice-adapter/src/index.js";
   if (!QFile::exists(adapterSrc))
   {
     FAF_LOG_INFO << "ice-adapter app " << adapterSrc.toStdString() << " does not exist, using index.js";
-    adapterSrc = QDir::toNativeSeparators(QDir(qApp->applicationDirPath()).absoluteFilePath("src/index.js"));
+    //adapterSrc = QDir::toNativeSeparators(QDir(qApp->applicationDirPath()).absoluteFilePath("src/index.js"));
+    adapterSrc = "/home/sws/projPriv/2017/faf-ice-adapter/src/index.js";
     if (!QFile::exists(adapterSrc))
     {
       FAF_LOG_INFO << "ice-adapter app " << adapterSrc.toStdString() << " does not exist, using /home/sws/projPriv/2017/faf-ice-adapter/src/index.js";
@@ -407,9 +495,9 @@ void Testclient::on_pushButton_iceadapter_start_clicked()
               << adapterSrc
               << "--id" << QString::number(mPlayerId)
               << "--login" << mPlayerLogin
-              << "--rpc_port" << QString::number(mIcePort)
-              << "--gpgnet_port" << "0"
-              << "--lobby_port" << QString::number(mLobbySocket.localPort());
+              << "--rpc-port" << QString::number(mIcePort)
+              << "--gpgnet-port" << "0"
+              << "--lobby-port" << QString::number(mLobbySocket.localPort());
   FAF_LOG_INFO << "going to start node with arguments " << args.join(" ").toStdString();
   mIceAdapterProcess.start("node", args);
 }
@@ -961,7 +1049,7 @@ void Testclient::addCandidate(IceCandidate const& c, bool kept)
 
 int main(int argc, char *argv[])
 {
-#if defined(__MINGW32__)
+#if defined(Q_OS_WIN)
   Q_IMPORT_PLUGIN (QWindowsIntegrationPlugin);
 #endif
   faf::logging_init();

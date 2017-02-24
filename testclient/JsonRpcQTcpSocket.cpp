@@ -46,6 +46,10 @@ void JsonRpcQTcpSocket::init()
 
 bool JsonRpcQTcpSocket::send(std::string const& msg)
 {
+  if (mSocket->state() != QAbstractSocket::ConnectedState)
+  {
+    FAF_LOG_ERROR << "not connected for sending msg " << msg;
+  }
   auto bytesSent = mSocket->write(msg.c_str(), msg.size());
   return bytesSent == msg.size();
 }

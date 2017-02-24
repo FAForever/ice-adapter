@@ -68,6 +68,7 @@ private:
   JsonRpcQTcpSocket mIceClient;
   int mPlayerId;
   QString mPlayerLogin;
+  QString mLobbyServerHost;
   int mGameId;
   QProcess mIceAdapterProcess;
   GPGNetClient mGpgClient;
@@ -81,6 +82,7 @@ private:
   QMap<int, IceCandidateVector> mKeptCandidates;
   QMap<int, int> mPeerRow;
   Json::Value mCurrentStatus;
+  bool mKeepServerConnection;
 };
 
 
