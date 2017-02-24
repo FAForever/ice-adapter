@@ -32,9 +32,10 @@ export class IceAdapter {
     this.gpgNetServer.on('disconnected', () => {
       //disconnect all peers when the game exits
       for (let peerId in this.peerRelays) {
+        this.peerRelays[peerId].close();
         delete this.peerRelays[peerId];
       }
-
+      this.peerRelays = {};
       this.gametaskString = 'Idle';
       this.gpgNetState = 'None';
 
@@ -55,8 +56,9 @@ export class IceAdapter {
     this.initRpcServer();
 
     /* create a dummy relay to trigger Windows firewall prompt */
-    this.dummyInitialPeerRelay = new PeerRelay(-1, 'test', true);
+    this.dummyInitialPeerRelay = new PeerRelay(-1, 'dummyInitialPeerRelay', true);
     setTimeout(() => {
+      this.dummyInitialPeerRelay.close();
       delete this.dummyInitialPeerRelay;
     }, 100);
   }
