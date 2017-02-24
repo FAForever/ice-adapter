@@ -1,4 +1,4 @@
-import { RTCPeerConnection, RTCSessionDescription, RTCIceCandidate, RTCDataChannel, RTCStatsResponse } from 'wrtc';
+import { RTCPeerConnection, RTCSessionDescription, RTCIceCandidate, RTCDataChannel, RTCStatsResponse, RTCOfferOptions } from 'wrtc';
 import * as dgram from 'dgram';
 import options from './options';
 import logger from './logger';
@@ -69,7 +69,7 @@ export class PeerRelay extends EventEmitter {
     });
 
     this.peerConnection.onerror = (event) => {
-      this.handleError(event);
+      this.handleError("peerConnection.onerror", event);
     };
 
     this.peerConnection.ondatachannel = (event) => {
@@ -93,22 +93,27 @@ export class PeerRelay extends EventEmitter {
         && !this.connectedTime) {
         this.connectedTime = process.hrtime(this.startTime);
         logger.info(`Relay for ${this.remoteLogin}(${this.remoteId}): connection established after ${this.connectedTime[1] / 1e9}s`);
+
+        this.peerConnection.getStats((stats) => {
+          stats.result().forEach((stat) => {
+            if (stat.type == 'googCandidatePair' &&
+              stat.stat('googActiveConnection') === 'true') {
+              this.loc_cand_addr = stat.stat('googLocalAddress');
+              this.rem_cand_addr = stat.stat('googRemoteAddress');
+              this.loc_cand_type = stat.stat('googLocalCandidateType');
+              this.rem_cand_type = stat.stat('googRemoteCandidateType');
+            }
+          });
+        },
+          (error) => {
+            this.handleError("getStats failed", error);
+          });
+
       }
 
-      this.peerConnection.getStats((stats) => {
-        stats.result().forEach((stat) => {
-          if (stat.type == 'googCandidatePair' &&
-            stat.stat('googActiveConnection') === 'true') {
-            this.loc_cand_addr = stat.stat('googLocalAddress');
-            this.rem_cand_addr = stat.stat('googRemoteAddress');
-            this.loc_cand_type = stat.stat('googLocalCandidateType');
-            this.rem_cand_type = stat.stat('googRemoteCandidateType');
-          }
-        });
-      },
-        (error) => {
-          this.handleError(error);
-        });
+      if (this.iceConnectionState == 'failed') {
+        this.tryReconnect();
+      }
 
       this.emit('iceConnectionStateChanged', this.iceConnectionState);
     };
@@ -131,16 +136,21 @@ export class PeerRelay extends EventEmitter {
           this.emit('iceMessage', desc);
         },
           (error) => {
-            this.handleError(error);
+            this.handleError("setLocalDescription with offer failed", error);
           }
         );
       }, (error) => {
-        this.handleError(error);
+        this.handleError("createOffer failed", error);
       });
     }
+
   }
 
   initDataChannel(dc: RTCDataChannel) {
+    if (this.dataChannel) {
+      this.dataChannel.close();
+      delete this.dataChannel;
+    }
     dc.onopen = () => {
       this.dataChannel = dc;
       logger.info(`Relay for ${this.remoteLogin}(${this.remoteId}): data channel open`);
@@ -201,17 +211,17 @@ export class PeerRelay extends EventEmitter {
             this.emit('iceMessage', desc);
           },
             (error) => {
-              this.handleError(error);
+              this.handleError("setLocalDescription with answer failed", error);
             }
           );
         },
           (error) => {
-            this.handleError(error);
+            this.handleError("createAnswer() for offer failed", error);
           }
         );
       },
         (error) => {
-          this.handleError(error);
+          this.handleError("setRemoteDescription failed", error);
         }
       );
     }
@@ -220,7 +230,7 @@ export class PeerRelay extends EventEmitter {
         logger.debug(`Relay for ${this.remoteLogin}(${this.remoteId}): set remote answer`);
       },
         (error) => {
-          this.handleError(error);
+          this.handleError("setRemoteDescription failed", error);
         });
     }
     else if (msg.type == 'candidate') {
@@ -228,7 +238,7 @@ export class PeerRelay extends EventEmitter {
         logger.debug(`Relay for ${this.remoteLogin}(${this.remoteId}): added ICE candidate ${JSON.stringify(msg.candidate)}`);
       },
         (error) => {
-          this.handleError(error);
+          this.handleError("addIceCandidate failed", error);
         });
     }
     else {
@@ -236,12 +246,25 @@ export class PeerRelay extends EventEmitter {
     }
   }
 
-  handleError(error) {
-    logger.error(`Relay for ${this.remoteLogin}(${this.remoteId}) error: ${JSON.stringify(error)}`);
+  handleError(what: string, error) {
+    logger.error(`Relay for ${this.remoteLogin}(${this.remoteId}) ${what}: ${JSON.stringify(error)}`);
   }
 
   close() {
     this.peerConnection.close();
     this.localSocket.close();
+  }
+
+  tryReconnect() {
+    if (this.iceConnectionState == 'failed' || this.iceConnectionState == 'new') {
+      logger.error(`Relay for ${this.remoteLogin}(${this.remoteId}): connection failed. Trying reconnect...`);
+
+      this.peerConnection.close();
+      delete this.peerConnection;
+      this.initPeerConnection();
+      setTimeout(() => {
+        this.tryReconnect();
+      }, 5000);
+    }
   }
 }
