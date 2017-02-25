@@ -81,11 +81,6 @@ export class IceAdapter {
     });
     this.rpcServerRaw.on('connection', (s) => {
       this.rpcSocket = s;
-      /*
-      s.on('data', (data : Buffer) => {
-          console.log(`JSONRPC server recv data ${data}`);
-      });
-      */
       s.on('close', () => {
         if (s == this.rpcSocket) {
           logger.info(`JSONRPC server client disconnected`);

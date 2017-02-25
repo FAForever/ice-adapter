@@ -2,7 +2,6 @@
 import options from './options';
 import * as winston from 'winston';
 
-console.log(options);
 let transports = [new (winston.transports.Console)({
   colorize: 'none',
   level: 'debug',
