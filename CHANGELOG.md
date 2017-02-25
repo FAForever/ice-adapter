@@ -1,3 +1,8 @@
+v5.3.1
+====== 
+
+- create better platform archives
+
 v5.3.0
 ====== 
 
