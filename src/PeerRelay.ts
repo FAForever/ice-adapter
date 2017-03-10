@@ -18,6 +18,9 @@ export class PeerRelay extends EventEmitter {
   rem_cand_addr: string;
   loc_cand_type: string;
   rem_cand_type: string;
+  lastConnectionAttemptTime: Date;
+  connectionAttemptTimeoutMilliseconds: number = 10000;
+  receivedOffer: boolean = false;
 
   constructor(public remoteId: number, public remoteLogin: string, public createOffer: boolean, protected iceServers: Array<any>) {
     super();
@@ -30,16 +33,35 @@ export class PeerRelay extends EventEmitter {
     this.initPeerConnection();
     this.initLocalSocket();
 
+    setInterval(() => { this.checkConnection(); },
+      this.connectionAttemptTimeoutMilliseconds);
+
     logger.info(`PeerRelay for ${remoteLogin}(${remoteId}): created`);
   }
 
   initPeerConnection() {
-    /* https://webrtc.github.io/samples/src/content/peerconnection/trickle-ice/ 
-       TURN servers require credentials with webrtc! */
-    logger.debug(`Relay for ${this.remoteLogin}(${this.remoteId}): iceServers: ${JSON.stringify(this.iceServers)}`);
+    if (this.dataChannel) {
+      this.dataChannel.onopen = null;
+      this.dataChannel.onclose = null;
+      this.dataChannel.close();
+      delete this.dataChannel;
+    }
+    if (this.peerConnection) {
+      this.peerConnection.onerror = null;
+      this.peerConnection.ondatachannel = null;
+      this.peerConnection.onicecandidate = null;
+      this.peerConnection.oniceconnectionstatechange = null;
+      this.peerConnection.onicegatheringstatechange = null;
+      this.peerConnection.onicegatheringstatechange = null;
+      this.peerConnection.close();
+      delete this.peerConnection;
+    }
+    this.receivedOffer = false;
     this.peerConnection = new RTCPeerConnection({
       iceServers: this.iceServers
     });
+    this.lastConnectionAttemptTime = new Date();
+    this.iceConnectionState = this.peerConnection.iceConnectionState;
 
     this.peerConnection.onerror = (event) => {
       this.handleError("peerConnection.onerror", event);
@@ -61,7 +83,7 @@ export class PeerRelay extends EventEmitter {
 
     this.peerConnection.oniceconnectionstatechange = (event) => {
       this.iceConnectionState = this.peerConnection.iceConnectionState;
-      logger.debug(`Relay for ${this.remoteLogin}(${this.remoteId}): iceConnectionState changed to ${this.iceConnectionState}`);
+      logger.info(`Relay for ${this.remoteLogin}(${this.remoteId}): iceConnectionState changed to ${this.iceConnectionState}`);
       if ((this.iceConnectionState == 'connected' || this.iceConnectionState == 'completed')
         && !this.connectedTime) {
         this.connectedTime = process.hrtime(this.startTime);
@@ -85,7 +107,8 @@ export class PeerRelay extends EventEmitter {
       }
 
       if (this.iceConnectionState == 'failed') {
-        this.tryReconnect();
+        logger.warn(`Relay for ${this.remoteLogin}(${this.remoteId}): Connection failed, forcing reconnect immediately.`);
+        setTimeout(() => { this.initPeerConnection(); }, 0);
       }
 
       this.emit('iceConnectionStateChanged', this.iceConnectionState);
@@ -121,11 +144,13 @@ export class PeerRelay extends EventEmitter {
 
   initDataChannel(dc: RTCDataChannel) {
     if (this.dataChannel) {
+      this.dataChannel.onopen = null;
+      this.dataChannel.onclose = null;
       this.dataChannel.close();
       delete this.dataChannel;
     }
-    dc.onopen = () => {
-      this.dataChannel = dc;
+    this.dataChannel = dc;
+    this.dataChannel.onopen = () => {
       logger.info(`Relay for ${this.remoteLogin}(${this.remoteId}): data channel open`);
       this.dataChannel.onmessage = (event) => {
         if (this.localSocket) {
@@ -142,11 +167,8 @@ export class PeerRelay extends EventEmitter {
         logger.info(`Relay for ${this.remoteLogin}(${this.remoteId}): connection established after ${this.connectedTime[1] / 1e9}s`);
       }
     };
-    dc.onclose = () => {
-      logger.info(`Relay for ${this.remoteLogin}(${this.remoteId}): data channel close`);
-      if (this.dataChannel) {
-        delete this.dataChannel;
-      }
+    this.dataChannel.onclose = () => {
+      logger.error(`Relay for ${this.remoteLogin}(${this.remoteId}): data channel closed`);
     }
   }
 
@@ -178,6 +200,7 @@ export class PeerRelay extends EventEmitter {
   addIceMsg(msg: any) {
     logger.debug(`Relay for ${this.remoteLogin}(${this.remoteId}): received ICE msg: ${JSON.stringify(msg)}`);
     if (msg.type == 'offer') {
+      this.receivedOffer = true;
       this.peerConnection.setRemoteDescription(new RTCSessionDescription(msg)).then(() => {
         this.peerConnection.createAnswer().then((desc: RTCSessionDescription) => {
           this.peerConnection.setLocalDescription(new RTCSessionDescription(desc)).then(() => {
@@ -228,20 +251,24 @@ export class PeerRelay extends EventEmitter {
     this.localSocket.close();
   }
 
-  tryReconnect() {
-    if (this.iceConnectionState == 'failed' || this.iceConnectionState == 'new') {
-      logger.error(`Relay for ${this.remoteLogin}(${this.remoteId}): connection failed. Trying reconnect...`);
-
-      this.peerConnection.close();
-      delete this.peerConnection;
-      this.initPeerConnection();
-      setTimeout(() => {
-        this.tryReconnect();
-      }, 5000);
-    }
-  }
-
   setIceServers(iceServers: Array<Object>) {
     this.iceServers = iceServers;
+  }
+
+  checkConnection() {
+    if (this.iceConnectionState == 'failed' ||
+      this.iceConnectionState == 'new' ||
+      this.iceConnectionState == 'checking') {
+      if ((new Date().getTime() - this.lastConnectionAttemptTime.getTime()) > this.connectionAttemptTimeoutMilliseconds) {
+        if (this.createOffer) {
+          logger.warn(`Relay for ${this.remoteLogin}(${this.remoteId}): ice connection state is stuck in offerer. Forcing reconnect...`);
+          this.initPeerConnection();
+        }
+        else if (this.receivedOffer) {
+          logger.warn(`Relay for ${this.remoteLogin}(${this.remoteId}): ice connection state is stuck in answerer. Forcing reconnect...`);
+          this.initPeerConnection();
+        }
+      }
+    }
   }
 }
