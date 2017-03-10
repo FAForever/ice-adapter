@@ -1,3 +1,9 @@
+v5.4.0
+====== 
+
+- create `setIceServers` API method, which must be called before connecting to peers
+- work on reconnect
+
 v5.3.1
 ====== 
 
