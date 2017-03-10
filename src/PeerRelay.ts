@@ -5,6 +5,7 @@ import logger from './logger';
 import { EventEmitter } from 'events';
 
 export class PeerRelay extends EventEmitter {
+
   peerConnection: RTCPeerConnection;
   localSocket: dgram.Socket;
   localPort: number;
@@ -17,8 +18,8 @@ export class PeerRelay extends EventEmitter {
   rem_cand_addr: string;
   loc_cand_type: string;
   rem_cand_type: string;
-  iceServers: Array<any>;
-  constructor(public remoteId: number, public remoteLogin: string, public createOffer: boolean, public twilioToken?: any) {
+
+  constructor(public remoteId: number, public remoteLogin: string, public createOffer: boolean, protected iceServers: Array<any>) {
     super();
     this.startTime = process.hrtime();
     this.iceConnectionState = 'None';
@@ -26,43 +27,15 @@ export class PeerRelay extends EventEmitter {
     this.rem_cand_addr = 'none';
     this.loc_cand_type = 'none';
     this.rem_cand_type = 'none';
-    this.iceServers = [
-      {
-        urls: [`turn:test.faforever.com?transport=tcp`],
-        credential: 'test',
-        username: 'test'
-      },
-      {
-        urls: [`turn:test.faforever.com?transport=udp`],
-        credential: 'test',
-        username: 'test'
-      },
-      {
-        urls: [`stun:test.faforever.com`],
-        credential: '',
-        username: ''
-      }];
-
-    if (this.twilioToken) {
-      this.iceServers = this.iceServers.concat(this.twilioToken['ice_servers']);
-    }
-    else {
-      logger.warn("missing twilio token");
-    }
-
     this.initPeerConnection();
     this.initLocalSocket();
 
-    logger.info(`Relay for ${remoteLogin}(${remoteId}): successfully created`);
+    logger.info(`PeerRelay for ${remoteLogin}(${remoteId}): created`);
   }
 
   initPeerConnection() {
     /* https://webrtc.github.io/samples/src/content/peerconnection/trickle-ice/ 
        TURN servers require credentials with webrtc! */
-
-    if (!this.twilioToken) {
-      logger.error("!this.twilioToken");
-    }
     logger.debug(`Relay for ${this.remoteLogin}(${this.remoteId}): iceServers: ${JSON.stringify(this.iceServers)}`);
     this.peerConnection = new RTCPeerConnection({
       iceServers: this.iceServers
@@ -266,5 +239,9 @@ export class PeerRelay extends EventEmitter {
         this.tryReconnect();
       }, 5000);
     }
+  }
+
+  setIceServers(iceServers: Array<Object>) {
+    this.iceServers = iceServers;
   }
 }

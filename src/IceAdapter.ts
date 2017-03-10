@@ -1,4 +1,3 @@
-import * as twilio from 'twilio';
 import { server as JsonRpcServer } from 'jayson';
 import options from './options';
 import { GPGNetServer } from './GPGNetServer';
@@ -16,10 +15,9 @@ export class IceAdapter {
   tasks: Array<Object>;
   peerRelays: { [key: number]: PeerRelay };
   gpgNetState: string;
-  twilioToken: any;
   version: string;
   gametaskString: string;
-  dummyInitialPeerRelay: PeerRelay;
+  iceServers: Array<Object>;
 
   constructor() {
     this.gpgNetState = 'None';
@@ -42,25 +40,11 @@ export class IceAdapter {
       this.rpcNotify('onConnectionStateChanged', ['Disconnected']);
     });
 
-    let accountSid = 'ACb82a0676aa0e83e2b21d109d7499495a';
-    let authToken = "f3de19e194bc7d16f66cd33e1c4c07ce";
-    let twilioClient = twilio(accountSid, authToken);
-    twilioClient.tokens.create({}, (err, twilioToken) => {
-      this.twilioToken = twilioToken;
-      logger.info(`twilio token: ${JSON.stringify(twilioToken)}`);
-    });
-
     this.version = require('../package.json').version;
     this.gametaskString = 'Idle';
 
     this.initRpcServer();
-
-    /* create a dummy relay to trigger Windows firewall prompt */
-    this.dummyInitialPeerRelay = new PeerRelay(-1, 'dummyInitialPeerRelay', true);
-    setTimeout(() => {
-      this.dummyInitialPeerRelay.close();
-      delete this.dummyInitialPeerRelay;
-    }, 100);
+    this.iceServers = new Array<Object>();
   }
 
   initRpcServer() {
@@ -72,6 +56,7 @@ export class IceAdapter {
       'disconnectFromPeer': (args, callback) => { this.disconnectFromPeer(args[0]); },
       'iceMsg': (args, callback) => { this.iceMsg(args[0], args[1]); },
       'sendToGpgNet': (args, callback) => { this.sendToGpgNet(args[0], args[1]); },
+      'setIceServers': (args, callback) => { this.setIceServers(args[0]); },
       'status': (args, callback) => { callback(null, this.status()); }
     })
     this.rpcServerRaw = this.rpcServer.tcp();
@@ -148,6 +133,15 @@ export class IceAdapter {
     this.gpgNetServer.send(new GPGNetMessage(header, chunks));
   }
 
+  setIceServers(iceServers: Array<Object>) {
+    this.iceServers = iceServers;
+    for (let peerId in this.peerRelays) {
+      let relay = this.peerRelays[peerId];
+      relay.setIceServers(iceServers);
+    }
+    logger.debug(`setIceServers called with ${JSON.stringify(iceServers)}`);
+  }
+
   status(): Object {
     let result = {
       'version': this.version,
@@ -193,7 +187,11 @@ export class IceAdapter {
 
   createPeerRelay(remotePlayerId: number, remotePlayerLogin: string, offer: boolean): PeerRelay {
 
-    let relay = new PeerRelay(remotePlayerId, remotePlayerLogin, offer, this.twilioToken);
+    if (this.iceServers.length == 0) {
+      logger.error(`no ICE servers while creating PeerRelay for remot player ${remotePlayerLogin}(${remotePlayerId}). Call setIceServers up front from client. See https://developer.mozilla.org/en-US/docs/Web/API/RTCConfiguration`);
+    }
+
+    let relay = new PeerRelay(remotePlayerId, remotePlayerLogin, offer, this.iceServers);
     this.peerRelays[remotePlayerId] = relay;
 
     relay.on('iceMessage', (msg) => {

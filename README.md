@@ -16,6 +16,7 @@ The `faf-ice-adapter` is controlled using a bi-directional [JSON-RPC](http://www
 | disconnectFromPeer | remotePlayerId (int)| | Create a PeerRelay and tell the game to connect to the remote peer. |
 | iceMsg | remotePlayerId (int), msg (object) | | Add the remote ICE message to the PeerRelay to establish a connection. |
 | sendToGpgNet | header (string), chunks (array) | | Send an arbitrary message to the game. |
+| setIceServers | iceServers (array) | | ICE server array for use in webrtc. Must be called before joinGame/connectToPeer. See https://developer.mozilla.org/en-US/docs/Web/API/RTCIceServer |
 | status | | [status structure](#status-structure) | Polls the current status of the `faf-ice-adapter`. |
 
 ### Notifications (faf-ice-adapter ➠ client )
