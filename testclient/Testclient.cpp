@@ -187,6 +187,7 @@ Testclient::Testclient(QWidget *parent) :
     mUi->pushButton_iceadapter_connect->setEnabled(false);
     mUi->pushButton_iceadapter_start->setEnabled(false);
     updateStatus();
+    sendIceServers();
   });
   connect(mIceClient.socket(),
           &QTcpSocket::disconnected,
@@ -1039,6 +1040,25 @@ void Testclient::addCandidate(IceCandidate const& c, bool kept)
   {
     mUi->tableWidget_det_cands->item(row, IceColumnType)->setBackgroundColor(Qt::red);
   }
+}
+
+void Testclient::sendIceServers()
+{
+  if (mIceClient.socket()->state() != QAbstractSocket::ConnectedState)
+  {
+    return;
+  }
+  Json::Value iceServers(Json::arrayValue);
+  Json::Value stunServer;
+  Json::Value stunServerUrls(Json::arrayValue);
+  stunServerUrls.append("stun:test.faforever.com");
+  stunServer["urls"] = stunServerUrls;
+  iceServers.append(stunServer);
+  Json::Value setIceServersParams(Json::arrayValue);
+  setIceServersParams.append(iceServers);
+
+  mIceClient.sendRequest("setIceServers",
+                         setIceServersParams);
 }
 
 } // namespace faf

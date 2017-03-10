@@ -61,6 +61,7 @@ protected:
   QString peerLogin(int peerId) const;
   void updatePeerInfo();
   void addCandidate(IceCandidate const& c, bool kept);
+  void sendIceServers();
 
 private:
   Ui::Testclient *mUi;
