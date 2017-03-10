@@ -123,8 +123,7 @@ private:
 Testclient::Testclient(QWidget *parent) :
   QMainWindow(parent),
   mUi(new Ui::Testclient),
-  //mLobbyServerHost("fafsdp.erreich.bar"),
-  mLobbyServerHost("192.168.23.26"),
+  mLobbyServerHost("fafsdp.erreich.bar"),
   mGpgnetPort(0),
   mIcePort(0),
   mKeepServerConnection(false)
