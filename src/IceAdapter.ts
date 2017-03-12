@@ -170,12 +170,12 @@ export class IceAdapter {
         'remote_player_login': relay.remoteLogin,
         'local_game_udp_port': relay.localPort,
         'ice_agent': {
-          'state': relay.peerConnection.iceConnectionState,
-          'datachannel_open': relay.dataChannel ? true : false,
-          'loc_cand_addr': relay.loc_cand_addr,
-          'rem_cand_addr': relay.rem_cand_addr,
-          'loc_cand_type': relay.loc_cand_type,
-          'rem_cand_type': relay.rem_cand_type,
+          'state': relay.iceConnectionState,
+          'datachannel_open': relay.dataChannelIsOpen,
+          'loc_cand_addr': relay.localCandAddress,
+          'rem_cand_addr': relay.remoteCandAddress,
+          'loc_cand_type': relay.localCandType,
+          'rem_cand_type': relay.remoteCandType,
           'time_to_connected': relay.connectedTime ? relay.connectedTime[1] / 1e9 : -1,
         }
       };

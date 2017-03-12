@@ -6,62 +6,48 @@ import { EventEmitter } from 'events';
 
 export class PeerRelay extends EventEmitter {
 
-  peerConnection: RTCPeerConnection;
-  localSocket: dgram.Socket;
-  localPort: number;
-  dataChannel: RTCDataChannel;
-  iceConnectionState: string;
-  iceGatheringState: string;
-  startTime: [number, number];
-  connectedTime: [number, number];
-  loc_cand_addr: string;
-  rem_cand_addr: string;
-  loc_cand_type: string;
-  rem_cand_type: string;
-  lastConnectionAttemptTime: Date;
-  connectionAttemptTimeoutMilliseconds: number = 10000;
-  receivedOffer: boolean = false;
+  protected peerConnection: RTCPeerConnection;
+  protected localSocket: dgram.Socket;
+  protected dataChannel: RTCDataChannel;
+  protected iceGatheringState: string;
+  protected startTime: [number, number];
+  protected lastConnectionAttemptTime: Date;
+  protected connectionAttemptTimeoutMs: number = 10000;
+  protected receivedOffer: boolean = false;
+  protected connectionWatchdogTimer: NodeJS.Timer;
+  public connectedTime: [number, number];
+  public localPort: number;
+  public iceConnectionState: string;
+  public localCandAddress: string;
+  public remoteCandType: string;
+  public remoteCandAddress: string;
+  public localCandType: string;
+  public dataChannelIsOpen: boolean = false;
 
   constructor(public remoteId: number, public remoteLogin: string, public createOffer: boolean, protected iceServers: Array<any>) {
     super();
     this.startTime = process.hrtime();
     this.iceConnectionState = 'None';
-    this.loc_cand_addr = 'none';
-    this.rem_cand_addr = 'none';
-    this.loc_cand_type = 'none';
-    this.rem_cand_type = 'none';
+    this.localCandAddress = 'none';
+    this.localCandType = 'none';
+    this.remoteCandAddress = 'none';
+    this.remoteCandType = 'none';
     this.initPeerConnection();
     this.initLocalSocket();
 
-    setInterval(() => { this.checkConnection(); },
-      this.connectionAttemptTimeoutMilliseconds);
+    this.connectionWatchdogTimer = setInterval(() => { this.checkConnection(); }, this.connectionAttemptTimeoutMs);
 
     logger.info(`PeerRelay for ${remoteLogin}(${remoteId}): created`);
   }
 
-  initPeerConnection() {
-    if (this.dataChannel) {
-      this.dataChannel.onopen = null;
-      this.dataChannel.onclose = null;
-      this.dataChannel.close();
-      delete this.dataChannel;
-    }
-    if (this.peerConnection) {
-      this.peerConnection.onerror = null;
-      this.peerConnection.ondatachannel = null;
-      this.peerConnection.onicecandidate = null;
-      this.peerConnection.oniceconnectionstatechange = null;
-      this.peerConnection.onicegatheringstatechange = null;
-      this.peerConnection.onicegatheringstatechange = null;
-      this.peerConnection.close();
-      delete this.peerConnection;
-    }
+  protected initPeerConnection() {
+    this.closeDatachannel();
+    this.closePeerConnection();
     this.receivedOffer = false;
     this.peerConnection = new RTCPeerConnection({
       iceServers: this.iceServers
     });
     this.lastConnectionAttemptTime = new Date();
-    this.iceConnectionState = this.peerConnection.iceConnectionState;
 
     this.peerConnection.onerror = (event) => {
       this.handleError("peerConnection.onerror", event);
@@ -93,10 +79,10 @@ export class PeerRelay extends EventEmitter {
           stats.result().forEach((stat) => {
             if (stat.type == 'googCandidatePair' &&
               stat.stat('googActiveConnection') === 'true') {
-              this.loc_cand_addr = stat.stat('googLocalAddress');
-              this.rem_cand_addr = stat.stat('googRemoteAddress');
-              this.loc_cand_type = stat.stat('googLocalCandidateType');
-              this.rem_cand_type = stat.stat('googRemoteCandidateType');
+              this.localCandAddress = stat.stat('googLocalAddress');
+              this.remoteCandAddress = stat.stat('googRemoteAddress');
+              this.localCandType = stat.stat('googLocalCandidateType');
+              this.remoteCandType = stat.stat('googRemoteCandidateType');
             }
           });
         },
@@ -140,17 +126,16 @@ export class PeerRelay extends EventEmitter {
       });
     }
 
+    this.iceConnectionState = this.peerConnection.iceConnectionState;
+    this.emit('iceConnectionStateChanged', this.iceConnectionState);
+
   }
 
-  initDataChannel(dc: RTCDataChannel) {
-    if (this.dataChannel) {
-      this.dataChannel.onopen = null;
-      this.dataChannel.onclose = null;
-      this.dataChannel.close();
-      delete this.dataChannel;
-    }
+  protected initDataChannel(dc: RTCDataChannel) {
+    this.closeDatachannel();
     this.dataChannel = dc;
     this.dataChannel.onopen = () => {
+      this.dataChannelIsOpen = true;
       logger.info(`Relay for ${this.remoteLogin}(${this.remoteId}): data channel open`);
       this.dataChannel.onmessage = (event) => {
         if (this.localSocket) {
@@ -168,11 +153,13 @@ export class PeerRelay extends EventEmitter {
       }
     };
     this.dataChannel.onclose = () => {
-      logger.error(`Relay for ${this.remoteLogin}(${this.remoteId}): data channel closed`);
+      this.dataChannelIsOpen = false;
+      logger.debug(`Relay for ${this.remoteLogin}(${this.remoteId}): data channel closed`);
+      delete this.dataChannel;
     }
   }
 
-  initLocalSocket() {
+  protected initLocalSocket() {
     this.localSocket = dgram.createSocket('udp4');
 
     this.localSocket.bind(undefined, 'localhost', () => {
@@ -197,7 +184,54 @@ export class PeerRelay extends EventEmitter {
     });
   }
 
-  addIceMsg(msg: any) {
+
+  protected handleError(what: string, error) {
+    logger.error(`Relay for ${this.remoteLogin}(${this.remoteId}) ${what}: ${JSON.stringify(error)}`);
+  }
+
+  protected checkConnection() {
+    if (this.iceConnectionState == 'failed' ||
+      this.iceConnectionState == 'new' ||
+      this.iceConnectionState == 'checking') {
+
+      let timeSinceLastConnectionAttemptMs = new Date().getTime() - this.lastConnectionAttemptTime.getTime();
+      if (timeSinceLastConnectionAttemptMs > this.connectionAttemptTimeoutMs) {
+        if (this.createOffer) {
+          logger.warn(`Relay for ${this.remoteLogin}(${this.remoteId}): ice connection state is stuck in offerer. Forcing reconnect...`);
+          this.initPeerConnection();
+        }
+        else if (this.receivedOffer) {
+          logger.warn(`Relay for ${this.remoteLogin}(${this.remoteId}): ice connection state is stuck in answerer. Forcing reconnect...`);
+          this.initPeerConnection();
+        }
+      }
+    }
+  }
+
+  protected closeDatachannel() {
+    if (this.dataChannel) {
+      this.dataChannel.onopen = null;
+      this.dataChannel.onclose = null;
+      this.dataChannel.close();
+      delete this.dataChannel;
+    }
+    this.dataChannelIsOpen = false;
+  }
+
+  protected closePeerConnection() {
+    if (this.peerConnection) {
+      this.peerConnection.onerror = null;
+      this.peerConnection.ondatachannel = null;
+      this.peerConnection.onicecandidate = null;
+      this.peerConnection.oniceconnectionstatechange = null;
+      this.peerConnection.onicegatheringstatechange = null;
+      this.peerConnection.onicegatheringstatechange = null;
+      this.peerConnection.close();
+      delete this.peerConnection;
+    }
+  }
+
+  public addIceMsg(msg: any) {
     logger.debug(`Relay for ${this.remoteLogin}(${this.remoteId}): received ICE msg: ${JSON.stringify(msg)}`);
     if (msg.type == 'offer') {
       this.receivedOffer = true;
@@ -242,33 +276,14 @@ export class PeerRelay extends EventEmitter {
     }
   }
 
-  handleError(what: string, error) {
-    logger.error(`Relay for ${this.remoteLogin}(${this.remoteId}) ${what}: ${JSON.stringify(error)}`);
-  }
-
-  close() {
-    this.peerConnection.close();
+  public close() {
+    clearInterval(this.connectionWatchdogTimer);
     this.localSocket.close();
+    this.closeDatachannel();
+    this.closePeerConnection();
   }
 
-  setIceServers(iceServers: Array<Object>) {
+  public setIceServers(iceServers: Array<Object>) {
     this.iceServers = iceServers;
-  }
-
-  checkConnection() {
-    if (this.iceConnectionState == 'failed' ||
-      this.iceConnectionState == 'new' ||
-      this.iceConnectionState == 'checking') {
-      if ((new Date().getTime() - this.lastConnectionAttemptTime.getTime()) > this.connectionAttemptTimeoutMilliseconds) {
-        if (this.createOffer) {
-          logger.warn(`Relay for ${this.remoteLogin}(${this.remoteId}): ice connection state is stuck in offerer. Forcing reconnect...`);
-          this.initPeerConnection();
-        }
-        else if (this.receivedOffer) {
-          logger.warn(`Relay for ${this.remoteLogin}(${this.remoteId}): ice connection state is stuck in answerer. Forcing reconnect...`);
-          this.initPeerConnection();
-        }
-      }
-    }
   }
 }
