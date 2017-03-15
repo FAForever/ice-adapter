@@ -1,3 +1,8 @@
+v5.4.1
+====== 
+
+- rework closing RTCPeerConnections to fix #34
+
 v5.4.0
 ====== 
 
