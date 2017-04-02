@@ -1,3 +1,8 @@
+v5.4.2
+====== 
+
+- use updated node-webrtc binaries
+
 v5.4.1
 ====== 
 
