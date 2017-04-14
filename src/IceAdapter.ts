@@ -18,6 +18,7 @@ export class IceAdapter {
   version: string;
   gametaskString: string;
   iceServers: Array<Object>;
+  initMode: number;
 
   constructor() {
     this.gpgNetState = 'None';
@@ -39,12 +40,11 @@ export class IceAdapter {
 
       this.rpcNotify('onConnectionStateChanged', ['Disconnected']);
     });
-
     this.version = require('../package.json').version;
     this.gametaskString = 'Idle';
-
     this.initRpcServer();
     this.iceServers = new Array<Object>();
+    this.initMode = 0;
   }
 
   initRpcServer() {
@@ -54,6 +54,7 @@ export class IceAdapter {
       'joinGame': (args, callback) => { this.joinGame(args[0], args[1]); },
       'connectToPeer': (args, callback) => { this.connectToPeer(args[0], args[1], args[2]); },
       'disconnectFromPeer': (args, callback) => { this.disconnectFromPeer(args[0]); },
+      'setInitMode': (args, callback) => { this.setInitMode(args[0]); },
       'iceMsg': (args, callback) => { this.iceMsg(args[0], args[1]); },
       'sendToGpgNet': (args, callback) => { this.sendToGpgNet(args[0], args[1]); },
       'setIceServers': (args, callback) => { this.setIceServers(args[0]); },
@@ -119,6 +120,10 @@ export class IceAdapter {
       this.peerRelays[remotePlayerId].close();
       delete this.peerRelays[remotePlayerId];
     }
+  }
+
+  setInitMode(initMode: number) {
+    this.initMode = initMode;
   }
 
   iceMsg(remotePlayerId: number, msg: any) {
@@ -258,11 +263,13 @@ export class IceAdapter {
       case 'GameState':
         this.gpgNetState = msg.chunks[0];
         if (this.gpgNetState == 'Idle') {
-          this.gpgNetServer.send(new GPGNetMessage('CreateLobby', [0,
+          this.gpgNetServer.send(new GPGNetMessage('CreateLobby', [
+            this.initMode,
             options.lobbyPort,
             options.login,
             options.id,
-            1]));
+            1
+            ]));
         }
         this.tryExecuteGameTasks();
         break;
