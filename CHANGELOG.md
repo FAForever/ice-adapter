@@ -1,3 +1,8 @@
+v5.5.0
+====== 
+
+- add `setInitMode` API method to enable auto-lobby for ladder/matchmaking
+
 v5.4.2
 ====== 
 
