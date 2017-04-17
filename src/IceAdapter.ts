@@ -6,6 +6,8 @@ import { PeerRelay } from './PeerRelay';
 import { Server as TCPServer, Socket as TCPSocket } from 'net';
 import logger from './logger';
 
+type LobbyInitMode = "normal" | "auto";
+
 export class IceAdapter {
 
   gpgNetServer: GPGNetServer;
@@ -18,7 +20,7 @@ export class IceAdapter {
   version: string;
   gametaskString: string;
   iceServers: Array<Object>;
-  initMode: number;
+  lobbyInitMode: LobbyInitMode;
 
   constructor() {
     this.gpgNetState = 'None';
@@ -44,7 +46,7 @@ export class IceAdapter {
     this.gametaskString = 'Idle';
     this.initRpcServer();
     this.iceServers = new Array<Object>();
-    this.initMode = 0;
+    this.lobbyInitMode = "normal";
   }
 
   initRpcServer() {
@@ -54,7 +56,7 @@ export class IceAdapter {
       'joinGame': (args, callback) => { this.joinGame(args[0], args[1]); },
       'connectToPeer': (args, callback) => { this.connectToPeer(args[0], args[1], args[2]); },
       'disconnectFromPeer': (args, callback) => { this.disconnectFromPeer(args[0]); },
-      'setInitMode': (args, callback) => { this.setInitMode(args[0]); },
+      'setLobbyInitMode': (args, callback) => { this.setLobbyInitMode(args[0]); },
       'iceMsg': (args, callback) => { this.iceMsg(args[0], args[1]); },
       'sendToGpgNet': (args, callback) => { this.sendToGpgNet(args[0], args[1]); },
       'setIceServers': (args, callback) => { this.setIceServers(args[0]); },
@@ -122,8 +124,9 @@ export class IceAdapter {
     }
   }
 
-  setInitMode(initMode: number) {
-    this.initMode = initMode;
+  setLobbyInitMode(lobbyInitMode: LobbyInitMode) {
+    logger.info(`lobbyInitMode set to ${lobbyInitMode}`);
+    this.lobbyInitMode = lobbyInitMode;
   }
 
   iceMsg(remotePlayerId: number, msg: any) {
@@ -264,7 +267,7 @@ export class IceAdapter {
         this.gpgNetState = msg.chunks[0];
         if (this.gpgNetState == 'Idle') {
           this.gpgNetServer.send(new GPGNetMessage('CreateLobby', [
-            this.initMode,
+            this.lobbyInitMode == "normal" ? 0 : 1,
             options.lobbyPort,
             options.login,
             options.id,
