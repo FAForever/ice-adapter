@@ -106,7 +106,7 @@ export class PeerRelay extends EventEmitter {
     };
 
     if (this.createOffer) {
-      logger.info(`Relay for ${this.remoteLogin}(${this.remoteId}): create offer`);
+      logger.info(`Relay for ${this.remoteLogin}(${this.remoteId}): creating offer`);
 
       this.initDataChannel(this.peerConnection.createDataChannel('faf', {
         ordered: false,
@@ -116,6 +116,7 @@ export class PeerRelay extends EventEmitter {
       this.peerConnection.createOffer().then((desc: RTCSessionDescription) => {
         this.peerConnection.setLocalDescription(new RTCSessionDescription(desc)).then(() => {
           this.emit('iceMessage', desc);
+          logger.debug(`Relay for ${this.remoteLogin}(${this.remoteId}): sending offer ${desc}`);
         },
           (error) => {
             this.handleError("setLocalDescription with offer failed", error);
@@ -235,10 +236,13 @@ export class PeerRelay extends EventEmitter {
     logger.debug(`Relay for ${this.remoteLogin}(${this.remoteId}): received ICE msg: ${JSON.stringify(msg)}`);
     if (msg.type == 'offer') {
       this.receivedOffer = true;
+      logger.debug(`Relay for ${this.remoteLogin}(${this.remoteId}): received remote offer`);
       this.peerConnection.setRemoteDescription(new RTCSessionDescription(msg)).then(() => {
+        logger.debug(`Relay for ${this.remoteLogin}(${this.remoteId}): creating answer`);
         this.peerConnection.createAnswer().then((desc: RTCSessionDescription) => {
           this.peerConnection.setLocalDescription(new RTCSessionDescription(desc)).then(() => {
             this.emit('iceMessage', desc);
+            logger.debug(`Relay for ${this.remoteLogin}(${this.remoteId}): sending answer ${desc}`);
           },
             (error) => {
               this.handleError("setLocalDescription with answer failed", error);
