@@ -192,8 +192,7 @@ export class PeerRelay extends EventEmitter {
 
   protected checkConnection() {
     if (this.iceConnectionState == 'failed' ||
-      this.iceConnectionState == 'new' ||
-      this.iceConnectionState == 'checking') {
+        this.iceConnectionState == 'new') {
 
       let timeSinceLastConnectionAttemptMs = new Date().getTime() - this.lastConnectionAttemptTime.getTime();
       if (timeSinceLastConnectionAttemptMs > this.connectionAttemptTimeoutMs) {
