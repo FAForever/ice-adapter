@@ -13,7 +13,7 @@ if (options.logFile.length > 0) {
   transports.push(new (winston.transports.File)({
     filename: options.logFile,
     level: 'debug',
-    maxsize: 1000, 
+    maxsize: 1e6, /* ~1 MB */
     maxFiles: 3
   }))
 };
