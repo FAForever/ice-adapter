@@ -1,3 +1,9 @@
+v5.5.2
+====== 
+
+- #44 don't interrupt 'checking' state after 10 second timeout
+- #43 fix logfile size
+
 v5.5.1
 ====== 
 
