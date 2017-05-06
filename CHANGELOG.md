@@ -1,3 +1,8 @@
+v5.6.0
+====== 
+
+- remove Testclient and simplify CI build
+
 v5.5.3
 ====== 
 
