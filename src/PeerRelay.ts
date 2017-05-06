@@ -37,7 +37,11 @@ export class PeerRelay extends EventEmitter {
 
     this.connectionWatchdogTimer = setInterval(() => { this.checkConnection(); }, this.connectionAttemptTimeoutMs);
 
-    logger.info(`PeerRelay for ${remoteLogin}(${remoteId}): created`);
+    this.logMsg(`created`);
+  }
+
+  protected logMsg(msg : string, level : string = 'debug') {
+    logger.log(level, `Relay for ${this.remoteLogin}(${this.remoteId}): ${msg}`);
   }
 
   protected initPeerConnection() {
@@ -59,7 +63,7 @@ export class PeerRelay extends EventEmitter {
 
     this.peerConnection.onicecandidate = (candidate) => {
       if (candidate.candidate) {
-        logger.debug(`PeerRelay for ${this.remoteLogin} received candidate ${JSON.stringify(candidate.candidate)}`);
+        this.logMsg(`announcing candidate ${JSON.stringify(candidate.candidate)}`);
         this.emit('iceMessage', {
           'type': 'candidate',
           'candidate': candidate.candidate
@@ -69,11 +73,11 @@ export class PeerRelay extends EventEmitter {
 
     this.peerConnection.oniceconnectionstatechange = (event) => {
       this.iceConnectionState = this.peerConnection.iceConnectionState;
-      logger.info(`Relay for ${this.remoteLogin}(${this.remoteId}): iceConnectionState changed to ${this.iceConnectionState}`);
+      this.logMsg(`iceConnectionState changed to ${this.iceConnectionState}`);
       if ((this.iceConnectionState == 'connected' || this.iceConnectionState == 'completed')
         && !this.connectedTime) {
         this.connectedTime = process.hrtime(this.startTime);
-        logger.info(`Relay for ${this.remoteLogin}(${this.remoteId}): connection established after ${this.connectedTime[1] / 1e9}s`);
+        this.logMsg(`connection established after ${this.connectedTime[1] / 1e9}s`);
 
         this.peerConnection.getStats((stats) => {
           stats.result().forEach((stat) => {
@@ -93,7 +97,7 @@ export class PeerRelay extends EventEmitter {
       }
 
       if (this.iceConnectionState == 'failed') {
-        logger.warn(`Relay for ${this.remoteLogin}(${this.remoteId}): Connection failed, forcing reconnect immediately.`);
+        this.logMsg(`Connection failed, forcing reconnect immediately.`, 'warn');
         setTimeout(() => { this.initPeerConnection(); }, 0);
       }
 
@@ -102,11 +106,11 @@ export class PeerRelay extends EventEmitter {
 
     this.peerConnection.onicegatheringstatechange = (event) => {
       this.iceGatheringState = this.peerConnection.iceGatheringState;
-      logger.debug(`Relay for ${this.remoteLogin}(${this.remoteId}): iceGatheringState changed to ${this.iceGatheringState}`);
+      this.logMsg(`iceGatheringState changed to ${this.iceGatheringState}`);
     };
 
     if (this.createOffer) {
-      logger.info(`Relay for ${this.remoteLogin}(${this.remoteId}): creating offer`);
+      this.logMsg(`creating offer`);
 
       this.initDataChannel(this.peerConnection.createDataChannel('faf', {
         ordered: false,
@@ -116,7 +120,7 @@ export class PeerRelay extends EventEmitter {
       this.peerConnection.createOffer().then((desc: RTCSessionDescription) => {
         this.peerConnection.setLocalDescription(new RTCSessionDescription(desc)).then(() => {
           this.emit('iceMessage', desc);
-          logger.debug(`Relay for ${this.remoteLogin}(${this.remoteId}): sending offer ${desc}`);
+          this.logMsg(`sending offer ${desc}`);
         },
           (error) => {
             this.handleError("setLocalDescription with offer failed", error);
@@ -137,12 +141,12 @@ export class PeerRelay extends EventEmitter {
     this.dataChannel = dc;
     this.dataChannel.onopen = () => {
       this.dataChannelIsOpen = true;
-      logger.info(`Relay for ${this.remoteLogin}(${this.remoteId}): data channel open`);
+      this.logMsg(`data channel open`);
       this.dataChannel.onmessage = (event) => {
         if (this.localSocket) {
           this.localSocket.send(Buffer.from(event.data), options.lobbyPort, 'localhost', (error, bytes) => {
             if (error) {
-              logger.error(`Relay for ${this.remoteLogin}(${this.remoteId}): error sending to local socket: ${JSON.stringify(error)}`);
+              this.logMsg(`error sending to local socket: ${JSON.stringify(error)}`, 'error');
             }
           });
         }
@@ -150,12 +154,12 @@ export class PeerRelay extends EventEmitter {
       this.emit('datachannelOpen');
       if (!this.connectedTime) {
         this.connectedTime = process.hrtime(this.startTime);
-        logger.info(`Relay for ${this.remoteLogin}(${this.remoteId}): connection established after ${this.connectedTime[1] / 1e9}s`);
+        this.logMsg(`connection established after ${this.connectedTime[1] / 1e9}s`);
       }
     };
     this.dataChannel.onclose = () => {
       this.dataChannelIsOpen = false;
-      logger.debug(`Relay for ${this.remoteLogin}(${this.remoteId}): data channel closed`);
+      this.logMsg(`data channel closed`);
       delete this.dataChannel;
     }
   }
@@ -165,29 +169,28 @@ export class PeerRelay extends EventEmitter {
 
     this.localSocket.bind(undefined, 'localhost', () => {
       this.localPort = this.localSocket.address().port;
-      logger.info(`Relay for ${this.remoteLogin}(${this.remoteId}): listening on port ${this.localPort}`);
+      this.logMsg(`listening on port ${this.localPort}`);
       this.emit('localSocketListening');
     });
 
     this.localSocket.on('message', (msg, rinfo) => {
-      //logger.info(`Relay for ${this.remoteLogin}(${this.remoteId}): received msg ${msg} from ${JSON.stringify(rinfo)}}`);
       if (this.dataChannel) {
         this.dataChannel.send(msg);
       }
     });
 
     this.localSocket.on('error', (error) => {
-      logger.info(`Relay for ${this.remoteLogin}(${this.remoteId}): error in localsocket: ${JSON.stringify(error)}`);
+      this.logMsg(`error in localsocket: ${JSON.stringify(error)}`);
     });
     this.localSocket.on('close', () => {
-      logger.info(`Relay for ${this.remoteLogin}(${this.remoteId}): local socket closed`);
+      this.logMsg(`local socket closed`);
       delete this.localSocket;
     });
   }
 
 
   protected handleError(what: string, error) {
-    logger.error(`Relay for ${this.remoteLogin}(${this.remoteId}) ${what}: ${JSON.stringify(error)}`);
+    this.logMsg(`${what}: ${JSON.stringify(error)}`, 'error');
   }
 
   protected checkConnection() {
@@ -197,11 +200,11 @@ export class PeerRelay extends EventEmitter {
       let timeSinceLastConnectionAttemptMs = new Date().getTime() - this.lastConnectionAttemptTime.getTime();
       if (timeSinceLastConnectionAttemptMs > this.connectionAttemptTimeoutMs) {
         if (this.createOffer) {
-          logger.warn(`Relay for ${this.remoteLogin}(${this.remoteId}): ice connection state is stuck in offerer. Forcing reconnect...`);
+          this.logMsg(`ICE connection state is stuck in offerer. Forcing reconnect...`, 'warn');
           this.initPeerConnection();
         }
         else if (this.receivedOffer) {
-          logger.warn(`Relay for ${this.remoteLogin}(${this.remoteId}): ice connection state is stuck in answerer. Forcing reconnect...`);
+          this.logMsg(`ICE connection state is stuck in answerer. Forcing reconnect...`, 'warn');
           this.initPeerConnection();
         }
       }
@@ -232,16 +235,16 @@ export class PeerRelay extends EventEmitter {
   }
 
   public addIceMsg(msg: any) {
-    logger.debug(`Relay for ${this.remoteLogin}(${this.remoteId}): received ICE msg: ${JSON.stringify(msg)}`);
+    this.logMsg(`received ICE msg: ${JSON.stringify(msg)}`);
     if (msg.type == 'offer') {
       this.receivedOffer = true;
-      logger.debug(`Relay for ${this.remoteLogin}(${this.remoteId}): received remote offer`);
+      this.logMsg(`received remote offer`);
       this.peerConnection.setRemoteDescription(new RTCSessionDescription(msg)).then(() => {
-        logger.debug(`Relay for ${this.remoteLogin}(${this.remoteId}): creating answer`);
+        this.logMsg(`creating answer`);
         this.peerConnection.createAnswer().then((desc: RTCSessionDescription) => {
           this.peerConnection.setLocalDescription(new RTCSessionDescription(desc)).then(() => {
             this.emit('iceMessage', desc);
-            logger.debug(`Relay for ${this.remoteLogin}(${this.remoteId}): sending answer ${desc}`);
+            this.logMsg(`sending answer ${desc}`);
           },
             (error) => {
               this.handleError("setLocalDescription with answer failed", error);
@@ -260,7 +263,7 @@ export class PeerRelay extends EventEmitter {
     }
     else if (msg.type == 'answer') {
       this.peerConnection.setRemoteDescription(new RTCSessionDescription(msg)).then(() => {
-        logger.debug(`Relay for ${this.remoteLogin}(${this.remoteId}): set remote answer`);
+        this.logMsg(`set remote answer`);
       },
         (error) => {
           this.handleError("setRemoteDescription failed", error);
@@ -268,14 +271,14 @@ export class PeerRelay extends EventEmitter {
     }
     else if (msg.type == 'candidate') {
       this.peerConnection.addIceCandidate(new RTCIceCandidate(msg.candidate)).then(() => {
-        logger.debug(`Relay for ${this.remoteLogin}(${this.remoteId}): added ICE candidate ${JSON.stringify(msg.candidate)}`);
+        this.logMsg(`adding remote candidate ${JSON.stringify(msg.candidate)}`);
       },
         (error) => {
           this.handleError("addIceCandidate failed", error);
         });
     }
     else {
-      logger.error(`Relay for ${this.remoteLogin}(${this.remoteId}): unknown ICE message type: ${JSON.stringify(msg)}`);
+      this.logMsg(`unknown ICE message type: ${JSON.stringify(msg)}`, 'error');
     }
   }
 
