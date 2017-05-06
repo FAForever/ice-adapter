@@ -1,3 +1,8 @@
+v5.5.3
+====== 
+
+- refactor logging in PeerRelay
+
 v5.5.2
 ====== 
 
