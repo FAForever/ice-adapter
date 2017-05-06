@@ -1,38 +1,18 @@
 language: node_js
 node_js:
-  - 7.8.0
+  - "6"
 os: linux
-dist: xenial
-sudo: required
-compiler: gcc
-env:
-- MXE_TARGET=i686-w64-mingw32.static
-install:
-- echo "deb http://pkg.mxe.cc/repos/apt/debian wheezy main" | sudo tee /etc/apt/sources.list.d/mxeapt.list
-- sudo apt-key adv --keyserver x-hkp://keys.gnupg.net --recv-keys D43A795B73B16ABE9643FE1AFD8FFF16DB45C6AB
-- sudo apt-get update
-- sudo apt-get --yes install mxe-$MXE_TARGET-jsoncpp mxe-$MXE_TARGET-qtbase mxe-$MXE_TARGET-boost ninja-build
+dist: trusty
 script:
 # Compile the bundled ice-adapter
 - npm install
 - patch -p1 < ./wrtc.patch
 - npm run bundle
-# Build the testclient
-- export MXE_DIR=/usr/lib/mxe
-- "$MXE_DIR/usr/bin/$MXE_TARGET-cmake --version"
-- mkdir build && cd build
-- "$MXE_DIR/usr/bin/$MXE_TARGET-cmake -DCMAKE_BUILD_TYPE=Release -DCMAKE_CXX_FLAGS=\"-march=i686\" -G \"Ninja\" ../testclient"
-- ninja faf-ice-testclient
-- cd ..
 # Create the windows release
 - wget https://github.com/FAForever/node-webrtc/releases/download/v0.0.61-faf4/node-webrtc-win32.zip
 - unzip node-webrtc-win32.zip
 - cp -r ./dist ./faf-ice-adapter
 - cp -r ./node-webrtc/* ./faf-ice-adapter
-- cp -r ./dist ./faf-ice-adapter-testclient
-- cp -r ./node-webrtc/* ./faf-ice-adapter-testclient
-- cp ./build/faf-ice-testclient.exe ./faf-ice-adapter-testclient/faf-ice-testclient.exe
-- zip -r faf-ice-adapter-testclient-win32-$TRAVIS_TAG.zip ./faf-ice-adapter-testclient
 - zip -r faf-ice-adapter-win32-$TRAVIS_TAG.zip ./faf-ice-adapter
 - rm ./faf-ice-adapter/wrtc.node
 - rm ./faf-ice-adapter/node.exe
