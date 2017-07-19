@@ -9,7 +9,7 @@ script:
 - patch -p1 < ./wrtc.patch
 - npm run bundle
 # Create the windows release
-- wget https://github.com/FAForever/node-webrtc/releases/download/v0.0.61-faf4/node-webrtc-win32.zip
+- wget https://github.com/FAForever/node-webrtc/releases/download/v0.0.61-faf5/node-webrtc-win32.zip
 - unzip node-webrtc-win32.zip
 - cp -r ./dist ./faf-ice-adapter
 - cp -r ./node-webrtc/* ./faf-ice-adapter
@@ -17,7 +17,7 @@ script:
 - rm ./faf-ice-adapter/wrtc.node
 - rm ./faf-ice-adapter/node.exe
 # Create the Linux release
-- wget https://github.com/FAForever/node-webrtc/releases/download/v0.0.61-faf4/wrtc-linux64.node -O ./faf-ice-adapter/wrtc.node
+- wget https://github.com/FAForever/node-webrtc/releases/download/v0.0.61-faf5/wrtc.node-v57-linux-x64 -O ./faf-ice-adapter/wrtc.node
 - tar cfJ faf-ice-adapter-linux64-$TRAVIS_TAG.tar.xz faf-ice-adapter/
 deploy:
   provider: releases
