@@ -5,4 +5,3 @@ logger.info(`Starting faf-ice-adapter version ${require('../package.json').versi
 import { IceAdapter } from './IceAdapter';
 
 let a = new IceAdapter();
-
