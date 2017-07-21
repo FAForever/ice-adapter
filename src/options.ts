@@ -15,8 +15,11 @@ export let options = yargs
   .describe('lobby-port', 'set the port the game lobby should use for incoming UDP packets from the PeerRelay')
   .alias('lobby-port', 'lobby_port')
   .default('log-file', '')
-  .describe('log-file', 'set a verbose log file')
+  .describe('log-file', 'log to specified file')
   .alias('log-file', 'log_file')
+  .default('log-level', 'debug')
+  .describe('log-level', 'set logging verbosity level: error, warn, info, verbose or debug')
+  .alias('log-level', 'log_level')
   .argv;
 
 export default options;
