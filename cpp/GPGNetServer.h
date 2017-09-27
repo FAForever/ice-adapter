@@ -20,8 +20,12 @@ class GPGNetServer : public sigslot::has_slots<>
 {
 public:
   GPGNetServer();
+
   void listen(int port);
 
+  int listenPort() const;
+
+  bool hasConnectedClient() const;
 
   void sendMessage(GPGNetMessage const& msg);
 
