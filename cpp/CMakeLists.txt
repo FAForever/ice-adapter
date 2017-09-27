@@ -4,6 +4,8 @@ project(faf-ice-adapter
   LANGUAGES CXX C
   )
 
+set(CMAKE_CXX_STANDARD 17)
+
 if(NOT FAF_VERSION_STRING)
   find_package(Git)
   if(GIT_FOUND)
@@ -30,8 +32,12 @@ add_custom_target(docs
   )
 
 add_library(fafice
+  logging.cpp
+  IceAdapter.cpp
   IceAdapterOptions.cpp
   IceTest.cpp
+  GPGNetServer.cpp
+  GPGNetMessage.cpp
 )
 target_compile_definitions(fafice PRIVATE FAF_VERSION_STRING="${FAF_VERSION_STRING}")
 target_link_libraries(fafice
@@ -48,9 +54,9 @@ target_link_libraries(faf-ice-adapter
 
 target_compile_definitions(faf-ice-adapter PRIVATE BOOST_SYSTEM_NO_DEPRECATED)
 
-if(NOT MINGW)
+if(NOT WIN32)
   target_link_libraries(fafice dl;SM;ICE;X11;Xext;rt)
-  set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -DWEBRTC_POSIX -D_GLIBCXX_USE_CXX11_ABI=0 -std=gnu++0x -pthread")
+  set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -DWEBRTC_POSIX -D_GLIBCXX_USE_CXX11_ABI=0 -std=c++17 -pthread")
   #set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -pthread")
   target_compile_definitions(fafice PUBLIC WEBRTC_LINUX)
   target_compile_definitions(fafice PUBLIC WEBRTC_POSIX)

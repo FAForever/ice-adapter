@@ -3,14 +3,16 @@
 #include <cstdlib>
 #include <iostream>
 
-#include <boost/program_options.hpp>
-
-namespace po = boost::program_options;
+#include "cxxopts.hpp"
 
 namespace faf
 {
 
-IceAdapterOptions::IceAdapterOptions()
+IceAdapterOptions::IceAdapterOptions():
+  rpcPort(7236),
+  gpgNetPort(7237),
+  gameUdpPort(7238),
+  logLevel("debug")
 {
 }
 
@@ -18,55 +20,38 @@ IceAdapterOptions IceAdapterOptions::init(int argc, char *argv[])
 {
   IceAdapterOptions result;
 
-  try
+  cxxopts::Options options("faf-ice-adapter", "A P2P connection proxy for Supreme Commander: Forged Alliance using ICE");
+  options.add_options()
+    ("help", "Show this help message")
+    ("id", "set the ID of the local player", cxxopts::value<int>(result.localPlayerId))
+    ("login", "set the login of the local player, e.g. \"Rhiza\"", cxxopts::value<std::string>(result.localPlayerLogin))
+    ("rpc-port", "set the port of internal JSON-RPC server", cxxopts::value<int>(result.rpcPort))
+    ("gpgnet-port", "set the port of internal GPGNet server", cxxopts::value<int>(result.gpgNetPort))
+    ("lobby-port", "set the port the game lobby should use for incoming UDP packets from the PeerRelay", cxxopts::value<int>(result.gameUdpPort))
+    ("log-file", "log to specified file", cxxopts::value<std::string>(result.logFile))
+    ("log-level", "set logging verbosity level: error, warn, info, verbose or debug", cxxopts::value<std::string>(result.logLevel))
+    ;
+
+  options.parse(argc, argv);
+
+  if (options.count("help"))
   {
-      po::options_description desc(std::string("faf-ice-adapter ") + FAF_VERSION_STRING + " usage");
-      desc.add_options()
-        ("help",           "produce help message")
-        ("id",           po::value<int>(&result.localPlayerId)->required(),                            "set the ID of the local player")
-        ("login",        po::value<std::string>(&result.localPlayerLogin)->required(),                 "set the login of the local player, e.g. \"Rhiza\"")
-        ("rpc-port",     po::value<int>(&result.rpcPort)->default_value(7236),                         "set the port of internal JSON-RPC server")
-        ("gpgnet-port",  po::value<int>(&result.gpgNetPort)->default_value(7237),                      "set the port of internal GPGNet server")
-        ("lobby-port",   po::value<int>(&result.gameUdpPort)->default_value(7238),                     "set the port the game lobby should use for incoming UDP packets from the PeerRelay")
-        ("log-file",     po::value<std::string>(&result.logFile)->default_value(""),                   "set a verbose log file")
-        ("log-level",    po::value<std::string>(&result.logFile)->default_value("debug"),              "set the logging vebosity level: error, warn, info, debug or trace")
-      ;
-
-      try
-      {
-        po::variables_map vm;
-        po::store(po::parse_command_line(argc, argv, desc), vm);
-
-        if (vm.count("help"))
-        {
-            std::cerr << desc;
-            std::exit(1);
-        }
-
-        po::notify(vm);
-      }
-      catch(std::exception& e)
-      {
-        std::cerr << "Error: " << e.what() << "\n" << desc;
-        std::exit(1);
-
-      }
-      catch(...)
-      {
-        std::cerr << "Unknown error!" << "\n" << desc;
-        std::exit(1);
-      }
+    std::cout << options.help() << std::endl;
+    std::exit(0);
   }
-  catch(std::exception& e)
+  if (options.count("id") == 0)
   {
-      std::cerr << "Error: " << e.what();
-      std::exit(1);
+    std::cerr << "argument id is required" << std::endl;
+    std::cout << options.help() << std::endl;
+    std::exit(1);
   }
-  catch(...)
+  if (options.count("login") == 0)
   {
-      std::cerr << "Unknown error!";
-      std::exit(1);
+    std::cerr << "argument login is required" << std::endl;
+    std::cout << options.help() << std::endl;
+    std::exit(1);
   }
+
   return result;
 }
 
