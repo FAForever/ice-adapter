@@ -1,9 +1,9 @@
-#include "IceTest.h"
+#include "IceAdapter.h"
 
 int main(int argc, char *argv[])
 {
-  faf::IceTest it(argc, argv);
+  faf::IceAdapter iceAdapter(argc, argv);
 
-  it.Run();
+  iceAdapter.run();
   return 0;
 }
