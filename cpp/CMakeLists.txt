@@ -36,8 +36,10 @@ add_library(fafice
   IceAdapter.cpp
   IceAdapterOptions.cpp
   IceTest.cpp
+  JsonRpcServer.cpp
   GPGNetServer.cpp
   GPGNetMessage.cpp
+  PeerRelay.cpp
 )
 target_compile_definitions(fafice PRIVATE FAF_VERSION_STRING="${FAF_VERSION_STRING}")
 target_link_libraries(fafice

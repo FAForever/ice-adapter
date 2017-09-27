@@ -25,6 +25,16 @@ void GPGNetServer::listen(int port)
   FAF_LOG_DEBUG << "GPGNetServer listening on port " << port;
 }
 
+int GPGNetServer::listenPort() const
+{
+  return _server->GetLocalAddress().port();
+}
+
+bool GPGNetServer::hasConnectedClient() const
+{
+  return bool(_connectedSocket);
+}
+
 void GPGNetServer::sendMessage(GPGNetMessage const& msg)
 {
   if (!_connectedSocket)
@@ -146,11 +156,11 @@ void GPGNetServer::_onRead(rtc::AsyncSocket* socket)
   do
   {
     msgLength = _connectedSocket->Recv(_readBuffer.data(), _readBuffer.size(), nullptr);
-    _currentMsg.append(_readBuffer.data(), msgLength);
+    _currentMsg.append(_readBuffer.data(), std::size_t(msgLength));
 
     GPGNetMessage::parse(_currentMsg, [this](GPGNetMessage const& msg)
     {
-      FAF_LOG_TRACE << "received " << msg.toDebug();
+      FAF_LOG_TRACE << "GPGNetServer received " << msg.toDebug();
       SignalNewGPGNetMessage.emit(msg);
     });
   }
