@@ -156,13 +156,16 @@ void GPGNetServer::_onRead(rtc::AsyncSocket* socket)
   do
   {
     msgLength = _connectedSocket->Recv(_readBuffer.data(), _readBuffer.size(), nullptr);
-    _currentMsg.append(_readBuffer.data(), std::size_t(msgLength));
 
-    GPGNetMessage::parse(_currentMsg, [this](GPGNetMessage const& msg)
+    if (msgLength > 0)
     {
-      FAF_LOG_TRACE << "GPGNetServer received " << msg.toDebug();
-      SignalNewGPGNetMessage.emit(msg);
-    });
+      _currentMsg.append(_readBuffer.data(), std::size_t(msgLength));
+      GPGNetMessage::parse(_currentMsg, [this](GPGNetMessage const& msg)
+      {
+        FAF_LOG_TRACE << "GPGNetServer received " << msg.toDebug();
+        SignalNewGPGNetMessage.emit(msg);
+      });
+    }
   }
   while(msgLength > 0);
 }

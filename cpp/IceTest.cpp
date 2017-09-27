@@ -14,7 +14,7 @@ namespace faf {
 
 IceTest::IceTest(int argc, char *argv[])
 {
-  auto options = faf::IceAdapterOptions::init(1, "Rhiza");
+  auto options = faf::IceAdapterOptions::init(argc, argv);
 
   bool result;
   result = rtc::InitializeSSL();
@@ -28,6 +28,10 @@ IceTest::IceTest(int argc, char *argv[])
   if (peer_connection_factory.get() == nullptr)
   {
     std::cerr << "Error on CreatePeerConnectionFactory";
+  }
+  else
+  {
+    std::cout << "peer_connection_factory created" << std::endl;
   }
 
 }
