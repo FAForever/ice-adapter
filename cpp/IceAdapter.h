@@ -61,11 +61,8 @@ public:
        \param remotePlayerId:    ID of the player to connect to
       */
   void connectToPeer(std::string const& remotePlayerLogin,
-                     int remotePlayerId);
-
-  /** \brief Not sure yet
-      */
-  void reconnectToPeer(int remotePlayerId);
+                     int remotePlayerId,
+                     bool createOffer);
 
   /** \brief Tell the game to disconnect from a remote peer
    *         Will remove the Relay.
@@ -73,17 +70,26 @@ public:
       */
   void disconnectFromPeer(int remotePlayerId);
 
-  /** \brief Sets the SDP record for the remote peer.
-   *         This method assumes a previous call of joinGame or connectToPeer.
-       \param remotePlayerId: ID of the remote player
-       \param sdp:            the SDP message
+  /** \brief Set Lobby mode upfront game launch
+       \param initMode: "normal" for normal lobby and "auto" for automatch lobby (aka ladder)
       */
-  void addSdp(int remotePlayerId, std::string const& sdp);
+  void setLobbyInitMode(std::string const& initMode);
+
+  /** \brief Add ICE signalling message
+       \param remotePlayerId: ID of the remote player
+       \param msg: the signalling messages generated from the remote player
+      */
+  void iceMsg(int remotePlayerId, Json::Value const& msg);
 
   /** \brief Send an arbitrary GPGNet message to the game
        \param message: The GPGNet message
       */
   void sendToGpgNet(GPGNetMessage const& message);
+
+  /** \brief Set the ICE servers to use (STUN and TURN servers)
+       \param servers: the JSON Array containing ICE server list
+      */
+  void setIceServers(Json::Value const& servers);
 
   /** \brief Return the ICEAdapters status
        \returns The status as JSON structure
@@ -99,7 +105,8 @@ protected:
   void _onGameDisconnected();
   void _onGpgNetMessage(GPGNetMessage const& message);
   std::shared_ptr<PeerRelay> _createPeerRelay(int remotePlayerId,
-                                              std::string const& remotePlayerLogin);
+                                              std::string const& remotePlayerLogin,
+                                              bool createOffer);
 
   IceAdapterOptions _options;
   rtc::scoped_refptr<webrtc::PeerConnectionFactoryInterface> _pcfactory;
@@ -109,6 +116,8 @@ protected:
   std::string _gpgnetGameState;
   std::map<int, std::shared_ptr<PeerRelay>> _relays;
   std::string _gametaskString;
+  webrtc::PeerConnectionInterface::IceServers _iceServerList;
+  std::string _lobbyInitMode;
 };
 
 } // namespace faf

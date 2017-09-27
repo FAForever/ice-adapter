@@ -10,7 +10,7 @@ namespace faf
 
 IceAdapterOptions::IceAdapterOptions():
   rpcPort(7236),
-  gpgNetPort(7237),
+  gpgNetPort(0),
   gameUdpPort(7238),
   logLevel("debug")
 {

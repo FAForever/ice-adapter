@@ -13,6 +13,7 @@ class JsonRpcServer : public sigslot::has_slots<>
 {
 public:
   JsonRpcServer();
+  virtual ~JsonRpcServer();
   void listen(int port);
 
 

@@ -12,10 +12,19 @@ JsonRpcServer::JsonRpcServer():
 {
 }
 
+JsonRpcServer::~JsonRpcServer()
+{
+  FAF_LOG_DEBUG << "~JsonRpcServer()";
+}
+
 void JsonRpcServer::listen(int port)
 {
   _server->SignalReadEvent.connect(this, &JsonRpcServer::_onNewClient);
-  _server->Bind(rtc::SocketAddress("127.0.0.1", port));
+  if (_server->Bind(rtc::SocketAddress("127.0.0.1", port)) != 0)
+  {
+    FAF_LOG_ERROR << "unable to bind to port " << port;
+    std::exit(1);
+  }
   _server->Listen(5);
   FAF_LOG_DEBUG << "JsonRpcServer listening on port " << port;
 }
@@ -102,8 +111,11 @@ void JsonRpcServer::_onRead(rtc::AsyncSocket* socket)
     do
     {
       msgLength = socket->Recv(_readBuffer.data(), _readBuffer.size(), nullptr);
-      _currentMsgs[socket].append(_readBuffer.data(), std::size_t(msgLength));
-      _parseMessage(_currentMsgs[socket], socket);
+      if (msgLength > 0)
+      {
+        _currentMsgs[socket].append(_readBuffer.data(), std::size_t(msgLength));
+        _parseMessage(_currentMsgs[socket], socket);
+      }
     }
     while (msgLength > 0);
   }
