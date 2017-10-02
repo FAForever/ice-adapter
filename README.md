@@ -87,6 +87,9 @@ faf-ice-adapter usage:
 | 4 | The client sends `hostGame('monument_valley.v0001')`||
 | 5 | The game should now wait in the lobby and the client receives a lot of `onGpgNetMessageReceived` notifications from `faf-ice-adapter`||
 | 6 |  | Now Bob want to join Alices game, starts the client, the client starts `faf-ice-adapter` and the game like Alice did. |
+| 6.1 | | The game sends `GameState Idle` |
+| 6.2 | | The client sends `CreateLobby ...` |
+| 6.3 | | The game sends `GameState Lobby` |
 | 7 | The client sends `connectToPeer('Bob', 2, true)` | The client sends `joinGame('Alice', 1)` |
 | 8 | The game should connect to the internal PeerRelay, and shows that it's connecting to the peer. | The game should connect to the internal PeerRelay, and shows that it's connecting to the peer. |
 | 9 | The client receives multiple `onIceMsg(1, 2, someIceMsg)`notifications and must now transfer these messages string ordered to the peer. | The client receives multiple `onIceMsg(1, 2, someIceMsg)`notifications and must now transfer these messages string ordered to the peer. |
