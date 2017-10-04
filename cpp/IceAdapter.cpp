@@ -19,7 +19,6 @@ IceAdapter::IceAdapter(int argc, char *argv[]):
   _gpgnetGameState("None"),
   _lobbyInitMode("normal")
 {
-
   logging_init(_options.logLevel);
 
   if (!rtc::InitializeSSL())
@@ -29,11 +28,11 @@ IceAdapter::IceAdapter(int argc, char *argv[]):
   }
 
   auto audio_device_module = FakeAudioCaptureModule::Create();
-_pcfactory = webrtc::CreatePeerConnectionFactory(rtc::Thread::Current(),
-                                                 rtc::Thread::Current(),
-                                                 audio_device_module,
-                                                 nullptr,
-                                                 nullptr);
+  _pcfactory = webrtc::CreatePeerConnectionFactory(rtc::Thread::Current(),
+                                                   rtc::Thread::Current(),
+                                                   audio_device_module,
+                                                   nullptr,
+                                                   nullptr);
   if (!_pcfactory)
   {
     FAF_LOG_ERROR << "Error in CreatePeerConnectionFactory()";
@@ -192,26 +191,7 @@ Json::Value IceAdapter::status() const
     Json::Value relays(Json::arrayValue);
     for (auto it = _relays.begin(), end = _relays.end(); it != end; ++it)
     {
-      Json::Value relay;
-      relay["remote_player_id"] = it->first;
-
-      /* TODO
-      relay["remote_player_login"] = it->second->peerLogin();
-      relay["local_game_udp_port"] = it->second->localGameUdpPort();
-
-      if (it->second->iceStream())
-      {
-        relay["ice_agent"]["state"] = stateToString(it->second->iceStream()->state());
-        relay["ice_agent"]["peer_connected_to_me"] = it->second->iceStream()->peerConnectedToMe();
-        relay["ice_agent"]["connected_to_peer"] = it->second->iceStream()->connectedToPeer();
-        relay["ice_agent"]["local_candidate"] = it->second->iceStream()->localCandidateInfo();
-        relay["ice_agent"]["remote_candidate"] = it->second->iceStream()->remoteCandidateInfo();
-        relay["ice_agent"]["remote_sdp"] = it->second->iceStream()->remoteSdp();
-        relay["ice_agent"]["time_to_connected"] = it->second->iceStream()->timeToConnected();
-      }
-      */
-
-      relays.append(relay);
+      relays.append(it->second->status());
     }
     result["relays"] = relays;
   }
