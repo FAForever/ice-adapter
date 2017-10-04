@@ -96,7 +96,6 @@ public:
       */
   Json::Value status() const;
 
-
 protected:
   void _connectRpcMethods();
   void _queueGameTask(IceAdapterGameTask t);

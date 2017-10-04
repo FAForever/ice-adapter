@@ -12,7 +12,7 @@ IceAdapterOptions::IceAdapterOptions():
   rpcPort(7236),
   gpgNetPort(0),
   gameUdpPort(7238),
-  logLevel("debug")
+  logLevel("info")
 {
 }
 
