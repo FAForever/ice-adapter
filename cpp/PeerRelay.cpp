@@ -3,6 +3,7 @@
 #include <webrtc/api/mediaconstraintsinterface.h>
 #include <webrtc/api/test/fakeconstraints.h>
 #include <webrtc/base/bind.h>
+#include <webrtc/api/stats/rtcstats_objects.h>
 
 #include "logging.h"
 
@@ -10,6 +11,7 @@ namespace faf {
 
 
 #define RELAY_LOG(x) LOG(x) << "PeerRelay for " << _remotePlayerLogin << " (" << _remotePlayerId << "): "
+#define OBSERVER_LOG(x) LOG(x) << "PeerRelay for " << _relay->_remotePlayerLogin << " (" << _relay->_remotePlayerId << "): "
 
 void CreateOfferObserver::OnSuccess(webrtc::SessionDescriptionInterface *sdp)
 {
@@ -24,7 +26,7 @@ void CreateOfferObserver::OnSuccess(webrtc::SessionDescriptionInterface *sdp)
 
 void CreateOfferObserver::OnFailure(const std::string &msg)
 {
-  //FAF_LOG_DEBUG << "CreateOfferObserver::OnFailure: " << msg;
+  OBSERVER_LOG(LS_WARNING) << "CreateOfferObserver::OnFailure: " << msg;
 }
 
 void CreateAnswerObserver::OnSuccess(webrtc::SessionDescriptionInterface *sdp)
@@ -40,6 +42,7 @@ void CreateAnswerObserver::OnSuccess(webrtc::SessionDescriptionInterface *sdp)
 
 void CreateAnswerObserver::OnFailure(const std::string &msg)
 {
+  OBSERVER_LOG(LS_WARNING) << "CreateAnswerObserver::OnFailure: " << msg;
   //FAF_LOG_DEBUG << "CreateAnswerObserver::OnFailure: " << msg;
 }
 
@@ -60,6 +63,7 @@ void SetLocalDescriptionObserver::OnSuccess()
 
 void SetLocalDescriptionObserver::OnFailure(const std::string &msg)
 {
+  OBSERVER_LOG(LS_WARNING) << "SetLocalDescriptionObserver::OnFailure: " << msg;
   //FAF_LOG_DEBUG << "SetLocalDescriptionObserver::OnFailure";
 }
 
@@ -76,6 +80,7 @@ void SetRemoteDescriptionObserver::OnSuccess()
 
 void SetRemoteDescriptionObserver::OnFailure(const std::string &msg)
 {
+  OBSERVER_LOG(LS_WARNING) << "SetRemoteDescriptionObserver::OnFailure: " << msg;
   //FAF_LOG_DEBUG << "SetRemoteDescriptionObserver::OnFailure";
 }
 
@@ -96,23 +101,18 @@ void PeerConnectionObserver::OnIceConnectionChange(webrtc::PeerConnectionInterfa
     break;
     case webrtc::PeerConnectionInterface::kIceConnectionConnected:
       _relay->_setIceState("connected");
-      //FAF_LOG_DEBUG << "PeerConnectionObserver::OnIceConnectionChange changed to connected";
       break;
     case webrtc::PeerConnectionInterface::kIceConnectionCompleted:
       _relay->_setIceState("completed");
-      //FAF_LOG_DEBUG << "PeerConnectionObserver::OnIceConnectionChange changed to completed";
       break;
     case webrtc::PeerConnectionInterface::kIceConnectionFailed:
       _relay->_setIceState("failed");
-      //FAF_LOG_DEBUG << "PeerConnectionObserver::OnIceConnectionChange changed to failed";
       break;
     case webrtc::PeerConnectionInterface::kIceConnectionDisconnected:
       _relay->_setIceState("disconnected");
-      //FAF_LOG_DEBUG << "PeerConnectionObserver::OnIceConnectionChange changed to disconnected";
       break;
     case webrtc::PeerConnectionInterface::kIceConnectionClosed:
       _relay->_setIceState("closed");
-      //FAF_LOG_DEBUG << "PeerConnectionObserver::OnIceConnectionChange changed to closed";
       break;
     case webrtc::PeerConnectionInterface::kIceConnectionMax:
       /* not in https://developer.mozilla.org/en-US/docs/Web/API/RTCPeerConnection/iceConnectionState */
@@ -173,23 +173,21 @@ void DataChannelObserver::OnStateChange()
     switch(_relay->_dataChannel->state())
     {
       case webrtc::DataChannelInterface::kConnecting:
-        FAF_LOG_DEBUG << "DataChannelObserver::OnStateChange to Connecting";
+        //FAF_LOG_DEBUG << "DataChannelObserver::OnStateChange to Connecting";
         break;
       case webrtc::DataChannelInterface::kOpen:
-        FAF_LOG_DEBUG << "DataChannelObserver::OnStateChange to Open";
+        //FAF_LOG_DEBUG << "DataChannelObserver::OnStateChange to Open";
         _relay->_dataChannelIsOpen = true;
-        if (_relay->_dataChannelOpenCallback)
-        {
-          _relay->_dataChannelOpenCallback();
-        }
+        _relay->_setConnected(true);
         break;
       case webrtc::DataChannelInterface::kClosing:
-        FAF_LOG_DEBUG << "DataChannelObserver::OnStateChange to Closing";
+        //FAF_LOG_DEBUG << "DataChannelObserver::OnStateChange to Closing";
         _relay->_dataChannelIsOpen = false;
         break;
       case webrtc::DataChannelInterface::kClosed:
-        FAF_LOG_DEBUG << "DataChannelObserver::OnStateChange to Closed";
+        //FAF_LOG_DEBUG << "DataChannelObserver::OnStateChange to Closed";
         _relay->_dataChannelIsOpen = false;
+        _relay->_setConnected(false);
         break;
     }
   }
@@ -205,6 +203,42 @@ void DataChannelObserver::OnMessage(const webrtc::DataBuffer& buffer)
   }
 }
 
+void RTCStatsCollectorCallback::OnStatsDelivered(const rtc::scoped_refptr<const webrtc::RTCStatsReport>& report)
+{
+  if (!report)
+  {
+    return;
+  }
+  std::string localCandId;
+  std::string remoteCandId;
+  auto pairs = report->GetStatsOfType<webrtc::RTCIceCandidatePairStats>();
+  for (auto pair: pairs)
+  {
+    if (*pair->state == "succeeded")
+    {
+      localCandId = *pair->local_candidate_id;
+      remoteCandId = *pair->remote_candidate_id;
+      break;
+    }
+  }
+  if (localCandId.empty())
+  {
+    return;
+  }
+  auto lCand = static_cast<webrtc::RTCLocalIceCandidateStats const*>(report->Get(localCandId));
+  if (lCand)
+  {
+    _relay->_localCandAddress = *lCand->protocol + " " + *lCand->ip +":" + std::to_string(*lCand->port);
+    _relay->_localCandType = *lCand->candidate_type;
+  }
+  auto rCand = static_cast<webrtc::RTCRemoteIceCandidateStats const*>(report->Get(remoteCandId));
+  if (rCand)
+  {
+    _relay->_remoteCandAddress = *rCand->protocol + " " + *rCand->ip +":" + std::to_string(*rCand->port);
+    _relay->_remoteCandType = *rCand->candidate_type;
+  }
+}
+
 PeerRelay::PeerRelay(int remotePlayerId,
                      std::string const& remotePlayerLogin,
                      bool createOffer,
@@ -215,6 +249,7 @@ PeerRelay::PeerRelay(int remotePlayerId,
   _createAnswerObserver(new rtc::RefCountedObject<CreateAnswerObserver>(this)),
   _setLocalDescriptionObserver(new rtc::RefCountedObject<SetLocalDescriptionObserver>(this)),
   _setRemoteDescriptionObserver(new rtc::RefCountedObject<SetRemoteDescriptionObserver>(this)),
+  _rtcStatsCollectorCallback(new rtc::RefCountedObject<RTCStatsCollectorCallback>(this)),
   _dataChannelObserver(std::make_unique<DataChannelObserver>(this)),
   _peerConnectionObserver(std::make_shared<PeerConnectionObserver>(this)),
   _localSdp(nullptr),
@@ -225,7 +260,7 @@ PeerRelay::PeerRelay(int remotePlayerId,
   _receivedOffer(false),
   _dataChannelIsOpen(false),
   _gameUdpAddress("127.0.0.1", gameUdpPort),
-  _queue("IceAdapter"),
+  _queue("Relay"),
   _isConnected(false),
   _iceState("none")
 {
@@ -253,6 +288,10 @@ PeerRelay::~PeerRelay()
 
 void PeerRelay::reinit()
 {
+  _queue.PostDelayedTask(rtc::Bind(&PeerRelay::_checkConnectionTimeout, this), 1000);
+  _connectStartTime = std::chrono::steady_clock::now();
+  _isConnected = false;
+  _initPeerConnection();
   if (_createOffer)
   {
     webrtc::DataChannelInit dataChannelInit;
@@ -261,16 +300,35 @@ void PeerRelay::reinit()
     _dataChannel = _connection->CreateDataChannel("faf",
                                                   &dataChannelInit);
     _dataChannel->RegisterObserver(_dataChannelObserver.get());
+    webrtc::PeerConnectionInterface::RTCOfferAnswerOptions options;
+    options.offer_to_receive_audio = 0;
+    options.offer_to_receive_video = 0;
     _connection->CreateOffer(_createOfferObserver,
-                             nullptr);
+                             options);
   }
-  _queue.PostDelayedTask(rtc::Bind(&PeerRelay::_checkConnectionTimeout, this), 1000);
-  _connectStartTime = std::chrono::steady_clock::now();
 }
 
 int PeerRelay::localUdpSocketPort() const
 {
   return _localUdpSocketPort;
+}
+
+Json::Value PeerRelay::status() const
+{
+  Json::Value result;
+  result["remote_player_id"] = _remotePlayerId;
+  result["remote_player_login"] = _remotePlayerLogin;
+  result["local_game_udp_port"] = _localUdpSocketPort;
+  result["local_game_udp_port"] = _localUdpSocketPort;
+  result["ice_agent"] = Json::Value();
+  result["ice_agent"]["state"] = _iceState;
+  result["ice_agent"]["datachannel_open"] = _dataChannelIsOpen;
+  result["ice_agent"]["loc_cand_addr"] = _localCandAddress;
+  result["ice_agent"]["rem_cand_addr"] = _remoteCandAddress;
+  result["ice_agent"]["loc_cand_type"] = _localCandType;
+  result["ice_agent"]["rem_cand_type"] = _remoteCandType;
+  result["ice_agent"]["time_to_connected"] = _isConnected ? std::chrono::duration_cast<std::chrono::milliseconds>(_connectDuration).count() / 1000. : 0.;
+  return result;
 }
 
 void PeerRelay::setIceMessageCallback(IceMessageCallback cb)
@@ -337,19 +395,27 @@ void PeerRelay::_setIceState(std::string const& state)
   {
     _setConnected(false);
   }
+  RELAY_LOG(LS_VERBOSE) << "ice state changed to" << state;
 }
 
 void PeerRelay::_setConnected(bool connected)
 {
   if (connected && !_isConnected)
   {
-    RELAY_LOG(LS_INFO) << "connected";
     _connectDuration = std::chrono::steady_clock::now() - _connectStartTime;
+    RELAY_LOG(LS_INFO) << "connected after " <<  std::chrono::duration_cast<std::chrono::milliseconds>(_connectDuration).count() / 1000.;
+    _connection->GetStats(_rtcStatsCollectorCallback.get());
+    if (_dataChannelIsOpen && _dataChannelOpenCallback)
+    {
+      _dataChannelOpenCallback();
+    }
   }
-  else
+
+  if (!connected)
   {
     RELAY_LOG(LS_INFO) << "disconnected";
   }
+
   _isConnected = connected;
 }
 
@@ -357,7 +423,11 @@ void PeerRelay::_initPeerConnection()
 {
   webrtc::PeerConnectionInterface::RTCConfiguration configuration;
   configuration.servers = _iceServerList;
-
+  _connection = _pcfactory->CreatePeerConnection(configuration,
+                                                 nullptr,
+                                                 nullptr,
+                                                 _peerConnectionObserver.get());
+/*
   webrtc::FakeConstraints constraints;
   constraints.AddOptional(webrtc::MediaConstraintsInterface::kEnableDtlsSrtp, webrtc::MediaConstraintsInterface::kValueTrue);
   // FIXME: crashes without these constraints, why?
@@ -366,26 +436,34 @@ void PeerRelay::_initPeerConnection()
 
 
   _connection = _pcfactory->CreatePeerConnection(configuration,
-                                                         &constraints,
-                                                         nullptr,
-                                                         nullptr,
-                                                         _peerConnectionObserver.get());
+                                                 &constraints,
+                                                 nullptr,
+                                                 nullptr,
+                                                 _peerConnectionObserver.get());
+*/
 }
 
 void PeerRelay::_checkConnectionTimeout()
 {
+  auto duration = std::chrono::steady_clock::now() - _connectStartTime;
+  if (!_isConnected)
+  {
 
+  }
 }
 
 void PeerRelay::_onPeerdataFromGame(rtc::AsyncSocket* socket)
 {
-  std::size_t msgLength = socket->Recv(_readBuffer.data(), _readBuffer.size(), nullptr);
-  if (!_dataChannel)
+  auto msgLength = socket->Recv(_readBuffer.data(), _readBuffer.size(), nullptr);
+  if (!_isConnected)
   {
     FAF_LOG_TRACE << "skipping " << msgLength << " bytes of P2P data until ICE connection is established";
     return;
   }
-  _dataChannel->Send(webrtc::DataBuffer(rtc::CopyOnWriteBuffer(_readBuffer.data(), msgLength), true));
+  if (msgLength > 0 && _dataChannel)
+  {
+    _dataChannel->Send(webrtc::DataBuffer(rtc::CopyOnWriteBuffer(_readBuffer.data(), static_cast<std::size_t>(msgLength)), true));
+  }
 }
 
 } // namespace faf

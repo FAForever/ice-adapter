@@ -93,6 +93,17 @@ private:
   virtual void OnMessage(const webrtc::DataBuffer& buffer) override;
 };
 
+class RTCStatsCollectorCallback : public webrtc::RTCStatsCollectorCallback
+{
+private:
+  PeerRelay* _relay;
+
+ public:
+  explicit RTCStatsCollectorCallback(PeerRelay *relay) : _relay(relay) {}
+
+  virtual void OnStatsDelivered(const rtc::scoped_refptr<const webrtc::RTCStatsReport>& report) override;
+};
+
 class PeerRelay : public sigslot::has_slots<>
 {
 public:
@@ -120,6 +131,8 @@ public:
 
   int localUdpSocketPort() const;
 
+  Json::Value status() const;
+
 protected:
   void _setIceState(std::string const& state);
   void _setConnected(bool connected);
@@ -136,6 +149,7 @@ protected:
   rtc::scoped_refptr<CreateAnswerObserver> _createAnswerObserver;
   rtc::scoped_refptr<SetLocalDescriptionObserver> _setLocalDescriptionObserver;
   rtc::scoped_refptr<SetRemoteDescriptionObserver> _setRemoteDescriptionObserver;
+  rtc::scoped_refptr<RTCStatsCollectorCallback> _rtcStatsCollectorCallback;
   std::unique_ptr<DataChannelObserver> _dataChannelObserver;
   std::shared_ptr<PeerConnectionObserver> _peerConnectionObserver;
   webrtc::SessionDescriptionInterface* _localSdp;
@@ -156,6 +170,10 @@ protected:
   std::chrono::steady_clock::duration _connectDuration;
   bool _isConnected;
   std::string _iceState;
+  std::string _localCandAddress;
+  std::string _remoteCandAddress;
+  std::string _localCandType;
+  std::string _remoteCandType;
 
   friend CreateOfferObserver;
   friend CreateAnswerObserver;
@@ -163,6 +181,7 @@ protected:
   friend SetRemoteDescriptionObserver;
   friend PeerConnectionObserver;
   friend DataChannelObserver;
+  friend RTCStatsCollectorCallback;
 };
 
 } // namespace faf
