@@ -2,8 +2,11 @@
 
 #include <memory>
 #include <functional>
+#include <chrono>
 
 #include <webrtc/api/peerconnectioninterface.h>
+#include <webrtc/base/task_queue.h>
+
 #include <third_party/json/json.h>
 
 namespace faf {
@@ -96,13 +99,9 @@ public:
   PeerRelay(int remotePlayerId,
             std::string const& remotePlayerLogin,
             bool createOffer,
-            int gameUdpPort);
+            int gameUdpPort,
+            rtc::scoped_refptr<webrtc::PeerConnectionFactoryInterface> const& pcfactory);
   virtual ~PeerRelay();
-
-  void setConnection(rtc::scoped_refptr<webrtc::PeerConnectionInterface> connection,
-                     std::shared_ptr<PeerConnectionObserver> observer);
-
-  int localUdpSocketPort() const;
 
   typedef std::function<void (Json::Value const& iceMsg)> IceMessageCallback;
   void setIceMessageCallback(IceMessageCallback cb);
@@ -113,10 +112,25 @@ public:
   typedef std::function<void ()> DataChannelOpenCallback;
   void setDataChannelOpenCallback(DataChannelOpenCallback cb);
 
+  void setIceServers(webrtc::PeerConnectionInterface::IceServers const& iceServers);
+
   void addIceMessage(Json::Value const& iceMsg);
 
+  void reinit();
+
+  int localUdpSocketPort() const;
+
 protected:
+  void _setIceState(std::string const& state);
+  void _setConnected(bool connected);
+  void _initPeerConnection();
+  void _checkConnectionTimeout();
   void _onPeerdataFromGame(rtc::AsyncSocket* socket);
+
+  rtc::scoped_refptr<webrtc::PeerConnectionFactoryInterface> _pcfactory;
+  webrtc::PeerConnectionInterface::IceServers _iceServerList;
+  rtc::scoped_refptr<webrtc::PeerConnectionInterface> _connection;
+  rtc::scoped_refptr<webrtc::DataChannelInterface> _dataChannel;
 
   rtc::scoped_refptr<CreateOfferObserver> _createOfferObserver;
   rtc::scoped_refptr<CreateAnswerObserver> _createAnswerObserver;
@@ -124,9 +138,7 @@ protected:
   rtc::scoped_refptr<SetRemoteDescriptionObserver> _setRemoteDescriptionObserver;
   std::unique_ptr<DataChannelObserver> _dataChannelObserver;
   std::shared_ptr<PeerConnectionObserver> _peerConnectionObserver;
-  rtc::scoped_refptr<webrtc::PeerConnectionInterface> _connection;
-  rtc::scoped_refptr<webrtc::DataChannelInterface> _dataChannel;
-  std::unique_ptr<webrtc::SessionDescriptionInterface> _localSdp;
+  webrtc::SessionDescriptionInterface* _localSdp;
   int _remotePlayerId;
   std::string _remotePlayerLogin;
   bool _createOffer;
@@ -139,6 +151,11 @@ protected:
   bool _receivedOffer;
   bool _dataChannelIsOpen;
   rtc::SocketAddress _gameUdpAddress;
+  rtc::TaskQueue _queue;
+  std::chrono::steady_clock::time_point _connectStartTime;
+  std::chrono::steady_clock::duration _connectDuration;
+  bool _isConnected;
+  std::string _iceState;
 
   friend CreateOfferObserver;
   friend CreateAnswerObserver;

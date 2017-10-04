@@ -41,10 +41,22 @@ add_library(fafice
   GPGNetMessage.cpp
   PeerRelay.cpp
 )
-target_compile_definitions(fafice PRIVATE FAF_VERSION_STRING="${FAF_VERSION_STRING}")
+target_compile_definitions(fafice PRIVATE
+  FAF_VERSION_STRING="${FAF_VERSION_STRING}";
+  WEBRTC_BUILD_LIBEVENT)
 target_link_libraries(fafice
   ${WEBRTC_LIBRARIES}
 )
+
+if(NOT WIN32)
+  target_link_libraries(fafice dl;SM;ICE;X11;Xext;rt)
+  set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -DWEBRTC_POSIX -D_GLIBCXX_USE_CXX11_ABI=0 -std=c++17 -pthread")
+  target_compile_definitions(fafice PUBLIC WEBRTC_LINUX)
+  target_compile_definitions(fafice PUBLIC WEBRTC_POSIX)
+  target_compile_definitions(fafice PUBLIC WEBRTC_BUILD_LIBEVENT)
+else()
+  target_compile_definitions(fafice PUBLIC WEBRTC_WIN)
+endif()
 
 add_executable(faf-ice-adapter
   main.cpp
@@ -55,16 +67,6 @@ target_link_libraries(faf-ice-adapter
 )
 
 target_compile_definitions(faf-ice-adapter PRIVATE BOOST_SYSTEM_NO_DEPRECATED)
-
-if(NOT WIN32)
-  target_link_libraries(fafice dl;SM;ICE;X11;Xext;rt)
-  set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -DWEBRTC_POSIX -D_GLIBCXX_USE_CXX11_ABI=0 -std=c++17 -pthread")
-  #set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -pthread")
-  target_compile_definitions(fafice PUBLIC WEBRTC_LINUX)
-  target_compile_definitions(fafice PUBLIC WEBRTC_POSIX)
-else()
-  target_compile_definitions(fafice PUBLIC WEBRTC_WIN)
-endif()
 
 # Strip exe to reduce file size
 if (NOT CMAKE_BUILD_TYPE STREQUAL "Debug")

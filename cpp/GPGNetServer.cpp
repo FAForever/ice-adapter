@@ -22,7 +22,7 @@ void GPGNetServer::listen(int port)
   _server->Listen(5);
   //_server->SignalWriteEvent.connect(this, &GPGNetServer::_onConnect);
   //_server->SignalCloseEvent.connect(this, &GPGNetServer::_onNewClient);
-  FAF_LOG_DEBUG << "GPGNetServer listening on port " << port;
+  FAF_LOG_INFO << "GPGNetServer listening on port " << port;
 }
 
 int GPGNetServer::listenPort() const
@@ -44,7 +44,7 @@ void GPGNetServer::sendMessage(GPGNetMessage const& msg)
   }
   auto msgString = msg.toBinary();
   _connectedSocket->Send(msgString.c_str(), msgString.length());
-  FAF_LOG_TRACE << "sending " << msg.toDebug();
+  FAF_LOG_INFO << "GPGNetServer::sendMessage: " << msg.toDebug();
 }
 
 void GPGNetServer::sendCreateLobby(InitMode initMode,

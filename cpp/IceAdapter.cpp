@@ -468,9 +468,18 @@ void IceAdapter::_tryExecuteGameTasks()
         }
         else
         {
-          _gpgnetServer.sendConnectToPeer(std::string("127.0.0.1:") + std::to_string(relayIt->second->localUdpSocketPort()),
-                                           task.remoteLogin,
-                                           task.remoteId);
+          if (task.task == IceAdapterGameTask::JoinGame)
+          {
+            _gpgnetServer.sendJoinGame(std::string("127.0.0.1:") + std::to_string(relayIt->second->localUdpSocketPort()),
+                                             task.remoteLogin,
+                                             task.remoteId);
+          }
+          else
+          {
+            _gpgnetServer.sendConnectToPeer(std::string("127.0.0.1:") + std::to_string(relayIt->second->localUdpSocketPort()),
+                                             task.remoteLogin,
+                                             task.remoteId);
+          }
         }
         break;
       }
@@ -501,6 +510,7 @@ void IceAdapter::_onGameDisconnected()
 
 void IceAdapter::_onGpgNetMessage(GPGNetMessage const& message)
 {
+  FAF_LOG_INFO << "_onGpgNetMessage: " << message.toDebug();
   if (message.header == "GameState")
   {
     if (message.chunks.size() == 1)
@@ -533,99 +543,11 @@ std::shared_ptr<PeerRelay> IceAdapter::_createPeerRelay(int remotePlayerId,
                                                         std::string const& remotePlayerLogin,
                                                         bool createOffer)
 {
-/* TODO
-  if (!mAgent)
-  {
-    FAF_LOG_ERROR << "no agent created. looking up STUN/TURN servers likely failed. check internet";
-    return std::shared_ptr<PeerRelay>();
-  }
-
-  auto sdpMsgCb = [this](IceStream* stream, std::string const& sdp)
-  {
-    Json::Value gatheredSdpParams(Json::arrayValue);
-    gatheredSdpParams.append(mOptions.localPlayerId);
-    gatheredSdpParams.append(stream->peerId());
-    gatheredSdpParams.append(sdp);
-    mRpcServer->sendRequest("onSdp",
-                            gatheredSdpParams);
-  };
-
-  auto recvCb = [this](IceStream* stream, std::string const& msg)
-  {
-    auto relayIt = mRelays.find(stream->peerId());
-    if (relayIt != mRelays.end())
-    {
-      relayIt->second->sendPeerMessageToGame(msg);
-    }
-  };
-
-  auto stateCb = [this](IceStream* stream, IceStreamState const& state)
-  {
-    Json::Value iceStateParams(Json::arrayValue);
-    iceStateParams.append(mOptions.localPlayerId);
-    iceStateParams.append(stream->peerId());
-    iceStateParams.append(stateToString(state));
-    mRpcServer->sendRequest("onPeerStateChanged",
-                            iceStateParams);
-  };
-
-  auto candSelectedCb = [this](IceStream* stream, std::string const& local, std::string const& remote)
-  {
-    Json::Value iceCandParams(Json::arrayValue);
-    iceCandParams.append(mOptions.localPlayerId);
-    iceCandParams.append(stream->peerId());
-    iceCandParams.append(local);
-    iceCandParams.append(remote);
-    mRpcServer->sendRequest("onCandidateSelected",
-                          iceCandParams);
-  };
-
-  auto connChangedCb = [this, remotePlayerId](IceStream* relay, bool connectedToPeer, bool peerConnectedToMe)
-  {
-    Json::Value onConnectedToPeerParams(Json::arrayValue);
-    onConnectedToPeerParams.append(mOptions.localPlayerId);
-    onConnectedToPeerParams.append(remotePlayerId);
-    onConnectedToPeerParams.append(connectedToPeer);
-    onConnectedToPeerParams.append(peerConnectedToMe);
-    mRpcServer->sendRequest("onConnectivityChanged",
-                            onConnectedToPeerParams);
-  };
-
-  auto stream = mAgent->createStream(remotePlayerId,
-                                     sdpMsgCb,
-                                     recvCb,
-                                     stateCb,
-                                     candSelectedCb,
-                                     connChangedCb);
-
-  auto result = std::make_shared<PeerRelay>(stream,
-                                            remotePlayerLogin,
-                                            mOptions);
-
-  mRelays[remotePlayerId] = result;
-
-  result->iceStream()->gatherCandidates();
-*/
-
-  webrtc::PeerConnectionInterface::RTCConfiguration configuration;
-  configuration.servers = _iceServerList;
-
-  webrtc::FakeConstraints constraints;
-  constraints.AddOptional(webrtc::MediaConstraintsInterface::kEnableDtlsSrtp, webrtc::MediaConstraintsInterface::kValueTrue);
-  // FIXME: crashes without these constraints, why?
-  constraints.AddMandatory(webrtc::MediaConstraintsInterface::kOfferToReceiveAudio, webrtc::MediaConstraintsInterface::kValueFalse);
-  constraints.AddMandatory(webrtc::MediaConstraintsInterface::kOfferToReceiveVideo, webrtc::MediaConstraintsInterface::kValueFalse);
-
   auto relay = std::make_shared<PeerRelay>(remotePlayerId,
                                            remotePlayerLogin,
                                            createOffer,
-                                           _options.gameUdpPort);
-  auto observer = std::make_shared<PeerConnectionObserver>(relay.get());
-  auto peerConnection = _pcfactory->CreatePeerConnection(configuration,
-                                                         &constraints,
-                                                         nullptr,
-                                                         nullptr,
-                                                         observer.get());
+                                           _options.gameUdpPort,
+                                           _pcfactory);
 
   relay->setIceMessageCallback([this, remotePlayerId](Json::Value const& iceMsg)
   {
@@ -656,9 +578,12 @@ std::shared_ptr<PeerRelay> IceAdapter::_createPeerRelay(int remotePlayerId,
                                onDatachannelOpenParams);
   });
 
-  relay->setConnection(peerConnection,
-                       observer);
+  relay->setIceServers(_iceServerList);
+
   _relays[remotePlayerId] = relay;
+
+  relay->reinit();
+
   return relay;
 }
 

@@ -26,7 +26,7 @@ void JsonRpcServer::listen(int port)
     std::exit(1);
   }
   _server->Listen(5);
-  FAF_LOG_DEBUG << "JsonRpcServer listening on port " << port;
+  FAF_LOG_INFO << "JsonRpcServer listening on port " << port;
 }
 
 void JsonRpcServer::setRpcCallback(std::string const& method,
