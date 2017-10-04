@@ -80,7 +80,7 @@ faf-ice-adapter usage:
 | --- | --- | --- |
 | 1 | Start the client |  |
 | 2 | The client starts `faf-ice-adapter` and connects to the JSONRPC server |  |
-| 3 | The client starts the game and makes it connect to the GPGNet server (running inside the client) of the `faf-ice-adapter` using `/gpgnet 127.0.0.1:7237` commandline argument for `ForgedAlliance.exe` |  |
+| 3 | The client starts the game and makes it connect to the GPGNet server of the `faf-ice-adapter` using `/gpgnet 127.0.0.1:7237` commandline argument for `ForgedAlliance.exe` |  |
 | 3.1 | The game sends `GameState Idle` | |
 | 3.2 | The client sends `CreateLobby ...` | |
 | 3.3 | The game sends `GameState Lobby` | |
