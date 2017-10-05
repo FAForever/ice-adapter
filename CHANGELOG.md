@@ -1,3 +1,8 @@
+v6.0.0
+====== 
+
+- rewrite as pure C++ implementation only depending on a native WebRTC build
+
 v5.6.1
 ====== 
 
