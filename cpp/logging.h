@@ -8,8 +8,8 @@ namespace faf
 {
 
 void logging_init(std::string const& verbosity);
-void logging_init_log_file(std::string const& verbosity,
-                           std::string const& log_directory);
+void logging_init_log_dir(std::string const& verbosity,
+                          std::string const& log_directory);
 
 #define FAF_LOG_TRACE LOG(LS_SENSITIVE)
 #define FAF_LOG_DEBUG LOG(LS_VERBOSE)
