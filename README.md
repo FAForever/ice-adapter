@@ -71,7 +71,7 @@ faf-ice-adapter usage:
 --rpc_port arg (=7236)               set the port of internal JSON-RPC server
 --gpgnet_port arg (=7237)            set the port of internal GPGNet server
 --lobby_port arg (=7238)             set the port the game lobby should use for incoming UDP packets from the PeerRelay
---log_file arg                       set a verbose log file
+--log-directory arg                  set a log directory to write ice_adapter_0 log files
 ```
 
 ## Example usage sequence
