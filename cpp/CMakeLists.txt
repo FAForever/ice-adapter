@@ -50,13 +50,25 @@ target_link_libraries(fafice
 )
 
 if(NOT WIN32)
-  target_link_libraries(fafice dl;SM;ICE;X11;Xext;rt)
-  set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -DWEBRTC_POSIX -D_GLIBCXX_USE_CXX11_ABI=0 -std=c++17 -pthread")
-  target_compile_definitions(fafice PUBLIC WEBRTC_LINUX)
-  target_compile_definitions(fafice PUBLIC WEBRTC_POSIX)
-  target_compile_definitions(fafice PUBLIC WEBRTC_BUILD_LIBEVENT)
-else()
-  target_compile_definitions(fafice PUBLIC WEBRTC_WIN)
+  target_compile_definitions(fafice PUBLIC WEBRTC_LINUX WEBRTC_POSIX WEBRTC_BUILD_LIBEVENT)
+  set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -D_GLIBCXX_USE_CXX11_ABI=0 -std=c++17 -pthread")
+  target_link_libraries(fafice
+    dl
+    SM
+    ICE
+    X11
+    Xext
+    rt)
+else() # we assume MSVC for now
+  target_compile_definitions(fafice PUBLIC WEBRTC_WIN NOMINMAX)
+  set(CMAKE_CXX_FLAGS_RELEASE "${CMAKE_CXX_FLAGS_RELEASE} /MT")
+  target_link_libraries(fafice
+    winmm
+    secur32
+    msdmo
+    dmoguids
+    wmcodecdspuuid
+  )
 endif()
 
 add_executable(faf-ice-adapter
@@ -66,15 +78,3 @@ add_executable(faf-ice-adapter
 target_link_libraries(faf-ice-adapter
   fafice
 )
-
-target_compile_definitions(faf-ice-adapter PRIVATE BOOST_SYSTEM_NO_DEPRECATED)
-
-# Strip exe to reduce file size
-if (NOT CMAKE_BUILD_TYPE STREQUAL "Debug")
-  add_custom_command(TARGET faf-ice-adapter
-    POST_BUILD
-    COMMAND ${CMAKE_STRIP} -s "$<TARGET_FILE:faf-ice-adapter>"
-    COMMENT "Stripping executable $<TARGET_FILE_NAME:faf-ice-adapter>"
-    )
-endif()
-

@@ -3,6 +3,7 @@
 #include <memory>
 #include <functional>
 #include <chrono>
+#include <array>
 
 #include <webrtc/api/peerconnectioninterface.h>
 #include <webrtc/base/task_queue.h>
