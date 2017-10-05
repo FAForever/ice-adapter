@@ -17,6 +17,7 @@ namespace faf {
 IceAdapter::IceAdapter(int argc, char *argv[]):
   _options(faf::IceAdapterOptions::init(argc, argv)),
   _gpgnetGameState("None"),
+  _gametaskString("Idle"),
   _lobbyInitMode("normal")
 {
   logging_init(_options.logLevel);
@@ -43,7 +44,6 @@ IceAdapter::IceAdapter(int argc, char *argv[]):
   _gpgnetServer.SignalClientConnected.connect(this, &IceAdapter::_onGameConnected);
   _gpgnetServer.SignalClientDisconnected.connect(this, &IceAdapter::_onGameDisconnected);
   _connectRpcMethods();
-  _gametaskString = "Idle";
 }
 
 IceAdapter::~IceAdapter()
@@ -122,7 +122,6 @@ void IceAdapter::iceMsg(int remotePlayerId, Json::Value const& msg)
     FAF_LOG_ERROR << "no relay for remote peer " << remotePlayerId << " found";
     return;
   }
-
   relayIt->second->addIceMessage(msg);
 }
 
@@ -138,7 +137,7 @@ void IceAdapter::sendToGpgNet(GPGNetMessage const& message)
 
 void IceAdapter::setIceServers(Json::Value const& servers)
 {
-  _iceServerList.clear();
+  _iceServers.clear();
   for(std::size_t iServer = 0; iServer < servers.size(); ++iServer)
   {
     auto serverJson = servers[Json::ArrayIndex(iServer)];
@@ -155,8 +154,12 @@ void IceAdapter::setIceServers(Json::Value const& servers)
       }
       iceServer.password = serverJson["credential"].asString();
       iceServer.username = serverJson["username"].asString();
-      _iceServerList.push_back(iceServer);
+      _iceServers.push_back(iceServer);
     }
+  }
+  for(auto it = _relays.begin(), end = _relays.end(); it != end; ++it)
+  {
+    it->second->setIceServers(_iceServers);
   }
 }
 
@@ -173,7 +176,7 @@ Json::Value IceAdapter::status() const
     options["rpc_port"]             = _options.rpcPort;
     options["gpgnet_port"]          = _options.gpgNetPort;
     options["lobby_port"]           = _options.gameUdpPort;
-    options["log_file"]             = std::string(_options.logFile);
+    options["log_file"]             = std::string(_options.logDirectory);
     result["options"] = options;
   }
   /* GPGNet */
@@ -490,7 +493,7 @@ void IceAdapter::_onGameDisconnected()
 
 void IceAdapter::_onGpgNetMessage(GPGNetMessage const& message)
 {
-  FAF_LOG_INFO << "_onGpgNetMessage: " << message.toDebug();
+  FAF_LOG_DEBUG << "receidev GPGnet message: " << message.toDebug();
   if (message.header == "GameState")
   {
     if (message.chunks.size() == 1)
@@ -498,7 +501,7 @@ void IceAdapter::_onGpgNetMessage(GPGNetMessage const& message)
       _gpgnetGameState = message.chunks[0].asString();
       if (_gpgnetGameState == "Idle")
       {
-        _gpgnetServer.sendCreateLobby(InitMode::NormalLobby,
+        _gpgnetServer.sendCreateLobby(_lobbyInitMode == "normal" ? InitMode::NormalLobby : InitMode::AutoLobby,
                                       _options.gameUdpPort,
                                       _options.localPlayerLogin,
                                       _options.localPlayerId,
@@ -523,6 +526,13 @@ std::shared_ptr<PeerRelay> IceAdapter::_createPeerRelay(int remotePlayerId,
                                                         std::string const& remotePlayerLogin,
                                                         bool createOffer)
 {
+
+  if (_iceServers.empty())
+  {
+    FAF_LOG_ERROR << "no ICE servers while creating PeerRelay for remote player " << remotePlayerLogin
+                  << "(" << remotePlayerId << "). Call setIceServers in advance from client. See https://developer.mozilla.org/en-US/docs/Web/API/RTCConfiguration";
+  }
+
   auto relay = std::make_shared<PeerRelay>(remotePlayerId,
                                            remotePlayerLogin,
                                            createOffer,
@@ -558,7 +568,7 @@ std::shared_ptr<PeerRelay> IceAdapter::_createPeerRelay(int remotePlayerId,
                                onDatachannelOpenParams);
   });
 
-  relay->setIceServers(_iceServerList);
+  relay->setIceServers(_iceServers);
 
   _relays[remotePlayerId] = relay;
 

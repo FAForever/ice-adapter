@@ -92,6 +92,7 @@ public:
   void setIceServers(Json::Value const& servers);
 
   /** \brief Return the ICEAdapters status
+   *         See https://developer.mozilla.org/en-US/docs/Web/API/RTCConfiguration
        \returns The status as JSON structure
       */
   Json::Value status() const;
@@ -115,7 +116,7 @@ protected:
   std::string _gpgnetGameState;
   std::map<int, std::shared_ptr<PeerRelay>> _relays;
   std::string _gametaskString;
-  webrtc::PeerConnectionInterface::IceServers _iceServerList;
+  webrtc::PeerConnectionInterface::IceServers _iceServers;
   std::string _lobbyInitMode;
 };
 

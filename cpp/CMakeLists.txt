@@ -40,6 +40,7 @@ add_library(fafice
   GPGNetServer.cpp
   GPGNetMessage.cpp
   PeerRelay.cpp
+  PeerRelayObservers.cpp
 )
 target_compile_definitions(fafice PRIVATE
   FAF_VERSION_STRING="${FAF_VERSION_STRING}";
