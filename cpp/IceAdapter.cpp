@@ -21,6 +21,10 @@ IceAdapter::IceAdapter(int argc, char *argv[]):
   _lobbyInitMode("normal")
 {
   logging_init(_options.logLevel);
+  if (!_options.logDirectory.empty())
+  {
+    logging_init_log_dir(_options.logLevel, _options.logDirectory);
+  }
 
   if (!rtc::InitializeSSL())
   {

@@ -56,13 +56,34 @@ void logging_init(std::string const& verbosity)
   }
 }
 
-void logging_init_log_file(std::string const& verbosity,
-                           std::string const& log_directory)
+void logging_init_log_dir(std::string const& verbosity,
+                          std::string const& log_directory)
 {
   static rtc::FileRotatingLogSink sink(log_directory,
-                                      "faf-ice-adapter",
-                                      1024*1024,
-                                      1);
+                                       "ice_adapter",
+                                       1024*1024,
+                                       2);
+  sink.Init();
+  if (verbosity == "error")
+  {
+    rtc::LogMessage::AddLogToStream(&sink, rtc::LS_ERROR);
+  }
+  else if (verbosity == "warn")
+  {
+    rtc::LogMessage::AddLogToStream(&sink, rtc::LS_WARNING);
+  }
+  else if (verbosity == "info")
+  {
+    rtc::LogMessage::AddLogToStream(&sink, rtc::LS_INFO);
+  }
+  else if (verbosity == "verbose")
+  {
+    rtc::LogMessage::AddLogToStream(&sink, rtc::LS_VERBOSE);
+  }
+  else if (verbosity == "debug")
+  {
+    rtc::LogMessage::AddLogToStream(&sink, rtc::LS_SENSITIVE);
+  }
 }
 
 }
