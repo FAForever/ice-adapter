@@ -1,0 +1,28 @@
+os: Visual Studio 2015
+
+install:
+  - "\"C:\\Program Files (x86)\\Microsoft Visual Studio 14.0\\VC\\vcvarsall.bat\" x86"
+  - mkdir .\\webrtcbuild
+  - ps: Invoke-WebRequest -Uri https://github.com/FAForever/libwebrtc/releases/download/v1.0.0-faf3/libwebrtc-1.0.0-faf3-win-x86.zip -OutFile ".\\webrtcbuild\\libwebrtc.zip"
+  - cd .\\webrtcbuild
+  - "\"C:\\Program Files\\7-Zip\\7z.exe\" x libwebrtc.zip"
+  - cd ..
+  - mkdir .\\build
+  - cd build
+  - cmake -G "NMake Makefiles" -DWEBRTC_INCLUDE_DIRS="../webrtcbuild/include" -DWEBRTC_LIBRARIES="../webrtcbuild/lib/libwebrtc.lib" -DCMAKE_BUILD_TYPE=Release ..
+  - nmake
+  - "\"C:\\Program Files\\7-Zip\\7z.exe\" a ..\\faf-ice-adapter-win32.zip faf-ice-adapter.exe"
+
+artifacts:
+  - path: 'faf-ice-adapter-win32.zip'
+    name: ice_adapter_archive
+
+deploy:
+  - provider: GitHub
+    auth_token:
+      secure: "+Iy9FWEu+rsOymVlUWI8lRdJZRvjOQpOCuEmA2fjHACAzQxrzas9JQi86RUAPj5K"
+    artifact: ice_adapter_archive
+    force_update: true
+      
+build: OFF
+test: OFF

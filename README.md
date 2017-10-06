@@ -68,9 +68,9 @@ faf-ice-adapter usage:
 --help                               produce help message
 --id arg                             set the ID of the local player
 --login arg                          set the login of the local player, e.g. "Rhiza"
---rpc_port arg (=7236)               set the port of internal JSON-RPC server
---gpgnet_port arg (=7237)            set the port of internal GPGNet server
---lobby_port arg (=7238)             set the port the game lobby should use for incoming UDP packets from the PeerRelay
+--rpc-port arg (=7236)               set the port of internal JSON-RPC server
+--gpgnet-port arg (=7237)            set the port of internal GPGNet server
+--lobby-port arg (=7238)             set the port the game lobby should use for incoming UDP packets from the PeerRelay
 --log-directory arg                  set a log directory to write ice_adapter_0 log files
 ```
 
@@ -91,16 +91,10 @@ faf-ice-adapter usage:
 | 11 | The client received multiple `iceConnectionStateChanged(...)` notifications which would finally show the `'Connected'` or `'Complete'` state, which should also let the game connect to the peer. Another indicator for a connection is the `onDatachannelOpen` notification.| The client received multiple `iceConnectionStateChanged(...)` notifications which would finally show the `'Connected'` or `'Complete'` state, which should also let the game connect to the peer. |
 
 ## Building `faf-ice-adapter`
-
-## Testing
-1. Install nodejs: https://nodejs.org
-2. Run `npm install`
-4. Run `node src/index.js --id 1 --login 2`
-5. Download the TestClient: https://github.com/FAForever/ice-adapter/wiki/Testclient https://github.com/FAForever/ice-adapter/releases
-6. Copy the TestClient to the current folder
-7. Start the TestClient
-8. Press in the Testclient `Connect` at Server
-9. Press in the Testclient `Start` at ICE adapter
-
-You can start multiple TestClients.
-One client must host the game, the other clients can then join the game.
+###  Linux
+1. Build [libwebrtc](https://github.com/FAForever/libwebrtc) with `cmake -G Ninja -DCMAKE_BUILD_TYPE=Release -DWEBRTC_BRANCH_HEAD=refs/branch-heads/60 -DBUILD_TESTS=ON`
+2. Build the ice-adapter with `cmake -DWEBRTC_INCLUDE_DIRS="path/to/webrtc/include" -DWEBRTC_LIBRARIES="path/to/webrtc/lib/libwebrtc.a" -DCMAKE_BUILD_TYPE=Release`
+###  Windows
+1. Download and extract [latest libwebrtc win32 release zip file](https://github.com/FAForever/libwebrtc/releases/latest).
+2. Install Visual Studio 2015 compilers and open x86 shell.
+3. Build the ice-adapter using `cmake -DWEBRTC_INCLUDE_DIRS="path/to/webrtc/include" -DWEBRTC_LIBRARIES="path/to/webrtc/lib/libwebrtc.lib" -DCMAKE_BUILD_TYPE=Release`
