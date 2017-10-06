@@ -22,7 +22,7 @@ void GPGNetServer::listen(int port)
   _server->Listen(5);
   //_server->SignalWriteEvent.connect(this, &GPGNetServer::_onConnect);
   //_server->SignalCloseEvent.connect(this, &GPGNetServer::_onNewClient);
-  FAF_LOG_INFO << "GPGNetServer listening on port " << port;
+  FAF_LOG_INFO << "GPGNetServer listening on port " << _server->GetLocalAddress().port();
 }
 
 int GPGNetServer::listenPort() const
