@@ -63,9 +63,14 @@ void PeerRelay::reinit()
   _isConnected = false;
   _receivedOffer = false;
   _dataChannel.release();
+  _dataChannelIsOpen = false;
   if (_peerConnection)
   {
     _peerConnection->Close();
+  }
+  if (_stateCallback)
+  {
+    _stateCallback("none");
   }
 
   webrtc::PeerConnectionInterface::RTCConfiguration configuration;
@@ -210,6 +215,7 @@ void PeerRelay::_setConnected(bool connected)
 void PeerRelay::_checkConnectionTimeout()
 {
   if (_iceState == "new" ||
+      _iceState == "closed" ||
       _iceState == "failed")
   {
     auto timeSinceLastConnectionAttempt = std::chrono::steady_clock::now() - _connectStartTime;
