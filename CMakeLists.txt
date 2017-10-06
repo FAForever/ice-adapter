@@ -27,8 +27,7 @@ add_custom_target(docs
   SOURCES
   README.md
   LICENSE
-  .travis.yml
-  TODO
+  appveyor.yml
   )
 
 add_library(fafice
