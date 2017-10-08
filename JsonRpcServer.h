@@ -17,6 +17,7 @@ public:
   virtual ~JsonRpcServer();
   void listen(int port);
 
+  int listenPort() const;
 
   typedef std::function<void (Json::Value const& paramsArray,
                               Json::Value & result,
@@ -38,7 +39,8 @@ protected:
   void _onNewClient(rtc::AsyncSocket* socket);
   void _onClientDisconnect(rtc::AsyncSocket* socket, int);
   void _onRead(rtc::AsyncSocket* socket);
-  void _parseMessage(std::string& msgBuffer, rtc::AsyncSocket* socket);
+  Json::Value _parseJsonFromMsgBuffer(std::string& msgBuffer);
+  void _processJsonMessage(Json::Value const& jsonMessage, rtc::AsyncSocket* socket);
   Json::Value _processRequest(Json::Value const& request, rtc::AsyncSocket* socket);
   bool _sendJson(std::string const& message, rtc::AsyncSocket* socket);
 
