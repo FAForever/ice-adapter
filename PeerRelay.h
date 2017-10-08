@@ -90,6 +90,7 @@ protected:
   /* ICE state data */
   bool _receivedOffer;
   bool _dataChannelIsOpen;
+  bool _dataChannelIsOpenSent;
   bool _isConnected;
   std::string _iceState;
   std::string _localCandAddress;
