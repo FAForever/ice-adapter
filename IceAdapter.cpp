@@ -177,8 +177,8 @@ Json::Value IceAdapter::status() const
 
     options["player_id"]            = _options.localPlayerId;
     options["player_login"]         = std::string(_options.localPlayerLogin);
-    options["rpc_port"]             = _options.rpcPort;
-    options["gpgnet_port"]          = _options.gpgNetPort;
+    options["rpc_port"]             = _jsonRpcServer.listenPort();
+    options["gpgnet_port"]          = _gpgnetServer.listenPort();
     options["lobby_port"]           = _options.gameUdpPort;
     options["log_file"]             = std::string(_options.logDirectory);
     result["options"] = options;
