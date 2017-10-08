@@ -64,6 +64,7 @@ void PeerRelay::reinit()
   _receivedOffer = false;
   _dataChannel.release();
   _dataChannelIsOpen = false;
+  _dataChannelIsOpenSent = false;
   if (_peerConnection)
   {
     _peerConnection->Close();
@@ -198,10 +199,6 @@ void PeerRelay::_setConnected(bool connected)
     _connectDuration = std::chrono::steady_clock::now() - _connectStartTime;
     RELAY_LOG(LS_INFO) << "connected after " <<  std::chrono::duration_cast<std::chrono::milliseconds>(_connectDuration).count() / 1000.;
     _peerConnection->GetStats(_rtcStatsCollectorCallback.get());
-    if (_dataChannelIsOpen && _dataChannelOpenCallback)
-    {
-      _dataChannelOpenCallback();
-    }
   }
 
   if (!connected)

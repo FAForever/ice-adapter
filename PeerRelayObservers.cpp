@@ -175,6 +175,11 @@ void DataChannelObserver::OnStateChange()
         //FAF_LOG_DEBUG << "DataChannelObserver::OnStateChange to Open";
         _relay->_dataChannelIsOpen = true;
         _relay->_setConnected(true);
+        if (_relay->_dataChannelOpenCallback && !_relay->_dataChannelIsOpenSent)
+        {
+          _relay->_dataChannelOpenCallback();
+          _relay->_dataChannelIsOpenSent = true;
+        }
         break;
       case webrtc::DataChannelInterface::kClosing:
         //FAF_LOG_DEBUG << "DataChannelObserver::OnStateChange to Closing";
