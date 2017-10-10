@@ -497,7 +497,7 @@ void IceAdapter::_onGameDisconnected()
 
 void IceAdapter::_onGpgNetMessage(GPGNetMessage const& message)
 {
-  FAF_LOG_DEBUG << "receidev GPGnet message: " << message.toDebug();
+  FAF_LOG_DEBUG << "received GPGnet message: " << message.toDebug();
   if (message.header == "GameState")
   {
     if (message.chunks.size() == 1)
