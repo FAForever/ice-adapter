@@ -36,8 +36,8 @@ public:
   typedef std::function<void (std::string const& state)> StateCallback;
   void setStateCallback(StateCallback cb);
 
-  typedef std::function<void ()> DataChannelOpenCallback;
-  void setDataChannelOpenCallback(DataChannelOpenCallback cb);
+  typedef std::function<void (bool)> ConnectedCallback;
+  void setConnectedCallback(ConnectedCallback cb);
 
   void setIceServers(webrtc::PeerConnectionInterface::IceServers const& iceServers);
 
@@ -85,12 +85,10 @@ protected:
   /* callbacks */
   IceMessageCallback _iceMessageCallback;
   StateCallback _stateCallback;
-  DataChannelOpenCallback _dataChannelOpenCallback;
+  ConnectedCallback _connectedCallback;
 
   /* ICE state data */
   bool _receivedOffer;
-  bool _dataChannelIsOpen;
-  bool _dataChannelIsOpenSent;
   bool _isConnected;
   std::string _iceState;
   std::string _localCandAddress;

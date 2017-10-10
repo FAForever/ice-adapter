@@ -27,7 +27,7 @@ The `faf-ice-adapter` is controlled using a bi-directional [JSON-RPC](http://www
 | onGpgNetMessageReceived | header (string), chunks (array) | The game sent a message to the `faf-ice-adapter` via the internal GPGNetServer. |
 | onIceMsg | localPlayerId (int), remotePlayerId (int), msg (object) | The PeerRelays gathered a local ICE message for connecting to the remote player. This message must be forwarded to the remote peer and set using the `iceMsg` command. |
 | onIceConnectionStateChanged | localPlayerId (int), remotePlayerId (int), state (string) | See https://developer.mozilla.org/en-US/docs/Web/API/RTCPeerConnection/iceConnectionState |
-| onDatachannelOpen | localPlayerId (int), remotePlayerId (int) | Informs the client that ICE connectivity to the peer is established. |
+| onConnected | localPlayerId (int), remotePlayerId (int), connected (bool) | Informs the client that ICE connectivity to the peer is established or unestablished. |
 
 #### Status structure
 ```
@@ -47,7 +47,7 @@ The `faf-ice-adapter` is controlled using a bi-directional [JSON-RPC](http://www
     "local_game_udp_port" : /* int: The UDP port opened for the game to connect to */
     "ice_agent": {/* Information about the IceAgent for this peer */
       "state": /* string: The connection state https://developer.mozilla.org/en-US/docs/Web/API/RTCPeerConnection/iceConnectionState */
-      "datachannel_open": /* bool: Is the data channel open for sending/receiving game packets */
+      "connected": /* bool: Is the data channel open for sending/receiving game packets ? */
       "loc_cand_addr": /* string: The local address used for the connection */
       "rem_cand_addr": /* string: The remote address used for the connection */
       "loc_cand_type": /* string: The type of the local candidate 'local'/'stun'/'relay' */

@@ -563,13 +563,14 @@ std::shared_ptr<PeerRelay> IceAdapter::_createPeerRelay(int remotePlayerId,
                                onIceStateChangedParams);
   });
 
-  relay->setDataChannelOpenCallback([this, remotePlayerId]()
+  relay->setConnectedCallback([this, remotePlayerId](bool connected)
   {
-    Json::Value onDatachannelOpenParams(Json::arrayValue);
-    onDatachannelOpenParams.append(_options.localPlayerId);
-    onDatachannelOpenParams.append(remotePlayerId);
-    _jsonRpcServer.sendRequest("onDatachannelOpen",
-                               onDatachannelOpenParams);
+    Json::Value onConnectedParams(Json::arrayValue);
+    onConnectedParams.append(_options.localPlayerId);
+    onConnectedParams.append(remotePlayerId);
+    onConnectedParams.append(connected);
+    _jsonRpcServer.sendRequest("onConnected",
+                               onConnectedParams);
   });
 
   relay->setIceServers(_iceServers);

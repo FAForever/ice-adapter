@@ -29,7 +29,6 @@ PeerRelay::PeerRelay(int remotePlayerId,
   _localUdpSocket(rtc::Thread::Current()->socketserver()->CreateAsyncSocket(SOCK_DGRAM)),
   _gameUdpAddress("127.0.0.1", gameUdpPort),
   _receivedOffer(false),
-  _dataChannelIsOpen(false),
   _isConnected(false),
   _iceState("none"),
   _queue("Relay", rtc::TaskQueue::Priority::LOW),
@@ -60,11 +59,9 @@ void PeerRelay::reinit()
 {
   _queue.PostDelayedTask(rtc::Bind(&PeerRelay::_checkConnectionTimeout, this), 1000);
   _connectStartTime = std::chrono::steady_clock::now();
-  _isConnected = false;
+  _setConnected(false);
   _receivedOffer = false;
   _dataChannel.release();
-  _dataChannelIsOpen = false;
-  _dataChannelIsOpenSent = false;
   if (_peerConnection)
   {
     _peerConnection->Close();
@@ -111,7 +108,7 @@ Json::Value PeerRelay::status() const
   result["local_game_udp_port"] = _localUdpSocketPort;
   result["ice_agent"] = Json::Value();
   result["ice_agent"]["state"] = _iceState;
-  result["ice_agent"]["datachannel_open"] = _dataChannelIsOpen;
+  result["ice_agent"]["connected"] = _isConnected;
   result["ice_agent"]["loc_cand_addr"] = _localCandAddress;
   result["ice_agent"]["rem_cand_addr"] = _remoteCandAddress;
   result["ice_agent"]["loc_cand_type"] = _localCandType;
@@ -130,9 +127,9 @@ void PeerRelay::setStateCallback(StateCallback cb)
   _stateCallback = cb;
 }
 
-void PeerRelay::setDataChannelOpenCallback(DataChannelOpenCallback cb)
+void PeerRelay::setConnectedCallback(ConnectedCallback cb)
 {
-  _dataChannelOpenCallback = cb;
+  _connectedCallback = cb;
 }
 
 void PeerRelay::setIceServers(webrtc::PeerConnectionInterface::IceServers const& iceServers)
@@ -194,19 +191,24 @@ void PeerRelay::_setIceState(std::string const& state)
 
 void PeerRelay::_setConnected(bool connected)
 {
-  if (connected && !_isConnected)
+  if (connected != _isConnected)
   {
-    _connectDuration = std::chrono::steady_clock::now() - _connectStartTime;
-    RELAY_LOG(LS_INFO) << "connected after " <<  std::chrono::duration_cast<std::chrono::milliseconds>(_connectDuration).count() / 1000.;
-    _peerConnection->GetStats(_rtcStatsCollectorCallback.get());
+    _isConnected = connected;
+    if (_connectedCallback)
+    {
+      _connectedCallback(true);
+    }
+    if (connected)
+    {
+      _connectDuration = std::chrono::steady_clock::now() - _connectStartTime;
+      RELAY_LOG(LS_INFO) << "connected after " <<  std::chrono::duration_cast<std::chrono::milliseconds>(_connectDuration).count() / 1000.;
+      _peerConnection->GetStats(_rtcStatsCollectorCallback.get());
+    }
+    else
+    {
+      RELAY_LOG(LS_INFO) << "disconnected";
+    }
   }
-
-  if (!connected)
-  {
-    RELAY_LOG(LS_INFO) << "disconnected";
-  }
-
-  _isConnected = connected;
 }
 
 void PeerRelay::_checkConnectionTimeout()
