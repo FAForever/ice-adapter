@@ -26,6 +26,9 @@ IceAdapter::IceAdapter(int argc, char *argv[]):
     logging_init_log_dir(_options.logLevel, _options.logDirectory);
   }
 
+  _jsonRpcServer.listen(_options.rpcPort);
+  _gpgnetServer.listen(_options.gpgNetPort);
+
   if (!rtc::InitializeSSL())
   {
     FAF_LOG_ERROR << "Error in InitializeSSL()";
@@ -57,8 +60,6 @@ IceAdapter::~IceAdapter()
 
 void IceAdapter::run()
 {
-  _gpgnetServer.listen(_options.gpgNetPort);
-  _jsonRpcServer.listen(_options.rpcPort);
   rtc::Thread::Current()->Run();
 }
 
@@ -148,17 +149,24 @@ void IceAdapter::setIceServers(Json::Value const& servers)
     if (serverJson.isObject())
     {
       webrtc::PeerConnectionInterface::IceServer iceServer;
+      std::string dbgMsg("storing ICE server urls:");
+      dbgMsg += iceServer.uri;
       iceServer.uri = serverJson["url"].asString();
       if (serverJson["urls"].isArray())
       {
         for(std::size_t iUrl = 0; iUrl < serverJson["urls"].size(); ++iUrl)
         {
           iceServer.urls.push_back(serverJson["urls"][Json::ArrayIndex(iUrl)].asString());
+          dbgMsg += serverJson["urls"][Json::ArrayIndex(iUrl)].asString();
         }
       }
+      dbgMsg += " pw:";
       iceServer.password = serverJson["credential"].asString();
+      dbgMsg += iceServer.password + " user:";
       iceServer.username = serverJson["username"].asString();
+      dbgMsg += iceServer.username;
       _iceServers.push_back(iceServer);
+      FAF_LOG_DEBUG << dbgMsg;
     }
   }
   for(auto it = _relays.begin(), end = _relays.end(); it != end; ++it)
