@@ -23,6 +23,8 @@ deploy:
       secure: "+Iy9FWEu+rsOymVlUWI8lRdJZRvjOQpOCuEmA2fjHACAzQxrzas9JQi86RUAPj5K"
     artifact: ice_adapter_archive
     force_update: true
+    on:
+      appveyor_repo_tag: true
 
 build: OFF
 test: OFF
