@@ -215,7 +215,10 @@ void PeerRelay::_checkConnectionTimeout()
 {
   if (_iceState == "new" ||
       _iceState == "closed" ||
-      _iceState == "failed")
+      _iceState == "failed" ||
+      _iceState == "none" ||
+      _iceState == "checking"
+      )
   {
     auto timeSinceLastConnectionAttempt = std::chrono::steady_clock::now() - _connectStartTime;
     if (timeSinceLastConnectionAttempt > _connectionAttemptTimeoutMs)
