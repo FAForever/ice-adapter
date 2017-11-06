@@ -172,6 +172,7 @@ void PeerRelay::_setIceState(std::string const& state)
   {
     _setConnected(true);
   }
+  _peerConnection->GetStats(_rtcStatsCollectorCallback.get());
   if (_stateCallback)
   {
     _stateCallback(_iceState);
@@ -202,7 +203,6 @@ void PeerRelay::_setConnected(bool connected)
     {
       _connectDuration = std::chrono::steady_clock::now() - _connectStartTime;
       RELAY_LOG(LS_INFO) << "connected after " <<  std::chrono::duration_cast<std::chrono::milliseconds>(_connectDuration).count() / 1000.;
-      _peerConnection->GetStats(_rtcStatsCollectorCallback.get());
     }
     else
     {
@@ -215,6 +215,7 @@ void PeerRelay::_checkConnectionTimeout()
 {
   if (_iceState == "new" ||
       _iceState == "closed" ||
+      _iceState == "disconnected" ||
       _iceState == "failed" ||
       _iceState == "none" ||
       _iceState == "checking"
