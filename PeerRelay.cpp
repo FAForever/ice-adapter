@@ -30,6 +30,7 @@ PeerRelay::PeerRelay(int remotePlayerId,
   _gameUdpAddress("127.0.0.1", gameUdpPort),
   _receivedOffer(false),
   _isConnected(false),
+  _closing(false),
   _iceState("none"),
   _queue("Relay", rtc::TaskQueue::Priority::LOW),
   _connectionAttemptTimeoutMs(std::chrono::seconds(10))
@@ -45,14 +46,7 @@ PeerRelay::PeerRelay(int remotePlayerId,
 
 PeerRelay::~PeerRelay()
 {
-  if (_dataChannel)
-  {
-    _dataChannel->UnregisterObserver();
-  }
-  if (_peerConnection)
-  {
-    _peerConnection->Close();
-  }
+  _closePeerConnection();
 }
 
 void PeerRelay::reinit()
@@ -61,11 +55,9 @@ void PeerRelay::reinit()
   _connectStartTime = std::chrono::steady_clock::now();
   _setConnected(false);
   _receivedOffer = false;
-  _dataChannel.release();
-  if (_peerConnection)
-  {
-    _peerConnection->Close();
-  }
+
+  _closePeerConnection();
+
   if (_stateCallback)
   {
     _stateCallback("none");
@@ -77,7 +69,7 @@ void PeerRelay::reinit()
                                                      nullptr,
                                                      nullptr,
                                                      _peerConnectionObserver.get());
-
+  _closing = false;
   if (_createOffer)
   {
     webrtc::DataChannelInit dataChannelInit;
@@ -163,6 +155,21 @@ void PeerRelay::addIceMessage(Json::Value const& iceMsg)
   }
 }
 
+void PeerRelay::_closePeerConnection()
+{
+  _closing = true;
+  if (_dataChannel)
+  {
+    _dataChannel->UnregisterObserver();
+    _dataChannel.release();
+  }
+  if (_peerConnection)
+  {
+    _peerConnection->Close();
+    _peerConnection.release();
+  }
+}
+
 void PeerRelay::_setIceState(std::string const& state)
 {
   RELAY_LOG(LS_VERBOSE) << "ice state changed to" << state;
@@ -172,10 +179,10 @@ void PeerRelay::_setIceState(std::string const& state)
   {
     _setConnected(true);
   }
-  _peerConnection->GetStats(_rtcStatsCollectorCallback.get());
-  if (_stateCallback)
+  if (!_closing &&
+      _peerConnection)
   {
-    _stateCallback(_iceState);
+    _peerConnection->GetStats(_rtcStatsCollectorCallback.get());
   }
   if (_iceState == "disconnected" ||
       _iceState == "failed" ||
@@ -183,10 +190,14 @@ void PeerRelay::_setIceState(std::string const& state)
   {
     _setConnected(false);
   }
+  if (_stateCallback)
+  {
+    _stateCallback(_iceState);
+  }
   if (_iceState == "failed")
   {
     RELAY_LOG(LS_WARNING) << "Connection failed, forcing reconnect immediately.";
-    reinit();
+    _queue.PostDelayedTask(rtc::Bind(&PeerRelay::reinit, this), 10);
   }
 }
 

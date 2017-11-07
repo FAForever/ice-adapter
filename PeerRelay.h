@@ -50,6 +50,7 @@ public:
   Json::Value status() const;
 
 protected:
+  void _closePeerConnection();
   void _setIceState(std::string const& state);
   void _setConnected(bool connected);
   void _checkConnectionTimeout();
@@ -90,6 +91,7 @@ protected:
   /* ICE state data */
   bool _receivedOffer;
   bool _isConnected;
+  bool _closing;
   std::string _iceState;
   std::string _localCandAddress;
   std::string _remoteCandAddress;
