@@ -31,17 +31,18 @@ add_custom_target(docs
   )
 
 add_library(fafice
-  logging.cpp
-  IceAdapter.cpp
-  IceAdapterOptions.cpp
-  IceTest.cpp
-  JsonRpcServer.cpp
   GPGNetServer.cpp
   GPGNetMessage.cpp
+  IceAdapterOptions.cpp
+  JsonRpc.cpp
+  JsonRpcClient.cpp
+  JsonRpcServer.cpp
+  logging.cpp
   PeerRelay.cpp
   PeerRelayObservers.cpp
+  Timer.cpp
 )
-target_compile_definitions(fafice PRIVATE
+target_compile_definitions(fafice PUBLIC
   FAF_VERSION_STRING="${FAF_VERSION_STRING}";
   WEBRTC_BUILD_LIBEVENT)
 target_link_libraries(fafice
@@ -71,9 +72,33 @@ else() # we assume MSVC for now
 endif()
 
 add_executable(faf-ice-adapter
-  main.cpp
+  IceAdapter.cpp
 )
 
 target_link_libraries(faf-ice-adapter
   fafice
 )
+
+add_executable(faf-ice-testserver
+  TestServer.cpp
+)
+
+target_link_libraries(faf-ice-testserver
+  fafice
+)
+
+
+if(NOT WIN32)
+  set(testclient_srcs ProcessLinux.cpp)
+else()
+  set(testclient_srcs ProcessWin32.cpp)
+endif()
+
+add_executable(faf-ice-testclient
+  TestClient.cpp
+  ${testclient_srcs}
+  )
+
+target_link_libraries(faf-ice-testclient
+  fafice
+  )

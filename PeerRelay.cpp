@@ -32,8 +32,7 @@ PeerRelay::PeerRelay(int remotePlayerId,
   _isConnected(false),
   _closing(false),
   _iceState("none"),
-  _queue("Relay", rtc::TaskQueue::Priority::LOW),
-  _connectionAttemptTimeoutMs(std::chrono::seconds(10))
+  _connectionAttemptTimeout(std::chrono::seconds(10))
 {
   _localUdpSocket->SignalReadEvent.connect(this, &PeerRelay::_onPeerdataFromGame);
   if (_localUdpSocket->Bind(rtc::SocketAddress("127.0.0.1", 0)) != 0)
@@ -51,7 +50,7 @@ PeerRelay::~PeerRelay()
 
 void PeerRelay::reinit()
 {
-  _queue.PostDelayedTask(rtc::Bind(&PeerRelay::_checkConnectionTimeout, this), 1000);
+  _checkConnectionTimer.start(1000, std::bind(&PeerRelay::_checkConnectionTimeout, this));
   _connectStartTime = std::chrono::steady_clock::now();
   _setConnected(false);
   _receivedOffer = false;
@@ -197,7 +196,7 @@ void PeerRelay::_setIceState(std::string const& state)
   if (_iceState == "failed")
   {
     RELAY_LOG(LS_WARNING) << "Connection failed, forcing reconnect immediately.";
-    _queue.PostDelayedTask(rtc::Bind(&PeerRelay::reinit, this), 10);
+    reinit();
   }
 }
 
@@ -233,7 +232,7 @@ void PeerRelay::_checkConnectionTimeout()
       )
   {
     auto timeSinceLastConnectionAttempt = std::chrono::steady_clock::now() - _connectStartTime;
-    if (timeSinceLastConnectionAttempt > _connectionAttemptTimeoutMs)
+    if (timeSinceLastConnectionAttempt > _connectionAttemptTimeout)
     {
       if (_createOffer)
       {
@@ -247,7 +246,6 @@ void PeerRelay::_checkConnectionTimeout()
       return;
     }
   }
-  _queue.PostDelayedTask(rtc::Bind(&PeerRelay::_checkConnectionTimeout, this), 1000);
 }
 
 void PeerRelay::_onPeerdataFromGame(rtc::AsyncSocket* socket)
@@ -255,7 +253,7 @@ void PeerRelay::_onPeerdataFromGame(rtc::AsyncSocket* socket)
   auto msgLength = socket->Recv(_readBuffer.data(), _readBuffer.size(), nullptr);
   if (!_isConnected)
   {
-    FAF_LOG_TRACE << "skipping " << msgLength << " bytes of P2P data until ICE connection is established";
+    RELAY_LOG(LS_SENSITIVE) << "skipping " << msgLength << " bytes of P2P data until ICE connection is established";
     return;
   }
   if (msgLength > 0 && _dataChannel)

@@ -6,9 +6,10 @@
 #include <array>
 
 #include <webrtc/api/peerconnectioninterface.h>
-#include <webrtc/base/task_queue.h>
 
 #include <third_party/json/json.h>
+
+#include "Timer.h"
 
 namespace faf {
 
@@ -99,10 +100,10 @@ protected:
   std::string _remoteCandType;
 
   /* connectivity check data */
-  rtc::TaskQueue _queue;
+  Timer _checkConnectionTimer;
   std::chrono::steady_clock::time_point _connectStartTime;
   std::chrono::steady_clock::duration _connectDuration;
-  std::chrono::steady_clock::duration _connectionAttemptTimeoutMs;
+  std::chrono::steady_clock::duration _connectionAttemptTimeout;
 
   /* access declarations for observers */
   friend CreateOfferObserver;

@@ -1,5 +1,6 @@
 #include "logging.h"
 
+#include <iostream>
 #include <string>
 #include <experimental/filesystem>
 
@@ -32,8 +33,19 @@ void segfault_handler(int sig)
 namespace faf
 {
 
+class LogSink : public ::rtc::LogSink
+{
+public:
+  virtual void OnLogMessage(const std::string& message) override
+  {
+    std::cout << message << std::flush;
+  }
+};
+
 void logging_init(std::string const& verbosity)
 {
+  static ::faf::LogSink ls;
+  /*
   if (verbosity == "error")
   {
     rtc::LogMessage::LogToDebug(rtc::LS_ERROR);
@@ -53,6 +65,27 @@ void logging_init(std::string const& verbosity)
   else if (verbosity == "debug")
   {
     rtc::LogMessage::LogToDebug(rtc::LS_SENSITIVE);
+  }
+  */
+  if (verbosity == "error")
+  {
+    rtc::LogMessage::AddLogToStream(&ls, rtc::LS_ERROR);
+  }
+  else if (verbosity == "warn")
+  {
+    rtc::LogMessage::AddLogToStream(&ls, rtc::LS_WARNING);
+  }
+  else if (verbosity == "info")
+  {
+    rtc::LogMessage::AddLogToStream(&ls, rtc::LS_INFO);
+  }
+  else if (verbosity == "verbose")
+  {
+    rtc::LogMessage::AddLogToStream(&ls, rtc::LS_VERBOSE);
+  }
+  else if (verbosity == "debug")
+  {
+    rtc::LogMessage::AddLogToStream(&ls, rtc::LS_SENSITIVE);
   }
 }
 
