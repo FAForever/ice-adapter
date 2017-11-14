@@ -1,7 +1,7 @@
 #include "TestClient.h"
 
+#include <chrono>
 #include <iostream>
-
 #include <webrtc/base/thread.h>
 
 #if defined(WEBRTC_WIN)
@@ -13,6 +13,7 @@
 #  include <netinet/tcp.h>
 #endif
 #include "logging.h"
+#include "GPGNetMessage.h"
 
 namespace faf {
 
@@ -25,14 +26,50 @@ TestClient::TestClient(std::string const& login):
   _controlConnection.setRpcCallback("startIceAdapter", std::bind(&TestClient::_rpcStartIceAdapter, this, _1, _2, _3, _4));
   _controlConnection.setRpcCallback("connectToIceAdapter", std::bind(&TestClient::_rpcConnectToIceAdapter, this, _1, _2, _3, _4));
   _controlConnection.setRpcCallback("sendToIceAdapter", std::bind(&TestClient::_rpcSendToIceAdapter, this, _1, _2, _3, _4));
-  _controlConnection.setRpcCallback("iceStatus", std::bind(&TestClient::_rpcIceStatus, this, _1, _2, _3, _4));
+  _controlConnection.setRpcCallback("sendToGpgNet", std::bind(&TestClient::_rpcSendToGpgNet, this, _1, _2, _3, _4));
   _controlConnection.setRpcCallback("status", std::bind(&TestClient::_rpcStatus, this, _1, _2, _3, _4));
+  _controlConnection.setRpcCallback("connectToGPGNet", std::bind(&TestClient::_rpcConnectToGPGNet, this, _1, _2, _3, _4));
 
   _controlConnection.SignalConnected.connect(this, &TestClient::_onConnected);
   _controlConnection.SignalDisconnected.connect(this, &TestClient::_onDisconnected);
 
+  auto sendIceEventToClient = [&](std::string const& eventName, Json::Value const& paramsArray, Json::Value & result, Json::Value & error, rtc::AsyncSocket* socket)
+  {
+    if (_controlConnection.isConnected())
+    {
+      Json::Value params(Json::arrayValue);
+      params.append(std::string("onIce") + eventName);
+      params.append(_id);
+      params.append(paramsArray);
+      _controlConnection.sendRequest("onMasterEvent", params);
+    }
+  };
+  _iceAdapterConnection.setRpcCallback("onConnectionStateChanged", std::bind(sendIceEventToClient, "onConnectionStateChanged", _1, _2, _3, _4));
+  _iceAdapterConnection.setRpcCallback("onGpgNetMessageReceived", std::bind(sendIceEventToClient, "onGpgNetMessageReceived", _1, _2, _3, _4));
+  _iceAdapterConnection.setRpcCallback("onIceMsg", std::bind(sendIceEventToClient, "onIceMsg", _1, _2, _3, _4));
+  _iceAdapterConnection.setRpcCallback("onIceConnectionStateChanged", std::bind(sendIceEventToClient, "onIceConnectionStateChanged", _1, _2, _3, _4));
+  _iceAdapterConnection.setRpcCallback("onConnected", std::bind(sendIceEventToClient, "onConnected", _1, _2, _3, _4));
+
   _iceAdapaterOutputCheckTimer.start(100, std::bind(&TestClient::_onCheckIceAdapterOutput, this));
   _reconnectTimer.start(1000, std::bind(&TestClient::_onCheckConnection, this));
+
+  _gpgNetClient.setCallback([&](GPGNetMessage const& msg)
+  {
+    if (_controlConnection.isConnected())
+    {
+      Json::Value params(Json::arrayValue);
+      params.append("onGpgNetMsgFromIceAdapter");
+      params.append(_id);
+      params.append(msg.header);
+      Json::Value gpgChunks(Json::arrayValue);
+      for (auto chunk : msg.chunks)
+      {
+        gpgChunks.append(chunk);
+      }
+      params.append(gpgChunks);
+      _controlConnection.sendRequest("onMasterEvent", params);
+    }
+  });
 
   /* detect unused tcp server port for the ice-adapter */
   {
@@ -144,6 +181,7 @@ void TestClient::_rpcStartIceAdapter(Json::Value const& paramsArray, Json::Value
                                    "--id", std::to_string(_id),
                                    "--rpc-port", std::to_string(_iceAdapterPort),
                                    "--gpgnet-port", "0",
+                                   "--lobby-port", "0",
                                    "--log-level" , "debug"};
   for (Json::Value const& arg: paramsArray[0])
   {
@@ -156,14 +194,7 @@ void TestClient::_rpcStartIceAdapter(Json::Value const& paramsArray, Json::Value
 
 void TestClient::_rpcConnectToIceAdapter(Json::Value const& paramsArray, Json::Value & result, Json::Value & error, rtc::AsyncSocket* socket)
 {
-  if (paramsArray.size() < 2)
-  {
-    error = "Need 2 parameters: hostname, port";
-    return;
-  }
-  auto host = paramsArray[0].asString();
-  auto port = paramsArray[1].asInt();
-  _iceAdapterConnection.connect(host, port);
+  _iceAdapterConnection.connect("localhost", _iceAdapterPort);
   result = "ok";
 }
 
@@ -171,7 +202,7 @@ void TestClient::_rpcSendToIceAdapter(Json::Value const& paramsArray, Json::Valu
 {
   if (paramsArray.size() < 2)
   {
-    error = "Need 1 parameter: method (string), params (array)";
+    error = "Need 2 parameter: method (string), params (array)";
     return;
   }
   if (paramsArray[0].asString() == "iceMsg")
@@ -186,48 +217,65 @@ void TestClient::_rpcSendToIceAdapter(Json::Value const& paramsArray, Json::Valu
   }
   else
   {
+    bool hasResult = false;
+    std::chrono::system_clock::time_point start = std::chrono::system_clock::now();
     _iceAdapterConnection.sendRequest(paramsArray[0].asString(),
-                                      paramsArray[1]);
+                                      paramsArray[1],
+                                      nullptr, [&](Json::Value const& iceResult,
+                                                   Json::Value const& iceError)
+    {
+      result = iceResult;
+      error = iceError;
+      hasResult = true;
+    });
+
+    while (!hasResult &&
+           std::chrono::duration_cast<std::chrono::milliseconds>(std::chrono::system_clock::now() - start).count() < 1000)
+    {
+      rtc::Thread::Current()->ProcessMessages(10);
+    }
+    if (!hasResult)
+    {
+      error = "ice-adapter timeout";
+    }
   }
 }
 
-void TestClient::_rpcIceStatus(Json::Value const& paramsArray, Json::Value & result, Json::Value & error, rtc::AsyncSocket* socket)
+void TestClient::_rpcSendToGpgNet(Json::Value const& paramsArray, Json::Value & result, Json::Value & error, rtc::AsyncSocket* socket)
 {
-  if (!_iceAdapterConnection.isConnected())
+  if (paramsArray.size() < 2)
   {
-    error = "not connected";
+    error = "Need 2 parameter: header (string), chunks (array)";
     return;
   }
-  bool hasStatus = false;
-  _iceAdapterConnection.sendRequest("status",
-                                    Json::Value(Json::arrayValue),
-                                    socket,
-                                    [&](Json::Value const& iceResult,
-                                        Json::Value const& iceError)
+  GPGNetMessage msg;
+  msg.header = paramsArray[0].asString();
+  for (auto chunk: paramsArray[1])
   {
-    if (!error.isNull())
-    {
-      error = iceError;
-    }
-    else
-    {
-      result = iceResult;
-    }
-    hasStatus = true;
-  });
-
-  while (!hasStatus)
-  {
-    rtc::Thread::Current()->ProcessMessages(1);
+    msg.chunks.push_back(chunk);
   }
+  _gpgNetClient.sendMessage(msg);
 }
 
 void TestClient::_rpcStatus(Json::Value const& paramsArray, Json::Value & result, Json::Value & error, rtc::AsyncSocket* socket)
 {
   result["ice_adapter_open"] = _iceAdapterProcess.isOpen();
+  result["ice_adapter_port"] = _iceAdapterPort;
   result["ice_adapter_connected"] = _iceAdapterConnection.isConnected();
+  result["gpgnet_connected"] = _gpgNetClient.isConnected();
   result["login"] = _login;
   result["id"] = _id;
+}
+
+void TestClient::_rpcConnectToGPGNet(Json::Value const& paramsArray, Json::Value & result, Json::Value & error, rtc::AsyncSocket* socket)
+{
+  if (paramsArray.size() < 1)
+  {
+    error = "Need 1 parameter: port (int)";
+    return;
+  }
+  _gpgNetClient.connect("localhost", paramsArray[0].asInt());
+  result = "ok";
 }
 
 void TestClient::_onCheckConnection()
@@ -242,13 +290,17 @@ void TestClient::_onCheckIceAdapterOutput()
 {
   auto output = _iceAdapterProcess.checkOutput();
   Json:: Value jsonOutputArray(Json::arrayValue);
+  jsonOutputArray.append("onIceAdapterOutput");
+  jsonOutputArray.append(_id);
+  Json:: Value lines;
   for (auto line: output)
   {
-    jsonOutputArray.append(line);
+    lines.append(line);
   }
-  if (jsonOutputArray.size() > 0 && _controlConnection.isConnected())
+  jsonOutputArray.append(lines);
+  if (lines.size() > 0 && _controlConnection.isConnected())
   {
-    _controlConnection.sendRequest("onIceAdapterOutput", jsonOutputArray);
+    _controlConnection.sendRequest("onMasterEvent", jsonOutputArray);
   }
 }
 

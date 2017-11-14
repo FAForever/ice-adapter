@@ -1,5 +1,7 @@
 #pragma once
 
+#include <memory>
+
 #include <webrtc/base/asyncsocket.h>
 
 #include "JsonRpc.h"

@@ -25,7 +25,7 @@ TestServer::TestServer():
   _server.setRpcCallback("joinGame", std::bind(&TestServer::_rpcJoinGame, this, _1, _2, _3, _4));
   _server.setRpcCallback("sendIceMsg", std::bind(&TestServer::_rpcSendIceMsg, this, _1, _2, _3, _4));
   _server.setRpcCallback("players", std::bind(&TestServer::_rpcPlayers, this, _1, _2, _3, _4));
-  _server.setRpcCallback("onIceAdapterOutput", std::bind(&TestServer::_rpcOnIceAdapterOutput, this, _1, _2, _3, _4));
+  _server.setRpcCallback("onMasterEvent", std::bind(&TestServer::_rpcOnMasterEvent, this, _1, _2, _3, _4));
   _server.listen(54321, "0.0.0.0");
 }
 
@@ -100,7 +100,8 @@ void TestServer::_rpcLogin(Json::Value const& paramsArray, Json::Value & result,
   ++_currentPlayerId;
 }
 
-void TestServer::_rpcReconnect(Json::Value const& paramsArray, Json::Value & result, Json::Value & error, rtc::AsyncSocket* socket)
+void TestServer::
+_rpcReconnect(Json::Value const& paramsArray, Json::Value & result, Json::Value & error, rtc::AsyncSocket* socket)
 {
   if (_socketPlayers.find(socket) != _socketPlayers.end())
   {
@@ -335,18 +336,11 @@ void TestServer::_rpcPlayers(Json::Value const& paramsArray, Json::Value & resul
   }
 }
 
-void TestServer::_rpcOnIceAdapterOutput(Json::Value const& paramsArray, Json::Value & result, Json::Value & error, rtc::AsyncSocket* socket)
+void TestServer::_rpcOnMasterEvent(Json::Value const& paramsArray, Json::Value & result, Json::Value & error, rtc::AsyncSocket* socket)
 {
-  auto player = _socketPlayers.find(socket);
-  if (player != _socketPlayers.end())
+  for (auto socket: _masterSockets)
   {
-    for (auto socket: _masterSockets)
-    {
-      Json::Value params;
-      params.append(player->second);
-      params.append(paramsArray);
-      _server.sendRequest("onIceAdapterOutput", params, socket);
-    }
+    _server.sendRequest("onMasterEvent", paramsArray, socket);
   }
 }
 

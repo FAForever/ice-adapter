@@ -70,7 +70,7 @@ void JsonRpc::sendRequest(std::string const& method,
 
 Json::Value JsonRpc::_parseJsonFromMsgBuffer(std::string& msgBuffer)
 {
-  FAF_LOG_TRACE << "parsing JSON string: " << msgBuffer;
+  //FAF_LOG_TRACE << "parsing JSON string: " << msgBuffer;
   Json::Value result;
 
   if (msgBuffer.empty())
@@ -143,7 +143,7 @@ Json::Value JsonRpc::_parseJsonFromMsgBuffer(std::string& msgBuffer)
 
 void JsonRpc::_processJsonMessage(Json::Value const& jsonMessage, rtc::AsyncSocket* socket)
 {
-  FAF_LOG_TRACE << "processing JSON msg: " << jsonMessage.toStyledString();
+  //FAF_LOG_TRACE << "processing JSON msg: " << jsonMessage.toStyledString();
   if (jsonMessage.isMember("method"))
   {
     /* this message is a request */
@@ -153,7 +153,7 @@ void JsonRpc::_processJsonMessage(Json::Value const& jsonMessage, rtc::AsyncSock
     if (jsonMessage.isMember("id"))
     {
       std::string responseString = Json::FastWriter().write(response);
-      FAF_LOG_TRACE << "sending response:" << responseString;
+      //FAF_LOG_TRACE << "sending response:" << responseString;
       _sendMessage(responseString, socket);
     }
   }
@@ -206,7 +206,7 @@ Json::Value JsonRpc::_processRequest(Json::Value const& request, rtc::AsyncSocke
     return response;
   }
 
-  FAF_LOG_TRACE << "dispatching JSRONRPC method '" << request["method"].asString() << "'";
+  //FAF_LOG_TRACE << "dispatching JSRONRPC method '" << request["method"].asString() << "'";
 
   Json::Value params(Json::arrayValue);
   if (request.isMember("params") &&

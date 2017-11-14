@@ -31,6 +31,7 @@ add_custom_target(docs
   )
 
 add_library(fafice
+  GPGNetClient.cpp
   GPGNetServer.cpp
   GPGNetMessage.cpp
   IceAdapterOptions.cpp
@@ -68,6 +69,7 @@ else() # we assume MSVC for now
     msdmo
     dmoguids
     wmcodecdspuuid
+    ws2_32
   )
 endif()
 
@@ -86,7 +88,6 @@ add_executable(faf-ice-testserver
 target_link_libraries(faf-ice-testserver
   fafice
 )
-
 
 if(NOT WIN32)
   set(testclient_srcs ProcessLinux.cpp)

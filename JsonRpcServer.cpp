@@ -75,7 +75,7 @@ bool JsonRpcServer::_sendMessage(std::string const& message, rtc::AsyncSocket* s
         continue;
       }
     }
-    FAF_LOG_TRACE << "sending " << message;
+    //FAF_LOG_TRACE << "sending " << message;
 
     if (!it->second->Send(message.c_str(), message.size()))
     {
@@ -85,7 +85,7 @@ bool JsonRpcServer::_sendMessage(std::string const& message, rtc::AsyncSocket* s
     }
     else
     {
-      FAF_LOG_TRACE << " done";
+      //FAF_LOG_TRACE << " done";
     }
   }
   return true;

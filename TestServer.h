@@ -30,7 +30,7 @@ protected:
   void _rpcJoinGame(Json::Value const& paramsArray, Json::Value & result, Json::Value & error, rtc::AsyncSocket* socket);
   void _rpcSendIceMsg(Json::Value const& paramsArray, Json::Value & result, Json::Value & error, rtc::AsyncSocket* socket);
   void _rpcPlayers(Json::Value const& paramsArray, Json::Value & result, Json::Value & error, rtc::AsyncSocket* socket);
-  void _rpcOnIceAdapterOutput(Json::Value const& paramsArray, Json::Value & result, Json::Value & error, rtc::AsyncSocket* socket);
+  void _rpcOnMasterEvent(Json::Value const& paramsArray, Json::Value & result, Json::Value & error, rtc::AsyncSocket* socket);
 
   Json::Value _gamelistJson() const;
   void _sendGamelist(rtc::AsyncSocket* = nullptr);

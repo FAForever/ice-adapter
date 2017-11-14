@@ -33,6 +33,7 @@ The `faf-ice-adapter` is controlled using a bi-directional [JSON-RPC](http://www
 ```
 {
 "version" : /* string: faf-ice-adapter version */
+"ice_servers_size" : /* the number of ICE servers set using `setIceServers` */
 "options" : /* The commandline options */
 "gpgnet" : { /* The GPGNet state */
   "local_port" : /* int: The port the game should connect to via /gpgnet 127.0.0.1:port */

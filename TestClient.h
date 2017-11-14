@@ -6,6 +6,7 @@
 #include "JsonRpcClient.h"
 #include "Process.h"
 #include "Timer.h"
+#include "GPGNetClient.h"
 
 namespace faf {
 
@@ -21,8 +22,9 @@ protected:
   void _rpcStartIceAdapter(Json::Value const& paramsArray, Json::Value & result, Json::Value & error, rtc::AsyncSocket* socket);
   void _rpcConnectToIceAdapter(Json::Value const& paramsArray, Json::Value & result, Json::Value & error, rtc::AsyncSocket* socket);
   void _rpcSendToIceAdapter(Json::Value const& paramsArray, Json::Value & result, Json::Value & error, rtc::AsyncSocket* socket);
-  void _rpcIceStatus(Json::Value const& paramsArray, Json::Value & result, Json::Value & error, rtc::AsyncSocket* socket);
+  void _rpcSendToGpgNet(Json::Value const& paramsArray, Json::Value & result, Json::Value & error, rtc::AsyncSocket* socket);
   void _rpcStatus(Json::Value const& paramsArray, Json::Value & result, Json::Value & error, rtc::AsyncSocket* socket);
+  void _rpcConnectToGPGNet(Json::Value const& paramsArray, Json::Value & result, Json::Value & error, rtc::AsyncSocket* socket);
 
   void _onCheckConnection();
   void _onCheckIceAdapterOutput();
@@ -36,6 +38,7 @@ protected:
   JsonRpcClient _controlConnection;
   Process _iceAdapterProcess;
   JsonRpcClient _iceAdapterConnection;
+  GPGNetClient _gpgNetClient;
   Timer _iceAdapaterOutputCheckTimer;
   Timer _reconnectTimer;
 };

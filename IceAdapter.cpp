@@ -210,6 +210,7 @@ Json::Value IceAdapter::status() const
     }
     result["relays"] = relays;
   }
+  result["ice_servers_size"] = static_cast<int>(_iceServers.size());
   return result;
 }
 
