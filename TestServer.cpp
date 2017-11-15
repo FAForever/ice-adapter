@@ -19,11 +19,11 @@ TestServer::TestServer():
   _server.setRpcCallback("login", std::bind(&TestServer::_rpcLogin, this, _1, _2, _3, _4));
   _server.setRpcCallback("reconnect", std::bind(&TestServer::_rpcReconnect, this, _1, _2, _3, _4));
   _server.setRpcCallback("master", std::bind(&TestServer::_rpcMaster, this, _1, _2, _3, _4));
-  _server.setRpcCallback("sendToPlayer", std::bind(&TestServer::_rpcSendToPlayer, this, _1, _2, _3, _4));
-  _server.setRpcCallback("hostGame", std::bind(&TestServer::_rpcHostGame, this, _1, _2, _3, _4));
-  _server.setRpcCallback("leaveGame", std::bind(&TestServer::_rpcLeaveGame, this, _1, _2, _3, _4));
-  _server.setRpcCallback("joinGame", std::bind(&TestServer::_rpcJoinGame, this, _1, _2, _3, _4));
-  _server.setRpcCallback("sendIceMsg", std::bind(&TestServer::_rpcSendIceMsg, this, _1, _2, _3, _4));
+  _server.setRpcCallbackAsync("sendToPlayer", std::bind(&TestServer::_rpcSendToPlayer, this, _1, _2, _3, _4));
+  //_server.setRpcCallback("hostGame", std::bind(&TestServer::_rpcHostGame, this, _1, _2, _3, _4));
+  //_server.setRpcCallback("leaveGame", std::bind(&TestServer::_rpcLeaveGame, this, _1, _2, _3, _4));
+  //_server.setRpcCallback("joinGame", std::bind(&TestServer::_rpcJoinGame, this, _1, _2, _3, _4));
+  //_server.setRpcCallback("sendIceMsg", std::bind(&TestServer::_rpcSendIceMsg, this, _1, _2, _3, _4));
   _server.setRpcCallback("players", std::bind(&TestServer::_rpcPlayers, this, _1, _2, _3, _4));
   _server.setRpcCallback("onMasterEvent", std::bind(&TestServer::_rpcOnMasterEvent, this, _1, _2, _3, _4));
   _server.listen(54321, "0.0.0.0");
@@ -100,8 +100,7 @@ void TestServer::_rpcLogin(Json::Value const& paramsArray, Json::Value & result,
   ++_currentPlayerId;
 }
 
-void TestServer::
-_rpcReconnect(Json::Value const& paramsArray, Json::Value & result, Json::Value & error, rtc::AsyncSocket* socket)
+void TestServer::_rpcReconnect(Json::Value const& paramsArray, Json::Value & result, Json::Value & error, rtc::AsyncSocket* socket)
 {
   if (_socketPlayers.find(socket) != _socketPlayers.end())
   {
@@ -134,49 +133,45 @@ void TestServer::_rpcMaster(Json::Value const& paramsArray, Json::Value & result
   _masterSockets.insert(socket);
 }
 
-void TestServer::_rpcSendToPlayer(Json::Value const& paramsArray, Json::Value & result, Json::Value & error, rtc::AsyncSocket* socket)
+void TestServer::_rpcSendToPlayer(Json::Value const& paramsArray, JsonRpc::ResponseCallback result, JsonRpc::ResponseCallback error, rtc::AsyncSocket* socket)
 {
   if (_masterSockets.find(socket) == _masterSockets.end())
   {
-    error = "unprivileged";
+    error("unprivileged");
     return;
   }
   if (paramsArray.size() < 3)
   {
-    error = "Need 3 parameters: remotePlayerId (int), commandName (string), commandArgs (array)";
+    error("Need 3 parameters: remotePlayerId (int), commandName (string), commandArgs (array)");
     return;
   }
   auto id = paramsArray[0].asInt();
   auto playerIt = _playerSockets.find(id);
+  //FAF_LOG_TRACE << "sending request " << paramsArray[1].asString() << " to player " << id;
   if (playerIt != _playerSockets.end())
   {
-    bool hasResult = false;
     std::chrono::system_clock::time_point start = std::chrono::system_clock::now();
     _server.sendRequest(paramsArray[1].asString(),
         paramsArray[2],
         playerIt->second,
-        [&](Json::Value const& resultFromPlayer,
+        [result, error](Json::Value const& resultFromPlayer,
             Json::Value const& errorFromPlayer)
     {
-      result = resultFromPlayer;
-      error = errorFromPlayer;
-      hasResult = true;
+      //FAF_LOG_TRACE << "got response for request " << paramsArray[1].asString() << " for player " << id;
+      if (!resultFromPlayer.isNull())
+      {
+        result(resultFromPlayer);
+      }
+      else
+      {
+        error(errorFromPlayer);
+      }
     });
-    while (!hasResult &&
-           std::chrono::duration_cast<std::chrono::milliseconds>(std::chrono::system_clock::now() - start).count() < 1000)
-    {
-      rtc::Thread::Current()->ProcessMessages(10);
-    }
-    if (!hasResult)
-    {
-      error = "client timeout";
-    }
   }
   else
   {
-    error = "player id not found";
+    error("player id not found");
   }
-  /* todo: wait for result */
 }
 
 void TestServer::_rpcHostGame(Json::Value const& paramsArray, Json::Value & result, Json::Value & error, rtc::AsyncSocket* socket)

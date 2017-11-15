@@ -16,12 +16,20 @@ public:
   JsonRpc();
   virtual ~JsonRpc();
 
+  typedef std::function<void (Json::Value)> ResponseCallback;
+  typedef std::function<void (Json::Value const& paramsArray,
+                              ResponseCallback result,
+                              ResponseCallback error,
+                              rtc::AsyncSocket* socket)> RpcCallbackAsync;
+
   typedef std::function<void (Json::Value const& paramsArray,
                               Json::Value & result,
                               Json::Value & error,
                               rtc::AsyncSocket* socket)> RpcCallback;
   void setRpcCallback(std::string const& method,
                       RpcCallback cb);
+  void setRpcCallbackAsync(std::string const& method,
+                           RpcCallbackAsync cb);
 
   typedef std::function<void (Json::Value const& result,
                               Json::Value const& error)> RpcRequestResult;
@@ -34,7 +42,7 @@ protected:
   void _read(rtc::AsyncSocket* socket);
   Json::Value _parseJsonFromMsgBuffer(std::string& msgBuffer);
   void _processJsonMessage(Json::Value const& jsonMessage, rtc::AsyncSocket* socket);
-  Json::Value _processRequest(Json::Value const& request, rtc::AsyncSocket* socket);
+  void _processRequest(Json::Value const& request, ResponseCallback response, rtc::AsyncSocket* socket);
 
   virtual bool _sendMessage(std::string const& message, rtc::AsyncSocket* socket) = 0;
 
@@ -42,6 +50,7 @@ protected:
   std::map<rtc::AsyncSocket*, std::string> _currentMsgs;
   std::map<int, RpcRequestResult> _currentRequests;
   std::map<std::string, RpcCallback> _callbacks;
+  std::map<std::string, RpcCallbackAsync> _callbacksAsync;
   int _currentId;
 
 };

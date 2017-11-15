@@ -70,8 +70,8 @@ faf-ice-adapter usage:
 --id arg                             set the ID of the local player
 --login arg                          set the login of the local player, e.g. "Rhiza"
 --rpc-port arg (=7236)               set the port of internal JSON-RPC server
---gpgnet-port arg (=7237)            set the port of internal GPGNet server
---lobby-port arg (=7238)             set the port the game lobby should use for incoming UDP packets from the PeerRelay
+--gpgnet-port arg (=0)            set the port of internal GPGNet server
+--lobby-port arg (=0)             set the port the game lobby should use for incoming UDP packets from the PeerRelay
 --log-directory arg                  set a log directory to write ice_adapter_0 log files
 ```
 

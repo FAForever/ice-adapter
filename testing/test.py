@@ -10,11 +10,11 @@ from PyQt5 import QtCore
 from JsonRpcTcpClient import JsonRpcTcpClient
 
 class RemoteClient:
-  def __init__(self, dispatcher, id, login, shouldHost):
+  def __init__(self, dispatcher, id, login, should_host):
     self.dispatcher = dispatcher
     self.id = id
     self.login = login
-    self.shouldHost = shouldHost
+    self.should_host = should_host
     self.gpgnetserver_port = 0
     self.ice_gamestate = ""
     self.iceStateTimer = QtCore.QTimer()
@@ -52,7 +52,7 @@ class RemoteClient:
     self.ice_gamestate = iceStatus["gpgnet"]["game_state"]
 
     if self.ice_gamestate == "Lobby":
-      if self.shouldHost:
+      if self.should_host:
         self.dispatcher.client.call("hostGame", [])
 
   def onGpgNetMsgFromIceAdapter(self, header, chunks):
@@ -106,7 +106,7 @@ app = QtCore.QCoreApplication(sys.argv)
 
 d = Dispatcher()
 
-timer = QtCore.QTimer
+#timer = QtCore.QTimer
 #timer.singleShot(10000, app.quit)
 
 app.exec_()

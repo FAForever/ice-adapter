@@ -1,5 +1,12 @@
 #include "JsonRpcServer.h"
 
+#if defined(WEBRTC_POSIX)
+#  include <sys/socket.h>
+#  include <netinet/in.h>
+#  include <netinet/tcp.h>
+#  include <webrtc/base/physicalsocketserver.h>
+#endif
+
 #include <webrtc/base/thread.h>
 
 #include "logging.h"
@@ -36,6 +43,20 @@ void JsonRpcServer::_onNewClient(rtc::AsyncSocket* socket)
 {
   rtc::SocketAddress accept_addr;
   auto newConnectedSocket = std::shared_ptr<rtc::AsyncSocket>(_server->Accept(&accept_addr));
+#if defined(WEBRTC_POSIX)
+  int fd = static_cast<rtc::SocketDispatcher*>(newConnectedSocket.get())->GetDescriptor();
+  if (fd)
+  {
+    int keepalive = 1;
+    int keepcnt = 1;
+    int keepidle = 3;
+    int keepintvl = 5;
+    setsockopt(fd, SOL_SOCKET, SO_KEEPALIVE, &keepalive, sizeof(keepalive));
+    setsockopt(fd, IPPROTO_TCP, TCP_KEEPIDLE, &keepidle, sizeof(keepidle));
+    setsockopt(fd, SOL_TCP, TCP_KEEPCNT, &keepcnt, sizeof(keepcnt));
+    setsockopt(fd, SOL_TCP, TCP_KEEPINTVL, &keepintvl, sizeof(keepintvl));
+  }
+#endif
   newConnectedSocket->SignalReadEvent.connect(this, &JsonRpcServer::_onRead);
   newConnectedSocket->SignalCloseEvent.connect(this, &JsonRpcServer::_onClientDisconnect);
   _connectedSockets.insert(std::make_pair(newConnectedSocket.get(), newConnectedSocket));

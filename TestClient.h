@@ -21,7 +21,7 @@ protected:
 
   void _rpcStartIceAdapter(Json::Value const& paramsArray, Json::Value & result, Json::Value & error, rtc::AsyncSocket* socket);
   void _rpcConnectToIceAdapter(Json::Value const& paramsArray, Json::Value & result, Json::Value & error, rtc::AsyncSocket* socket);
-  void _rpcSendToIceAdapter(Json::Value const& paramsArray, Json::Value & result, Json::Value & error, rtc::AsyncSocket* socket);
+  void _rpcSendToIceAdapter(Json::Value const& paramsArray, JsonRpc::ResponseCallback result, JsonRpc::ResponseCallback error, rtc::AsyncSocket* socket);
   void _rpcSendToGpgNet(Json::Value const& paramsArray, Json::Value & result, Json::Value & error, rtc::AsyncSocket* socket);
   void _rpcStatus(Json::Value const& paramsArray, Json::Value & result, Json::Value & error, rtc::AsyncSocket* socket);
   void _rpcConnectToGPGNet(Json::Value const& paramsArray, Json::Value & result, Json::Value & error, rtc::AsyncSocket* socket);

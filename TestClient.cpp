@@ -7,6 +7,7 @@
 #if defined(WEBRTC_WIN)
 #  include <winsock2.h>
 #  include <ws2tcpip.h>
+#  include <mstcpip.h>
 #elif defined(WEBRTC_POSIX)
 #  include <sys/socket.h>
 #  include <netinet/in.h>
@@ -25,7 +26,7 @@ TestClient::TestClient(std::string const& login):
 
   _controlConnection.setRpcCallback("startIceAdapter", std::bind(&TestClient::_rpcStartIceAdapter, this, _1, _2, _3, _4));
   _controlConnection.setRpcCallback("connectToIceAdapter", std::bind(&TestClient::_rpcConnectToIceAdapter, this, _1, _2, _3, _4));
-  _controlConnection.setRpcCallback("sendToIceAdapter", std::bind(&TestClient::_rpcSendToIceAdapter, this, _1, _2, _3, _4));
+  _controlConnection.setRpcCallbackAsync("sendToIceAdapter", std::bind(&TestClient::_rpcSendToIceAdapter, this, _1, _2, _3, _4));
   _controlConnection.setRpcCallback("sendToGpgNet", std::bind(&TestClient::_rpcSendToGpgNet, this, _1, _2, _3, _4));
   _controlConnection.setRpcCallback("status", std::bind(&TestClient::_rpcStatus, this, _1, _2, _3, _4));
   _controlConnection.setRpcCallback("connectToGPGNet", std::bind(&TestClient::_rpcConnectToGPGNet, this, _1, _2, _3, _4));
@@ -107,7 +108,7 @@ void TestClient::_onConnected(rtc::AsyncSocket* socket)
                  NULL,
                  NULL) == SOCKET_ERROR)
     {
-      qCritical() << "WSAIotcl(SIO_KEEPALIVE_VALS) failed: " << WSAGetLastError();
+      FAF_LOG_ERROR << "WSAIotcl(SIO_KEEPALIVE_VALS) failed: " << WSAGetLastError();
     }
 #elif defined(WEBRTC_POSIX)
     int keepalive = 1;
@@ -198,47 +199,27 @@ void TestClient::_rpcConnectToIceAdapter(Json::Value const& paramsArray, Json::V
   result = "ok";
 }
 
-void TestClient::_rpcSendToIceAdapter(Json::Value const& paramsArray, Json::Value & result, Json::Value & error, rtc::AsyncSocket* socket)
+void TestClient::_rpcSendToIceAdapter(Json::Value const& paramsArray, JsonRpc::ResponseCallback result, JsonRpc::ResponseCallback error, rtc::AsyncSocket* socket)
 {
   if (paramsArray.size() < 2)
   {
-    error = "Need 2 parameter: method (string), params (array)";
+    error("Need 2 parameter: method (string), params (array)");
     return;
   }
-  if (paramsArray[0].asString() == "iceMsg")
+  _iceAdapterConnection.sendRequest(paramsArray[0].asString(),
+                                    paramsArray[1],
+                                    nullptr, [result, error](Json::Value const& iceResult,
+                                                             Json::Value const& iceError)
   {
-    if (paramsArray[1].size() != 2)
+    if (!iceResult.isNull())
     {
-      error = "Need 2 parameters: peer (int), msg (object)";
-      return;
+      result(iceResult);
     }
-    _processIceMessage(paramsArray[1][0].asInt(),
-                       paramsArray[1][1]);
-  }
-  else
-  {
-    bool hasResult = false;
-    std::chrono::system_clock::time_point start = std::chrono::system_clock::now();
-    _iceAdapterConnection.sendRequest(paramsArray[0].asString(),
-                                      paramsArray[1],
-                                      nullptr, [&](Json::Value const& iceResult,
-                                                   Json::Value const& iceError)
+    else
     {
-      result = iceResult;
-      error = iceError;
-      hasResult = true;
-    });
-
-    while (!hasResult &&
-           std::chrono::duration_cast<std::chrono::milliseconds>(std::chrono::system_clock::now() - start).count() < 1000)
-    {
-      rtc::Thread::Current()->ProcessMessages(10);
+      error(iceError);
     }
-    if (!hasResult)
-    {
-      error = "ice-adapter timeout";
-    }
-  }
+  });
 }
 
 void TestClient::_rpcSendToGpgNet(Json::Value const& paramsArray, Json::Value & result, Json::Value & error, rtc::AsyncSocket* socket)

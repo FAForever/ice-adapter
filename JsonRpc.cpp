@@ -19,6 +19,12 @@ void JsonRpc::setRpcCallback(std::string const& method,
   _callbacks[method] = cb;
 }
 
+void JsonRpc::setRpcCallbackAsync(std::string const& method,
+                                  RpcCallbackAsync cb)
+{
+  _callbacksAsync[method] = cb;
+}
+
 void JsonRpc::sendRequest(std::string const& method,
                           Json::Value const& paramsArray,
                           rtc::AsyncSocket* socket,
@@ -147,15 +153,17 @@ void JsonRpc::_processJsonMessage(Json::Value const& jsonMessage, rtc::AsyncSock
   if (jsonMessage.isMember("method"))
   {
     /* this message is a request */
-    Json::Value response = _processRequest(jsonMessage, socket);
-
-    /* we don't need to respond to notifications */
-    if (jsonMessage.isMember("id"))
-    {
-      std::string responseString = Json::FastWriter().write(response);
-      //FAF_LOG_TRACE << "sending response:" << responseString;
-      _sendMessage(responseString, socket);
-    }
+    _processRequest(jsonMessage, [this, socket, jsonMessage](Json::Value response)
+        {
+          /* we don't need to respond to notifications */
+          if (jsonMessage.isMember("id"))
+          {
+            std::string responseString = Json::FastWriter().write(response);
+            //FAF_LOG_TRACE << "sending response:" << responseString;
+            _sendMessage(responseString, socket);
+          }
+        },
+        socket);
   }
   else if (jsonMessage.isMember("error") ||
            jsonMessage.isMember("result"))
@@ -184,7 +192,7 @@ void JsonRpc::_processJsonMessage(Json::Value const& jsonMessage, rtc::AsyncSock
   }
 }
 
-Json::Value JsonRpc::_processRequest(Json::Value const& request, rtc::AsyncSocket* socket)
+void JsonRpc::_processRequest(Json::Value const& request, ResponseCallback responseCallback, rtc::AsyncSocket* socket)
 {
   Json::Value response;
   response["jsonrpc"] = "2.0";
@@ -197,13 +205,15 @@ Json::Value JsonRpc::_processRequest(Json::Value const& request, rtc::AsyncSocke
   {
     response["error"]["code"] = -1;
     response["error"]["message"] = "missing 'method' parameter";
-    return response;
+    responseCallback(response);
+    return;
   }
   if (!request["method"].isString())
   {
     response["error"]["code"] = -1;
     response["error"]["message"] = "'method' parameter must be a string";
-    return response;
+    responseCallback(response);
+    return;
   }
 
   //FAF_LOG_TRACE << "dispatching JSRONRPC method '" << request["method"].asString() << "'";
@@ -215,15 +225,30 @@ Json::Value JsonRpc::_processRequest(Json::Value const& request, rtc::AsyncSocke
     params = request["params"];
   }
 
-  Json::Value result;
-  Json::Value error;
-
   auto it = _callbacks.find(request["method"].asString());
   if (it != _callbacks.end())
   {
     try
     {
+      Json::Value result;
+      Json::Value error;
       it->second(params, result, error, socket);
+
+      /* TODO: Better check for valid error/result combination */
+      if (!result.isNull())
+      {
+        response["result"] = result;
+      }
+      else if (!error.isNull())
+      {
+        response["error"] = error;
+      }
+      else
+      {
+        response["error"] = "invalid response";
+      }
+      responseCallback(response);
+      return;
     }
     catch (std::exception& e)
     {
@@ -232,21 +257,38 @@ Json::Value JsonRpc::_processRequest(Json::Value const& request, rtc::AsyncSocke
   }
   else
   {
-    FAF_LOG_ERROR << "RPC callback for method '" << request["method"].asString() << "' not found";
-    error = std::string("RPC callback for method '") + request["method"].asString() + "' not found";
+    auto itAsync = _callbacksAsync.find(request["method"].asString());
+    if (itAsync != _callbacksAsync.end())
+    {
+      try
+      {
+        itAsync->second(params,
+          [response, responseCallback](Json::Value result)
+          {
+            Json::Value r(response);
+            r["result"] = result;
+            responseCallback(r);
+          },
+          [response, responseCallback](Json::Value error)
+          {
+            Json::Value r(response);
+            r["error"] = error;
+            responseCallback(r);
+          },
+          socket);
+      }
+      catch (std::exception& e)
+      {
+        FAF_LOG_ERROR << "exception in callback for method '" << request["method"].asString() << "': " << e.what();
+      }
+    }
+    else
+    {
+      FAF_LOG_ERROR << "RPC callback for method '" << request["method"].asString() << "' not found";
+      response["error"] = std::string("RPC callback for method '") + request["method"].asString() + "' not found";;
+      responseCallback(response);
+    }
   }
-
-  /* TODO: Better check for valid error/result combination */
-  if (!result.isNull())
-  {
-    response["result"] = result;
-  }
-  else
-  {
-    response["error"] = error;
-  }
-
-  return response;
 }
 
 std::string trim_whitespace(std::string const& in)

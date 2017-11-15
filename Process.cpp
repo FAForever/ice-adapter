@@ -4,6 +4,7 @@
 #include <cstdio>
 #include <iostream>
 #include <string>
+#include <array>
 
 #include "logging.h"
 
@@ -27,7 +28,11 @@ void Process::open(std::string const& executable,
     exeAndArgs += " 2>&1";
     _procThread.reset(new std::thread([this, exeAndArgs]()
     {
+#if defined(WEBRTC_WIN)
+      auto procPipe = _popen(exeAndArgs.c_str(), "r");
+#elif defined(WEBRTC_POSIX)
       auto procPipe = popen(exeAndArgs.c_str(), "r");
+#endif
       std::array<char, 4096> buffer;
       while (fgets(buffer.data(), 4096, procPipe) != nullptr)
       {

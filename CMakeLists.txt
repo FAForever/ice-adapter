@@ -1,7 +1,7 @@
 cmake_minimum_required(VERSION 3.0)
 
 project(faf-ice-adapter
-  LANGUAGES CXX C
+  LANGUAGES CXX
   )
 
 set(CMAKE_CXX_STANDARD 17)
@@ -28,6 +28,7 @@ add_custom_target(docs
   README.md
   LICENSE
   appveyor.yml
+  CHANGELOG.md
   )
 
 add_library(fafice
@@ -89,14 +90,9 @@ target_link_libraries(faf-ice-testserver
   fafice
 )
 
-if(NOT WIN32)
-  set(testclient_srcs ProcessLinux.cpp)
-else()
-  set(testclient_srcs ProcessWin32.cpp)
-endif()
-
 add_executable(faf-ice-testclient
   TestClient.cpp
+  Process.cpp
   ${testclient_srcs}
   )
 

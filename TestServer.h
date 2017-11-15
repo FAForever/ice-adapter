@@ -24,7 +24,7 @@ protected:
   void _rpcLogin(Json::Value const& paramsArray, Json::Value & result, Json::Value & error, rtc::AsyncSocket* socket);
   void _rpcReconnect(Json::Value const& paramsArray, Json::Value & result, Json::Value & error, rtc::AsyncSocket* socket);
   void _rpcMaster(Json::Value const& paramsArray, Json::Value & result, Json::Value & error, rtc::AsyncSocket* socket);
-  void _rpcSendToPlayer(Json::Value const& paramsArray, Json::Value & result, Json::Value & error, rtc::AsyncSocket* socket);
+  void _rpcSendToPlayer(Json::Value const& paramsArray, JsonRpc::ResponseCallback, JsonRpc::ResponseCallback, rtc::AsyncSocket* socket);
   void _rpcHostGame(Json::Value const& paramsArray, Json::Value & result, Json::Value & error, rtc::AsyncSocket* socket);
   void _rpcLeaveGame(Json::Value const& paramsArray, Json::Value & result, Json::Value & error, rtc::AsyncSocket* socket);
   void _rpcJoinGame(Json::Value const& paramsArray, Json::Value & result, Json::Value & error, rtc::AsyncSocket* socket);
