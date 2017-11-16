@@ -2,7 +2,7 @@
 
 #include <string>
 
-#include <webrtc/base/logging.h>
+#include <webrtc/rtc_base/logging.h>
 
 namespace faf
 {

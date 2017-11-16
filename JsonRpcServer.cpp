@@ -4,10 +4,10 @@
 #  include <sys/socket.h>
 #  include <netinet/in.h>
 #  include <netinet/tcp.h>
-#  include <webrtc/base/physicalsocketserver.h>
+#  include <webrtc/rtc_base/physicalsocketserver.h>
 #endif
 
-#include <webrtc/base/thread.h>
+#include <webrtc/rtc_base/thread.h>
 
 #include "logging.h"
 

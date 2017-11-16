@@ -2,10 +2,10 @@
 
 #include <iostream>
 
-#include <webrtc/base/ssladapter.h>
+#include <webrtc/rtc_base/ssladapter.h>
 #include <webrtc/pc/test/fakeaudiocapturemodule.h>
-#include <webrtc/base/logging.h>
-#include <webrtc/base/thread.h>
+//#include <webrtc/rtc_base/logging.h>
+#include <webrtc/rtc_base/thread.h>
 #include <webrtc/api/mediaconstraintsinterface.h>
 #include <webrtc/api/test/fakeconstraints.h>
 #include <third_party/json/json.h>

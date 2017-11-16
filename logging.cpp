@@ -4,8 +4,8 @@
 #include <string>
 #include <experimental/filesystem>
 
-#include "webrtc/base/logging.h"
-#include "webrtc/base/logsinks.h"
+#include "webrtc/rtc_base/logging.h"
+#include "webrtc/rtc_base/logsinks.h"
 
 #if (defined(__GNUC__) && !defined(__MINGW32__))
 #include <stdio.h>

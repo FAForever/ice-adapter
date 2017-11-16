@@ -2,8 +2,8 @@
 
 #include <functional>
 
-#include <webrtc/base/sigslot.h>
-#include <webrtc/base/messagehandler.h>
+#include <webrtc/rtc_base/sigslot.h>
+#include <webrtc/rtc_base/messagehandler.h>
 
 namespace faf {
 

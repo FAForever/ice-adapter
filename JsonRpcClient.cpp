@@ -1,7 +1,7 @@
 #include "JsonRpcClient.h"
 
-#include <webrtc/base/thread.h>
-#include <webrtc/base/physicalsocketserver.h>
+#include <webrtc/rtc_base/thread.h>
+#include <webrtc/rtc_base/physicalsocketserver.h>
 
 #include "logging.h"
 

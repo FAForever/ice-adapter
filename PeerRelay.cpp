@@ -1,6 +1,6 @@
 #include "PeerRelay.h"
 
-#include <webrtc/base/bind.h>
+#include <webrtc/rtc_base/bind.h>
 
 #include "logging.h"
 #include "PeerRelayObservers.h"
