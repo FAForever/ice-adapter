@@ -38,6 +38,7 @@ SOCKET JsonRpcClient::GetDescriptor()
   {
     return d->GetSocket();
   }
+  return 0;
 }
 #elif defined(WEBRTC_POSIX)
 int JsonRpcClient::GetDescriptor()
@@ -47,6 +48,7 @@ int JsonRpcClient::GetDescriptor()
   {
     return d->GetDescriptor();
   }
+  return 0;
 }
 #endif
 
