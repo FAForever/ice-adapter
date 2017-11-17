@@ -12,7 +12,7 @@ install:
   - cmake -G "NMake Makefiles" -DWEBRTC_INCLUDE_DIRS="%APPVEYOR_BUILD_FOLDER%/webrtcbuild/include" -DWEBRTC_LIBRARIES="%APPVEYOR_BUILD_FOLDER%/webrtcbuild/lib/libwebrtc.lib" -DCMAKE_BUILD_TYPE=Release ..
   - nmake
   - "\"C:\\Program Files\\7-Zip\\7z.exe\" a ..\\faf-ice-adapter-win32.zip faf-ice-adapter.exe"
-  - "\"C:\\Program Files\\7-Zip\\7z.exe\" a ..\\faf-ice-testclient-win32.zip faf-ice-testclient.exe"
+  - "\"C:\\Program Files\\7-Zip\\7z.exe\" a ..\\faf-ice-testclient-win32.zip faf-ice-testclient.exe faf-ice-adapter.exe"
   - "\"C:\\Program Files\\7-Zip\\7z.exe\" a ..\\faf-ice-testserver-win32.zip faf-ice-testserver.exe"
 
 artifacts:
