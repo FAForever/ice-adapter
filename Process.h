@@ -18,6 +18,8 @@ public:
   void open(std::string const& executable,
             std::vector<std::string> arguments);
 
+  void close();
+
   bool isOpen() const;
 
   std::vector<std::string> checkOutput();

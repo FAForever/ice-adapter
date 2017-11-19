@@ -20,6 +20,10 @@ void Timer::start(int intervalMs, std::function<void()> callback)
     _callback = callback;
     rtc::Thread::Current()->PostDelayed(RTC_FROM_HERE, _interval, this);
   }
+  else
+  {
+    FAF_LOG_ERROR << "error starting timer";
+  }
 }
 
 void Timer::stop()

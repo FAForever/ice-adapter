@@ -43,6 +43,12 @@ void Process::open(std::string const& executable,
   }
 }
 
+void Process::close()
+{
+  _procThread.reset();
+  _outputBuffer.clear();
+}
+
 bool Process::isOpen() const
 {
   return static_cast<bool>(_procThread);

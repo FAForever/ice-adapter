@@ -30,11 +30,13 @@ TestClient::TestClient(std::string const& login):
   _controlConnection.setRpcCallback("sendToGpgNet", std::bind(&TestClient::_rpcSendToGpgNet, this, _1, _2, _3, _4));
   _controlConnection.setRpcCallback("status", std::bind(&TestClient::_rpcStatus, this, _1, _2, _3, _4));
   _controlConnection.setRpcCallback("connectToGPGNet", std::bind(&TestClient::_rpcConnectToGPGNet, this, _1, _2, _3, _4));
+  _controlConnection.setRpcCallback("quit", std::bind(&TestClient::_rpcQuit, this, _1, _2, _3, _4));
+  _controlConnection.setRpcCallback("reinit", [&](Json::Value const&, Json::Value & result, Json::Value &, rtc::AsyncSocket*){_reinit(); result = "ok";});
 
   _controlConnection.SignalConnected.connect(this, &TestClient::_onConnected);
   _controlConnection.SignalDisconnected.connect(this, &TestClient::_onDisconnected);
 
-  auto sendIceEventToClient = [&](std::string const& eventName, Json::Value const& paramsArray, Json::Value & result, Json::Value & error, rtc::AsyncSocket* socket)
+  auto sendIceEventToClient = [&](std::string const& eventName, Json::Value const& paramsArray, Json::Value &, Json::Value &, rtc::AsyncSocket*)
   {
     if (_controlConnection.isConnected())
     {
@@ -45,11 +47,11 @@ TestClient::TestClient(std::string const& login):
       _controlConnection.sendRequest("onMasterEvent", params);
     }
   };
-  _iceAdapterConnection.setRpcCallback("onConnectionStateChanged", std::bind(sendIceEventToClient, "onConnectionStateChanged", _1, _2, _3, _4));
-  _iceAdapterConnection.setRpcCallback("onGpgNetMessageReceived", std::bind(sendIceEventToClient, "onGpgNetMessageReceived", _1, _2, _3, _4));
-  _iceAdapterConnection.setRpcCallback("onIceMsg", std::bind(sendIceEventToClient, "onIceMsg", _1, _2, _3, _4));
-  _iceAdapterConnection.setRpcCallback("onIceConnectionStateChanged", std::bind(sendIceEventToClient, "onIceConnectionStateChanged", _1, _2, _3, _4));
-  _iceAdapterConnection.setRpcCallback("onConnected", std::bind(sendIceEventToClient, "onConnected", _1, _2, _3, _4));
+  _iceAdapterConnection.setRpcCallback("onConnectionStateChanged", std::bind(sendIceEventToClient, "OnConnectionStateChanged", _1, _2, _3, _4));
+  _iceAdapterConnection.setRpcCallback("onGpgNetMessageReceived", std::bind(sendIceEventToClient, "OnGpgNetMessageReceived", _1, _2, _3, _4));
+  _iceAdapterConnection.setRpcCallback("onIceMsg", std::bind(sendIceEventToClient, "OnIceMsg", _1, _2, _3, _4));
+  _iceAdapterConnection.setRpcCallback("onIceConnectionStateChanged", std::bind(sendIceEventToClient, "OnIceConnectionStateChanged", _1, _2, _3, _4));
+  _iceAdapterConnection.setRpcCallback("onConnected", std::bind(sendIceEventToClient, "OnConnected", _1, _2, _3, _4));
 
   _iceAdapaterOutputCheckTimer.start(100, std::bind(&TestClient::_onCheckIceAdapterOutput, this));
   _reconnectTimer.start(1000, std::bind(&TestClient::_onCheckConnection, this));
@@ -84,6 +86,19 @@ TestClient::TestClient(std::string const& login):
     _iceAdapterPort = serverSocket->GetLocalAddress().port();
     delete serverSocket;
   }
+}
+
+void TestClient::_reinit()
+{
+  if (_iceAdapterConnection.isConnected())
+  {
+    _iceAdapterConnection.sendRequest("quit");
+  }
+  _iceAdapterConnection.disconnect();
+  _login = "";
+  _id = -1;
+  _iceAdapterProcess.close();
+  _gpgNetClient.disconnect();
 }
 
 void TestClient::_onConnected(rtc::AsyncSocket* socket)
@@ -256,6 +271,16 @@ void TestClient::_rpcConnectToGPGNet(Json::Value const& paramsArray, Json::Value
     return;
   }
   _gpgNetClient.connect("localhost", paramsArray[0].asInt());
+  result = "ok";
+}
+
+void TestClient::_rpcQuit(Json::Value const& paramsArray, Json::Value & result, Json::Value & error, rtc::AsyncSocket* socket)
+{
+  if (_iceAdapterConnection.isConnected())
+  {
+    _iceAdapterConnection.sendRequest("quit");
+  }
+  rtc::Thread::Current()->Quit();
   result = "ok";
 }
 

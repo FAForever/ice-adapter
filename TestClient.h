@@ -16,6 +16,8 @@ public:
   TestClient(std::string const& login);
 
 protected:
+  void _reinit();
+
   void _onConnected(rtc::AsyncSocket*);
   void _onDisconnected(rtc::AsyncSocket*);
 
@@ -25,6 +27,7 @@ protected:
   void _rpcSendToGpgNet(Json::Value const& paramsArray, Json::Value & result, Json::Value & error, rtc::AsyncSocket* socket);
   void _rpcStatus(Json::Value const& paramsArray, Json::Value & result, Json::Value & error, rtc::AsyncSocket* socket);
   void _rpcConnectToGPGNet(Json::Value const& paramsArray, Json::Value & result, Json::Value & error, rtc::AsyncSocket* socket);
+  void _rpcQuit(Json::Value const& paramsArray, Json::Value & result, Json::Value & error, rtc::AsyncSocket* socket);
 
   void _onCheckConnection();
   void _onCheckIceAdapterOutput();
