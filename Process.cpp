@@ -17,9 +17,11 @@ Process::Process()
 void Process::open(std::string const& executable,
                     std::vector<std::string> arguments)
 {
+  close();
   if (!_procThread)
   {
     std::string exeAndArgs = executable;
+    _exit = false;
     for(auto arg: arguments)
     {
       exeAndArgs += " ";
@@ -38,6 +40,10 @@ void Process::open(std::string const& executable,
       {
         std::unique_lock<std::shared_mutex> lock(_outputBufferLock);
         _outputBuffer.push_back(std::string(buffer.data()));
+        if (_exit)
+        {
+          return;
+        }
       }
     }));
   }
@@ -45,6 +51,14 @@ void Process::open(std::string const& executable,
 
 void Process::close()
 {
+  if (_procThread)
+  {
+    {
+      std::unique_lock<std::shared_mutex> lock(_outputBufferLock);
+      _exit = true;
+    }
+    _procThread->join();
+  }
   _procThread.reset();
   _outputBuffer.clear();
 }

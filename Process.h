@@ -28,6 +28,7 @@ protected:
   std::unique_ptr<std::thread> _procThread;
   std::vector<std::string> _outputBuffer;
   mutable std::shared_mutex _outputBufferLock;
+  bool _exit;
 };
 
 } // namespace faf
