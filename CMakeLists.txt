@@ -53,7 +53,7 @@ target_link_libraries(fafice
 
 if(NOT WIN32)
   target_compile_definitions(fafice PUBLIC WEBRTC_LINUX WEBRTC_POSIX WEBRTC_BUILD_LIBEVENT)
-  set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -D_GLIBCXX_USE_CXX11_ABI=0 -std=c++17 -pthread")
+  set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -pthread")
   target_link_libraries(fafice
     dl
     SM
