@@ -7,27 +7,31 @@
 
 namespace faf {
 
-JsonRpcClient::JsonRpcClient():
-  _socket(rtc::Thread::Current()->socketserver()->CreateAsyncSocket(SOCK_STREAM))
+JsonRpcClient::JsonRpcClient()
 {
-  _socket->SignalConnectEvent.connect(this, &JsonRpcClient::_onConnected);
-  _socket->SignalReadEvent.connect(this, &JsonRpcClient::_onRead);
-  _socket->SignalCloseEvent.connect(this, &JsonRpcClient::_onDisconnected);
 }
 
 void JsonRpcClient::connect(std::string const& host, int port)
 {
+  _socket.reset(rtc::Thread::Current()->socketserver()->CreateAsyncSocket(SOCK_STREAM));
+  _socket->SignalConnectEvent.connect(this, &JsonRpcClient::_onConnected);
+  _socket->SignalReadEvent.connect(this, &JsonRpcClient::_onRead);
+  _socket->SignalCloseEvent.connect(this, &JsonRpcClient::_onDisconnected);
   _socket->Connect(rtc::SocketAddress(host, port));
 }
 
 void JsonRpcClient::disconnect()
 {
-  _socket->Close();
+  if (_socket)
+  {
+    _socket->Close();
+  }
+  _socket.reset(nullptr);
 }
 
 bool JsonRpcClient::isConnected() const
 {
-  return _socket->GetState() == rtc::AsyncSocket::CS_CONNECTED;
+  return _socket && _socket->GetState() == rtc::AsyncSocket::CS_CONNECTED;
 }
 
 #if defined(WEBRTC_WIN)
@@ -43,6 +47,10 @@ SOCKET JsonRpcClient::GetDescriptor()
 #elif defined(WEBRTC_POSIX)
 int JsonRpcClient::GetDescriptor()
 {
+  if (!_socket)
+  {
+    return 0;
+  }
   auto d =static_cast<rtc::SocketDispatcher*>(_socket.get());
   if (d)
   {
@@ -54,6 +62,10 @@ int JsonRpcClient::GetDescriptor()
 
 bool JsonRpcClient::_sendMessage(std::string const& message, rtc::AsyncSocket* socket)
 {
+  if (!_socket)
+  {
+    return false;
+  }
   if (socket &&
       socket != _socket.get())
   {

@@ -6,27 +6,31 @@
 
 namespace faf {
 
-GPGNetClient::GPGNetClient():
-  _socket(rtc::Thread::Current()->socketserver()->CreateAsyncSocket(SOCK_STREAM))
+GPGNetClient::GPGNetClient()
 {
-  _socket->SignalConnectEvent.connect(this, &GPGNetClient::_onConnected);
-  _socket->SignalReadEvent.connect(this, &GPGNetClient::_onRead);
-  _socket->SignalCloseEvent.connect(this, &GPGNetClient::_onDisconnected);
 }
 
 void GPGNetClient::connect(std::string const& host, int port)
 {
+  _socket.reset(rtc::Thread::Current()->socketserver()->CreateAsyncSocket(SOCK_STREAM));
+  _socket->SignalConnectEvent.connect(this, &GPGNetClient::_onConnected);
+  _socket->SignalReadEvent.connect(this, &GPGNetClient::_onRead);
+  _socket->SignalCloseEvent.connect(this, &GPGNetClient::_onDisconnected);
   _socket->Connect(rtc::SocketAddress(host, port));
 }
 
 void GPGNetClient::disconnect()
 {
-  _socket->Close();
+  if (_socket)
+  {
+    _socket->Close();
+  }
+  _socket.reset(nullptr);
 }
 
 bool GPGNetClient::isConnected() const
 {
-  return _socket->GetState() == rtc::AsyncSocket::CS_CONNECTED;
+  return _socket && _socket->GetState() == rtc::AsyncSocket::CS_CONNECTED;
 }
 
 void GPGNetClient::setCallback(Callback cb)
@@ -36,8 +40,11 @@ void GPGNetClient::setCallback(Callback cb)
 
 void GPGNetClient::sendMessage(GPGNetMessage const& msg)
 {
-  auto msgBytes = msg.toBinary();
-  _socket->Send(msgBytes.c_str(), msgBytes.size());
+  if (_socket)
+  {
+    auto msgBytes = msg.toBinary();
+    _socket->Send(msgBytes.c_str(), msgBytes.size());
+  }
 }
 
 void GPGNetClient::_onConnected(rtc::AsyncSocket* socket)
