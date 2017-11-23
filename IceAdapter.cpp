@@ -546,6 +546,13 @@ std::shared_ptr<PeerRelay> IceAdapter::_createPeerRelay(int remotePlayerId,
                   << "(" << remotePlayerId << "). Call setIceServers in advance from client. See https://developer.mozilla.org/en-US/docs/Web/API/RTCConfiguration";
   }
 
+  auto existingRelay = _relays.find(remotePlayerId);
+  if (existingRelay != _relays.end())
+  {
+    FAF_LOG_WARN << "PeerRelay for remote player " << remotePlayerLogin << "(" << remotePlayerId << ") already exists! Skipping instantiation of new PeerRelay.";
+    return existingRelay->second;
+  }
+
   auto relay = std::make_shared<PeerRelay>(remotePlayerId,
                                            remotePlayerLogin,
                                            createOffer,
