@@ -53,6 +53,8 @@ protected:
 
   /* sockets which are allowed to use the "sendCommandToPlayer" command and get the ice-adapter output */
   std::set<rtc::AsyncSocket*> _masterSockets;
+
+  RTC_DISALLOW_COPY_AND_ASSIGN(TestServer);
 };
 
 } // namespace faf

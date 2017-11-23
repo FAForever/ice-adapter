@@ -34,6 +34,8 @@ protected:
   void _onDisconnected(rtc::AsyncSocket* socket, int);
 
   std::unique_ptr<rtc::AsyncSocket> _socket;
+
+  RTC_DISALLOW_COPY_AND_ASSIGN(JsonRpcClient);
 };
 
 } // namespace faf

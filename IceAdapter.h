@@ -118,6 +118,8 @@ protected:
   std::string _gametaskString;
   webrtc::PeerConnectionInterface::IceServers _iceServers;
   std::string _lobbyInitMode;
+
+  RTC_DISALLOW_COPY_AND_ASSIGN(IceAdapter);
 };
 
 } // namespace faf

@@ -44,6 +44,8 @@ protected:
   GPGNetClient _gpgNetClient;
   Timer _iceAdapaterOutputCheckTimer;
   Timer _reconnectTimer;
+
+  RTC_DISALLOW_COPY_AND_ASSIGN(TestClient);
 };
 
 } // namespace faf

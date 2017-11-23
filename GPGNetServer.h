@@ -64,6 +64,8 @@ protected:
   std::unique_ptr<rtc::AsyncSocket> _connectedSocket;
   std::array<char, 2048> _readBuffer;
   std::string _currentMsg;
+
+  RTC_DISALLOW_COPY_AND_ASSIGN(GPGNetServer);
 };
 
 } // namespace faf

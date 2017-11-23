@@ -18,6 +18,8 @@ protected:
   virtual void OnMessage(rtc::Message* msg) override;
   int _interval;
   std::function<void()> _callback;
+
+  RTC_DISALLOW_COPY_AND_ASSIGN(Timer);
 };
 
 } // namespace faf

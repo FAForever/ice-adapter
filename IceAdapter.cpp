@@ -467,14 +467,14 @@ void IceAdapter::_tryExecuteGameTasks()
           if (task.task == IceAdapterGameTask::JoinGame)
           {
             _gpgnetServer.sendJoinGame(std::string("127.0.0.1:") + std::to_string(relayIt->second->localUdpSocketPort()),
-                                             task.remoteLogin,
-                                             task.remoteId);
+                                       task.remoteLogin,
+                                       task.remoteId);
           }
           else
           {
             _gpgnetServer.sendConnectToPeer(std::string("127.0.0.1:") + std::to_string(relayIt->second->localUdpSocketPort()),
-                                             task.remoteLogin,
-                                             task.remoteId);
+                                            task.remoteLogin,
+                                            task.remoteId);
           }
         }
         break;

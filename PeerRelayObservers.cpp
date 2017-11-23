@@ -16,7 +16,7 @@ void CreateOfferObserver::OnSuccess(webrtc::SessionDescriptionInterface *sdp)
   {
     _relay->_localSdp = sdp;
     _relay->_peerConnection->SetLocalDescription(_relay->_setLocalDescriptionObserver,
-                                             sdp);
+                                                 sdp);
   }
 }
 
@@ -32,7 +32,7 @@ void CreateAnswerObserver::OnSuccess(webrtc::SessionDescriptionInterface *sdp)
   {
     _relay->_localSdp = sdp;
     _relay->_peerConnection->SetLocalDescription(_relay->_setLocalDescriptionObserver,
-                                             sdp);
+                                                 sdp);
   }
 }
 

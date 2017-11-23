@@ -25,6 +25,8 @@ protected:
 
   std::unique_ptr<rtc::AsyncSocket> _server;
   std::map<rtc::AsyncSocket*, std::shared_ptr<rtc::AsyncSocket>> _connectedSockets;
+
+  RTC_DISALLOW_COPY_AND_ASSIGN(JsonRpcServer);
 };
 
 } // namespace faf

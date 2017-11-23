@@ -35,6 +35,8 @@ protected:
   std::unique_ptr<rtc::AsyncSocket> _socket;
   Callback _cb;
   std::string _messageBuffer;
+
+  RTC_DISALLOW_COPY_AND_ASSIGN(GPGNetClient);
 };
 
 } // namespace faf

@@ -45,28 +45,6 @@ public:
 void logging_init(std::string const& verbosity)
 {
   static ::faf::LogSink ls;
-  /*
-  if (verbosity == "error")
-  {
-    rtc::LogMessage::LogToDebug(rtc::LS_ERROR);
-  }
-  else if (verbosity == "warn")
-  {
-    rtc::LogMessage::LogToDebug(rtc::LS_WARNING);
-  }
-  else if (verbosity == "info")
-  {
-    rtc::LogMessage::LogToDebug(rtc::LS_INFO);
-  }
-  else if (verbosity == "verbose")
-  {
-    rtc::LogMessage::LogToDebug(rtc::LS_VERBOSE);
-  }
-  else if (verbosity == "debug")
-  {
-    rtc::LogMessage::LogToDebug(rtc::LS_SENSITIVE);
-  }
-  */
   if (verbosity == "error")
   {
     rtc::LogMessage::AddLogToStream(&ls, rtc::LS_ERROR);
