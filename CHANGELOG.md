@@ -2,6 +2,7 @@ v6.1.0
 ======
 
 - fix accidentially running multiple threads
+- fix automatic lobby port
 - create new faf-ice-testclient executable to allow unattended testing
 
 v6.0.0
