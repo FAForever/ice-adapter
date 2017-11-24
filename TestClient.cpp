@@ -31,6 +31,8 @@ TestClient::TestClient(std::string const& login):
   _controlConnection.setRpcCallback("status", std::bind(&TestClient::_rpcStatus, this, _1, _2, _3, _4));
   _controlConnection.setRpcCallback("connectToGPGNet", std::bind(&TestClient::_rpcConnectToGPGNet, this, _1, _2, _3, _4));
   _controlConnection.setRpcCallback("quit", std::bind(&TestClient::_rpcQuit, this, _1, _2, _3, _4));
+  _controlConnection.setRpcCallback("bindGameLobbySocket", std::bind(&TestClient::_rpcBindGameLobbySocket, this, _1, _2, _3, _4));
+  _controlConnection.setRpcCallback("pingTracker", std::bind(&TestClient::_rpcPingTracker, this, _1, _2, _3, _4));
   _controlConnection.setRpcCallback("reinit", [&](Json::Value const&, Json::Value & result, Json::Value &, rtc::AsyncSocket*){_reinit(); result = "ok";});
 
   _controlConnection.SignalConnected.connect(this, &TestClient::_onConnected);
@@ -74,6 +76,18 @@ TestClient::TestClient(std::string const& login):
     }
   });
 
+  _reinit();
+}
+
+void TestClient::_reinit()
+{
+  if (_iceAdapterConnection.isConnected())
+  {
+    _iceAdapterConnection.sendRequest("quit");
+  }
+  _iceAdapterConnection.disconnect();
+  _iceAdapterProcess.close();
+  _gpgNetClient.disconnect();
   /* detect unused tcp server port for the ice-adapter */
   {
     auto serverSocket = rtc::Thread::Current()->socketserver()->CreateAsyncSocket(SOCK_STREAM);
@@ -86,19 +100,7 @@ TestClient::TestClient(std::string const& login):
     _iceAdapterPort = serverSocket->GetLocalAddress().port();
     delete serverSocket;
   }
-}
-
-void TestClient::_reinit()
-{
-  if (_iceAdapterConnection.isConnected())
-  {
-    _iceAdapterConnection.sendRequest("quit");
-  }
-  _iceAdapterConnection.disconnect();
-  _login = "";
-  _id = -1;
-  _iceAdapterProcess.close();
-  _gpgNetClient.disconnect();
+  _peerIdPingtrackers.clear();
 }
 
 void TestClient::_onConnected(rtc::AsyncSocket* socket)
@@ -152,7 +154,7 @@ void TestClient::_onConnected(rtc::AsyncSocket* socket)
       {
         _games.push_back(result["games"][*it].asInt());
       }
-      FAF_LOG_INFO << "connected";
+      FAF_LOG_INFO << "connected as \"" << _login << "\" id " << _id;
     });
   }
   else
@@ -197,7 +199,7 @@ void TestClient::_rpcStartIceAdapter(Json::Value const& paramsArray, Json::Value
                                    "--id", std::to_string(_id),
                                    "--rpc-port", std::to_string(_iceAdapterPort),
                                    "--gpgnet-port", "0",
-                                   "--lobby-port", "0",
+                                   "--lobby-port", "0", /* the ice adapter should come up with a lobby UDP port and sends it back in CreateLobby */
                                    "--log-level" , "debug"};
   for (Json::Value const& arg: paramsArray[0])
   {
@@ -259,7 +261,29 @@ void TestClient::_rpcStatus(Json::Value const& paramsArray, Json::Value & result
   result["ice_adapter_port"] = _iceAdapterPort;
   result["ice_adapter_connected"] = _iceAdapterConnection.isConnected();
   result["gpgnet_connected"] = _gpgNetClient.isConnected();
+  if (_gameLobbyUdpSocket)
+  {
+    result["game_lobby_udp_port"] = _gameLobbyUdpSocket->GetLocalAddress().port();
+  }
+  else
+  {
+    result["game_lobby_udp_port"] = 0;
+  }
   result["login"] = _login;
+
+  Json::Value pingTrackers(Json::arrayValue);
+  for(auto it = _peerIdPingtrackers.begin(), end = _peerIdPingtrackers.end(); it != end; ++it)
+  {
+    Json::Value trackerValue;
+    trackerValue["pending"] = it->second->pendingPings();
+    trackerValue["lost"] = it->second->lostPings();
+    trackerValue["success"] = it->second->successfulPings();
+    trackerValue["ping"] = it->second->currentPing();
+    trackerValue["remote_id"] = it->first;
+    pingTrackers.append(trackerValue);
+  }
+  result["ping_trackers"] = pingTrackers;
+
   result["id"] = _id;
 }
 
@@ -281,6 +305,63 @@ void TestClient::_rpcQuit(Json::Value const& paramsArray, Json::Value & result, 
     _iceAdapterConnection.sendRequest("quit");
   }
   rtc::Thread::Current()->Quit();
+  result = "ok";
+}
+
+void TestClient::_rpcBindGameLobbySocket(Json::Value const& paramsArray, Json::Value & result, Json::Value & error, rtc::AsyncSocket* socket)
+{
+  if (paramsArray.size() < 1)
+  {
+    error = "Need 1 parameter: port (int)";
+    return;
+  }
+  int port = paramsArray[0].asInt();
+  _gameLobbyUdpSocket.reset(rtc::Thread::Current()->socketserver()->CreateAsyncSocket(AF_INET, SOCK_DGRAM));
+  if (_gameLobbyUdpSocket->Bind(rtc::SocketAddress("127.0.0.1", port)) != 0)
+  {
+    FAF_LOG_ERROR << "unable to bind game lobby udp server socket to port " << port;
+    error =  "unable to bind game lobby udp server socket";
+    _gameLobbyUdpSocket.reset();
+  }
+  else
+  {
+    _gameLobbyUdpSocket->SignalReadEvent.connect(this, &TestClient::_onPeerData);
+    FAF_LOG_INFO << "started local game lobby UDP server on port " << port;
+    result = "ok";
+  }
+}
+
+void TestClient::_rpcPingTracker(Json::Value const& paramsArray, Json::Value & result, Json::Value & error, rtc::AsyncSocket* socket)
+{
+  if (paramsArray.size() < 2)
+  {
+    error = "Need 2 parameter: relayAddress (string), remoteId (int)";
+    return;
+  }
+  auto relayAddress = paramsArray[0].asString();
+  int remoteId = paramsArray[1].asInt();
+  if (_peerIdPingtrackers.count(remoteId) > 0)
+  {
+    error = "pingTracker for remote peer already created";
+    return;
+  }
+  if (!_gameLobbyUdpSocket)
+  {
+    error = "can't start pingtracker without game lobby UDP socket. Call bindGameLobbySocket first.";
+    return;
+  }
+  FAF_LOG_INFO << "starting ping tracker for peer " << remoteId << " on address " << relayAddress;
+
+  std::stringstream relayAddressStream(relayAddress);
+  std::string relayHost, relayPort;
+  std::getline(relayAddressStream, relayHost, ':');
+  std::getline(relayAddressStream, relayPort, ':');
+
+  _peerIdPingtrackers[remoteId] = std::make_shared<Pingtracker>(_id,
+                                                                remoteId,
+                                                                _gameLobbyUdpSocket.get(),
+                                                                rtc::SocketAddress(relayHost, std::stoi(relayPort)));
+
   result = "ok";
 }
 
@@ -307,6 +388,43 @@ void TestClient::_onCheckIceAdapterOutput()
   if (lines.size() > 0 && _controlConnection.isConnected())
   {
     _controlConnection.sendRequest("onMasterEvent", jsonOutputArray);
+  }
+}
+
+void TestClient::_onPeerData(rtc::AsyncSocket* socket)
+{
+  auto msgLength = socket->Recv(_readBuffer.data(), _readBuffer.size(), nullptr);
+  if (msgLength != sizeof (PingPacket))
+  {
+    FAF_LOG_ERROR << "msgLength != sizeof (PingPacket)";
+    return;
+  }
+  auto pingPacket = reinterpret_cast<PingPacket*>(_readBuffer.data());
+  if (pingPacket->type == PingPacket::PING)
+  {
+    //FAF_LOG_TRACE << "received PING from " << pingPacket->senderId;
+    auto pingIt = _peerIdPingtrackers.find(pingPacket->senderId);
+    if (pingIt == _peerIdPingtrackers.end())
+    {
+      FAF_LOG_ERROR << "no pingtracker for sender id " << pingPacket->senderId;
+    }
+    else
+    {
+      pingIt->second->onPingPacket(pingPacket);
+    }
+  }
+  else
+  {
+    //FAF_LOG_TRACE << "received PONG from " << pingPacket->answererId;
+    auto pingIt = _peerIdPingtrackers.find(pingPacket->answererId);
+    if (pingIt == _peerIdPingtrackers.end())
+    {
+      FAF_LOG_ERROR << "no pingtracker for answerer id " << pingPacket->answererId;
+    }
+    else
+    {
+      pingIt->second->onPingPacket(pingPacket);
+    }
   }
 }
 
