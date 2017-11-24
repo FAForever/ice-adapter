@@ -71,10 +71,12 @@ void PeerRelay::reinit()
 
   webrtc::PeerConnectionInterface::RTCConfiguration configuration;
   configuration.servers = _iceServerList;
+  /*
   configuration.continual_gathering_policy = webrtc::PeerConnectionInterface::GATHER_CONTINUALLY;
   configuration.ice_connection_receiving_timeout = 5000;
   configuration.ice_backup_candidate_pair_ping_interval = 2000;
   configuration.ice_regather_interval_range = rtc::Optional<rtc::IntervalRange>(rtc::IntervalRange(1000, 20000));
+  */
   _peerConnection = _pcfactory->CreatePeerConnection(configuration,
                                                      nullptr,
                                                      nullptr,
@@ -165,13 +167,19 @@ void PeerRelay::addIceMessage(Json::Value const& iceMsg)
   else if (iceMsg["type"].asString() == "candidate")
   {
     webrtc::SdpParseError error;
-    if (!_peerConnection->AddIceCandidate(webrtc::CreateIceCandidate(iceMsg["candidate"]["sdpMid"].asString(),
-                                                                     iceMsg["candidate"]["sdpMLineIndex"].asInt(),
-                                                                     iceMsg["candidate"]["candidate"].asString(),
-                                                                     &error)))
+    auto candidate = webrtc::CreateIceCandidate(iceMsg["candidate"]["sdpMid"].asString(),
+                                                iceMsg["candidate"]["sdpMLineIndex"].asInt(),
+                                                iceMsg["candidate"]["candidate"].asString(),
+                                                &error);
+    if (!candidate)
     {
       FAF_LOG_ERROR << "parsing ICE candidate failed: " << error.description;
+    }
+    else if (!_peerConnection->AddIceCandidate(candidate))
+    {
+      FAF_LOG_ERROR << "adding ICE candidate failed";
     };
+    delete candidate;
   }
 }
 
