@@ -67,6 +67,10 @@ void PeerRelay::reinit()
 
   webrtc::PeerConnectionInterface::RTCConfiguration configuration;
   configuration.servers = _iceServerList;
+  configuration.continual_gathering_policy = webrtc::PeerConnectionInterface::GATHER_CONTINUALLY;
+  configuration.ice_connection_receiving_timeout = 5000;
+  configuration.ice_backup_candidate_pair_ping_interval = 2000;
+  configuration.ice_regather_interval_range = rtc::Optional(rtc::IntervalRange(1000, 20000));
   _peerConnection = _pcfactory->CreatePeerConnection(configuration,
                                                      nullptr,
                                                      nullptr,
