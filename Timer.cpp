@@ -12,6 +12,11 @@ Timer::Timer():
 {
 }
 
+Timer::~Timer()
+{
+  stop();
+}
+
 void Timer::start(int intervalMs, std::function<void()> callback)
 {
   if (!_callback && intervalMs > 0)
@@ -34,6 +39,7 @@ bool Timer::started() const
 void Timer::stop()
 {
   _callback = std::function<void()>();
+  rtc::Thread::Current()->Clear(this);
 }
 
 void Timer::OnMessage(rtc::Message* msg)

@@ -50,7 +50,10 @@ PeerRelay::~PeerRelay()
 
 void PeerRelay::reinit()
 {
-  _checkConnectionTimer.start(1000, std::bind(&PeerRelay::_checkConnectionTimeout, this));
+  if (!_checkConnectionTimer.started())
+  {
+    _checkConnectionTimer.start(1000, std::bind(&PeerRelay::_checkConnectionTimeout, this));
+  }
   _connectStartTime = std::chrono::steady_clock::now();
   _setConnected(false);
   _receivedOffer = false;
@@ -177,6 +180,10 @@ void PeerRelay::_closePeerConnection()
     _peerConnection->Close();
     _peerConnection.release();
   }
+  if (_checkConnectionTimer.started())
+  {
+    _checkConnectionTimer.stop();
+  }
 }
 
 void PeerRelay::_setIceState(std::string const& state)
@@ -253,7 +260,6 @@ void PeerRelay::_checkConnectionTimeout()
         RELAY_LOG(LS_WARNING) << "ICE connection state is stuck in answerer. Forcing reconnect...";
       }
       reinit();
-      return;
     }
   }
 }

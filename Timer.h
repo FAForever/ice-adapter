@@ -11,6 +11,7 @@ class Timer : public rtc::MessageHandler
 {
 public:
   Timer();
+  virtual ~Timer();
 
   void start(int intervalMs, std::function<void()> callback);
   bool started() const;
