@@ -18,7 +18,7 @@ IceAdapter::IceAdapter(int argc, char *argv[]):
   _options(faf::IceAdapterOptions::init(argc, argv)),
   _gpgnetGameState("None"),
   _gametaskString("Idle"),
-  _lobbyInitMode("normal")
+  _lobbyInitMode("normal"),
   _lobbyPort(_options.gameUdpPort)
 {
   logging_init(_options.logLevel);
@@ -193,6 +193,9 @@ Json::Value IceAdapter::status() const
 {
   Json::Value result;
   result["version"] = FAF_VERSION_STRING;
+  result["ice_servers_size"] = static_cast<int>(_iceServers.size());
+  result["lobby_port"] = _lobbyPort;
+  result["init_mode"] = _lobbyInitMode;
   /* Options */
   {
     Json::Value options;
@@ -224,7 +227,6 @@ Json::Value IceAdapter::status() const
     }
     result["relays"] = relays;
   }
-  result["ice_servers_size"] = static_cast<int>(_iceServers.size());
   return result;
 }
 
