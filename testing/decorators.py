@@ -1,6 +1,5 @@
 import logging
 
-
 def with_logger(cls):
     attr_name = '_logger'
     cls_name = cls.__name__
