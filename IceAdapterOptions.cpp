@@ -27,7 +27,7 @@ IceAdapterOptions IceAdapterOptions::init(int argc, char *argv[])
     ("login", "set the login of the local player, e.g. \"Rhiza\"", cxxopts::value<std::string>(result.localPlayerLogin))
     ("rpc-port", "set the port of internal JSON-RPC server", cxxopts::value<int>(result.rpcPort))
     ("gpgnet-port", "set the port of internal GPGNet server", cxxopts::value<int>(result.gpgNetPort))
-    ("lobby-port", "set the port the game lobby should use for incoming UDP packets from the PeerRelay", cxxopts::value<int>(result.gameUdpPort))
+    ("lobby-port", "set the port the game lobby should use for incoming UDP packets from the PeerRelay. Set to 0 to use an automatic port.", cxxopts::value<int>(result.gameUdpPort))
     ("log-directory", "log to specified directory", cxxopts::value<std::string>(result.logDirectory))
     ("log-level", "set logging verbosity level: error, warn, info, verbose or debug", cxxopts::value<std::string>(result.logLevel))
     ;

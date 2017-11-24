@@ -19,6 +19,7 @@ IceAdapter::IceAdapter(int argc, char *argv[]):
   _gpgnetGameState("None"),
   _gametaskString("Idle"),
   _lobbyInitMode("normal")
+  _lobbyPort(_options.gameUdpPort)
 {
   logging_init(_options.logLevel);
   if (!_options.logDirectory.empty())
@@ -45,6 +46,19 @@ IceAdapter::IceAdapter(int argc, char *argv[]):
   {
     FAF_LOG_ERROR << "Error in CreatePeerConnectionFactory()";
     std::exit(1);
+  }
+
+  /* ICE adapter should determine lobby port */
+  if (_lobbyPort == 0)
+  {
+    auto serverSocket = rtc::Thread::Current()->socketserver()->CreateAsyncSocket(SOCK_DGRAM);
+    if (serverSocket->Bind(rtc::SocketAddress("127.0.0.1", 0)) != 0)
+    {
+      FAF_LOG_ERROR << "unable to bind udp server";
+      std::exit(1);
+    }
+    _lobbyPort = serverSocket->GetLocalAddress().port();
+    delete serverSocket;
   }
 
   _gpgnetServer.SignalNewGPGNetMessage.connect(this, &IceAdapter::_onGpgNetMessage);
@@ -515,7 +529,7 @@ void IceAdapter::_onGpgNetMessage(GPGNetMessage const& message)
       if (_gpgnetGameState == "Idle")
       {
         _gpgnetServer.sendCreateLobby(_lobbyInitMode == "normal" ? InitMode::NormalLobby : InitMode::AutoLobby,
-                                      _options.gameUdpPort,
+                                      _lobbyPort,
                                       _options.localPlayerLogin,
                                       _options.localPlayerId,
                                       1);
@@ -556,7 +570,7 @@ std::shared_ptr<PeerRelay> IceAdapter::_createPeerRelay(int remotePlayerId,
   auto relay = std::make_shared<PeerRelay>(remotePlayerId,
                                            remotePlayerLogin,
                                            createOffer,
-                                           _options.gameUdpPort,
+                                           _lobbyPort,
                                            _pcfactory);
 
   relay->setIceMessageCallback([this, remotePlayerId](Json::Value const& iceMsg)
