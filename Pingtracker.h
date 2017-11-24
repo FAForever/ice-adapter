@@ -11,7 +11,9 @@
 
 namespace faf {
 
-#pragma pack(push, 1)
+#if defined(_MSC_VER)
+#  pragma pack(push, 1)
+#endif
 struct PingPacket
 {
   enum {
@@ -21,8 +23,13 @@ struct PingPacket
   uint32_t senderId;
   uint32_t answererId;
   uint32_t pingId;
-} __attribute__((packed));
-#pragma pack(pop)
+}
+#if !defined(_MSC_VER)
+__attribute__((packed));
+#else
+;
+#  pragma pack(pop)
+#endif
 
 class Pingtracker : public sigslot::has_slots<>
 {
