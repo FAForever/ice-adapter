@@ -45,25 +45,34 @@ public:
 void logging_init(std::string const& verbosity)
 {
   static ::faf::LogSink ls;
+
+  rtc::LogMessage::LogTimestamps();
+  rtc::LogMessage::LogThreads();
+  rtc::LogMessage::SetLogToStderr(true);
   if (verbosity == "error")
   {
-    rtc::LogMessage::AddLogToStream(&ls, rtc::LS_ERROR);
+    rtc::LogMessage::LogToDebug(rtc::LS_ERROR);
+    //rtc::LogMessage::AddLogToStream(&ls, rtc::LS_ERROR);
   }
   else if (verbosity == "warn")
   {
-    rtc::LogMessage::AddLogToStream(&ls, rtc::LS_WARNING);
+    rtc::LogMessage::LogToDebug(rtc::LS_WARNING);
+    //rtc::LogMessage::AddLogToStream(&ls, rtc::LS_WARNING);
   }
   else if (verbosity == "info")
   {
-    rtc::LogMessage::AddLogToStream(&ls, rtc::LS_INFO);
+    rtc::LogMessage::LogToDebug(rtc::LS_INFO);
+    //rtc::LogMessage::AddLogToStream(&ls, rtc::LS_INFO);
   }
   else if (verbosity == "verbose")
   {
-    rtc::LogMessage::AddLogToStream(&ls, rtc::LS_VERBOSE);
+    rtc::LogMessage::LogToDebug(rtc::LS_VERBOSE);
+    //rtc::LogMessage::AddLogToStream(&ls, rtc::LS_VERBOSE);
   }
   else if (verbosity == "debug")
   {
-    rtc::LogMessage::AddLogToStream(&ls, rtc::LS_SENSITIVE);
+    rtc::LogMessage::LogToDebug(rtc::LS_SENSITIVE);
+    //rtc::LogMessage::AddLogToStream(&ls, rtc::LS_SENSITIVE);
   }
 }
 

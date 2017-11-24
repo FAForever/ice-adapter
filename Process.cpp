@@ -7,11 +7,17 @@
 #include <array>
 
 #include "logging.h"
+#include "trim.h"
 
 namespace faf {
 
 Process::Process()
 {
+}
+
+Process::~Process()
+{
+  close();
 }
 
 void Process::open(std::string const& executable,
@@ -30,6 +36,7 @@ void Process::open(std::string const& executable,
     exeAndArgs += " 2>&1";
     _procThread.reset(new std::thread([this, exeAndArgs]()
     {
+      FAF_LOG_DEBUG << "starting process " << exeAndArgs;
 #if defined(WEBRTC_WIN)
       auto procPipe = _popen(exeAndArgs.c_str(), "r");
 #elif defined(WEBRTC_POSIX)
@@ -39,7 +46,12 @@ void Process::open(std::string const& executable,
       while (fgets(buffer.data(), 4096, procPipe) != nullptr)
       {
         std::unique_lock<std::shared_mutex> lock(_outputBufferLock);
-        _outputBuffer.push_back(std::string(buffer.data()));
+        std::string msg(buffer.data());
+        _outputBuffer.push_back(msg);
+        if (msg.find("FAF:") != std::string::npos)
+        {
+          FAF_LOG_DEBUG << "ICE-Adapter: " << trim_whitespace(msg);
+        }
         if (_exit)
         {
           return;
@@ -60,7 +72,10 @@ void Process::close()
     _procThread->join();
   }
   _procThread.reset();
-  _outputBuffer.clear();
+  {
+    std::unique_lock<std::shared_mutex> lock(_outputBufferLock);
+    _outputBuffer.clear();
+  }
 }
 
 bool Process::isOpen() const
@@ -70,7 +85,7 @@ bool Process::isOpen() const
 
 std::vector<std::string> Process::checkOutput()
 {
-  std::shared_lock<std::shared_mutex> lock(_outputBufferLock);
+  std::unique_lock<std::shared_mutex> lock(_outputBufferLock);
   std::vector<std::string> result(_outputBuffer);
   _outputBuffer.clear();
   return result;

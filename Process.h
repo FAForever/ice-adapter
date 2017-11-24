@@ -14,6 +14,7 @@ class Process
 {
 public:
   Process();
+  virtual ~Process();
 
   void open(std::string const& executable,
             std::vector<std::string> arguments);

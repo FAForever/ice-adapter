@@ -43,6 +43,7 @@ add_library(fafice
   PeerRelay.cpp
   PeerRelayObservers.cpp
   Timer.cpp
+  trim.cpp
 )
 target_compile_definitions(fafice PUBLIC
   FAF_VERSION_STRING="${FAF_VERSION_STRING}";
@@ -93,6 +94,7 @@ target_link_libraries(faf-ice-testserver
 add_executable(faf-ice-testclient
   TestClient.cpp
   Process.cpp
+  Pingtracker.cpp
   ${testclient_srcs}
   )
 
