@@ -52,7 +52,7 @@ void PeerRelay::reinit()
 {
   if (!_checkConnectionTimer.started())
   {
-    _checkConnectionTimer.start(1000, std::bind(&PeerRelay::_checkConnectionTimeout, this));
+    //_checkConnectionTimer.start(1000, std::bind(&PeerRelay::_checkConnectionTimeout, this));
   }
   _connectStartTime = std::chrono::steady_clock::now();
   _setConnected(false);
