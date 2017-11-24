@@ -79,10 +79,10 @@ protected:
   bool _createOffer;
 
   /* game P2P socket data */
+  rtc::SocketAddress _gameUdpAddress;
   std::unique_ptr<rtc::AsyncSocket> _localUdpSocket;
   int _localUdpSocketPort;
   std::array<char, 2048> _readBuffer;
-  rtc::SocketAddress _gameUdpAddress;
 
   /* callbacks */
   IceMessageCallback _iceMessageCallback;

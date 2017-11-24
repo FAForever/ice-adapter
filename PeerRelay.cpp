@@ -26,7 +26,6 @@ PeerRelay::PeerRelay(int remotePlayerId,
   _remotePlayerId(remotePlayerId),
   _remotePlayerLogin(remotePlayerLogin),
   _createOffer(createOffer),
-  _localUdpSocket(rtc::Thread::Current()->socketserver()->CreateAsyncSocket(SOCK_DGRAM)),
   _gameUdpAddress("127.0.0.1", gameUdpPort),
   _localUdpSocket(rtc::Thread::Current()->socketserver()->CreateAsyncSocket(AF_INET, SOCK_DGRAM)),
   _receivedOffer(false),
@@ -131,8 +130,10 @@ void PeerRelay::setIceServers(webrtc::PeerConnectionInterface::IceServers const&
 
 void PeerRelay::addIceMessage(Json::Value const& iceMsg)
 {
+  FAF_LOG_DEBUG << "addIceMessage: " << Json::FastWriter().write(iceMsg);
   if (!_peerConnection)
   {
+    FAF_LOG_ERROR << "!_peerConnection";
     return;
   }
   if (iceMsg["type"].asString() == "offer" ||
@@ -140,18 +141,26 @@ void PeerRelay::addIceMessage(Json::Value const& iceMsg)
   {
     webrtc::SdpParseError error;
     _receivedOffer = iceMsg["type"].asString() == "offer";
-    _peerConnection->SetRemoteDescription(_setRemoteDescriptionObserver,
-                                      webrtc::CreateSessionDescription(iceMsg["type"].asString(),
-                                                                       iceMsg["sdp"].asString(),
-                                                                       &error));
+    auto sdp = webrtc::CreateSessionDescription(iceMsg["type"].asString(), iceMsg["sdp"].asString(), &error);
+    if (sdp)
+    {
+      _peerConnection->SetRemoteDescription(_setRemoteDescriptionObserver, sdp);
+    }
+    else
+    {
+      FAF_LOG_ERROR << "parsing remote SDP failed: " << error.description;
+    }
   }
   else if (iceMsg["type"].asString() == "candidate")
   {
     webrtc::SdpParseError error;
-    _peerConnection->AddIceCandidate(webrtc::CreateIceCandidate(iceMsg["candidate"]["sdpMid"].asString(),
-                                                            iceMsg["candidate"]["sdpMLineIndex"].asInt(),
-                                                            iceMsg["candidate"]["candidate"].asString(),
-                                                            &error));
+    if (!_peerConnection->AddIceCandidate(webrtc::CreateIceCandidate(iceMsg["candidate"]["sdpMid"].asString(),
+                                                                     iceMsg["candidate"]["sdpMLineIndex"].asInt(),
+                                                                     iceMsg["candidate"]["candidate"].asString(),
+                                                                     &error)))
+    {
+      FAF_LOG_ERROR << "parsing ICE candidate failed: " << error.description;
+    };
   }
 }
 
