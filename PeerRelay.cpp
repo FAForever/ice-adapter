@@ -7,7 +7,11 @@
 
 namespace faf {
 
-#define RELAY_LOG(x) LOG(x) << "PeerRelay for " << _remotePlayerLogin << " (" << _remotePlayerId << "): "
+#define RELAY_LOG_ERROR FAF_LOG_ERROR << "PeerRelay for " << _remotePlayerLogin << " (" << _remotePlayerId << "): "
+#define RELAY_LOG_WARN FAF_LOG_WARN << "PeerRelay for " << _remotePlayerLogin << " (" << _remotePlayerId << "): "
+#define RELAY_LOG_INFO FAF_LOG_INFO << "PeerRelay for " << _remotePlayerLogin << " (" << _remotePlayerId << "): "
+#define RELAY_LOG_DEBUG FAF_LOG_DEBUG << "PeerRelay for " << _remotePlayerLogin << " (" << _remotePlayerId << "): "
+#define RELAY_LOG_TRACE FAF_LOG_TRACE << "PeerRelay for " << _remotePlayerLogin << " (" << _remotePlayerId << "): "
 
 PeerRelay::PeerRelay(int remotePlayerId,
                      std::string const& remotePlayerLogin,
@@ -192,7 +196,7 @@ void PeerRelay::_closePeerConnection()
 
 void PeerRelay::_setIceState(std::string const& state)
 {
-  RELAY_LOG(LS_VERBOSE) << "ice state changed to" << state;
+  RELAY_LOG_DEBUG << "ice state changed to" << state;
   _iceState = state;
   if (_iceState == "connected" ||
       _iceState == "completed")
@@ -216,7 +220,7 @@ void PeerRelay::_setIceState(std::string const& state)
   }
   if (_iceState == "failed")
   {
-    RELAY_LOG(LS_WARNING) << "Connection failed, forcing reconnect immediately.";
+    RELAY_LOG_WARN << "Connection failed, forcing reconnect immediately.";
     reinit();
   }
 }
@@ -233,11 +237,11 @@ void PeerRelay::_setConnected(bool connected)
     if (connected)
     {
       _connectDuration = std::chrono::steady_clock::now() - _connectStartTime;
-      RELAY_LOG(LS_INFO) << "connected after " <<  std::chrono::duration_cast<std::chrono::milliseconds>(_connectDuration).count() / 1000.;
+      RELAY_LOG_INFO << "connected after " <<  std::chrono::duration_cast<std::chrono::milliseconds>(_connectDuration).count() / 1000.;
     }
     else
     {
-      RELAY_LOG(LS_INFO) << "disconnected";
+      RELAY_LOG_INFO << "disconnected";
     }
   }
 }
@@ -257,11 +261,11 @@ void PeerRelay::_checkConnectionTimeout()
     {
       if (_createOffer)
       {
-        RELAY_LOG(LS_WARNING) << "ICE connection state is stuck in offerer. Forcing reconnect...";
+        RELAY_LOG_WARN << "ICE connection state is stuck in offerer. Forcing reconnect...";
       }
       else if (_receivedOffer)
       {
-        RELAY_LOG(LS_WARNING) << "ICE connection state is stuck in answerer. Forcing reconnect...";
+        RELAY_LOG_WARN << "ICE connection state is stuck in answerer. Forcing reconnect...";
       }
       reinit();
     }
@@ -273,7 +277,7 @@ void PeerRelay::_onPeerdataFromGame(rtc::AsyncSocket* socket)
   auto msgLength = socket->Recv(_readBuffer.data(), _readBuffer.size(), nullptr);
   if (!_isConnected)
   {
-    RELAY_LOG(LS_SENSITIVE) << "skipping " << msgLength << " bytes of P2P data until ICE connection is established";
+    RELAY_LOG_TRACE << "skipping " << msgLength << " bytes of P2P data until ICE connection is established";
     return;
   }
   if (msgLength > 0 && _dataChannel)
