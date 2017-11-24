@@ -13,6 +13,7 @@ public:
   Timer();
 
   void start(int intervalMs, std::function<void()> callback);
+  bool started() const;
   void stop();
 protected:
   virtual void OnMessage(rtc::Message* msg) override;

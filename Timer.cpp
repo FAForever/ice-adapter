@@ -26,6 +26,11 @@ void Timer::start(int intervalMs, std::function<void()> callback)
   }
 }
 
+bool Timer::started() const
+{
+  return static_cast<bool>(_callback);
+}
+
 void Timer::stop()
 {
   _callback = std::function<void()>();
