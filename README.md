@@ -34,7 +34,9 @@ The `faf-ice-adapter` is controlled using a bi-directional [JSON-RPC](http://www
 {
 "version" : /* string: faf-ice-adapter version */
 "ice_servers_size" : /* the number of ICE servers set using `setIceServers` */
-"options" : /* The commandline options */
+"lobby_port" : /* the actual game lobby UDP port. Should match --lobby-port option if non-zero port is specified. */
+"init_mode" : /* the current init mode. See setLobbyInitMode */
+"options" : /* The specified commandline options */
 "gpgnet" : { /* The GPGNet state */
   "local_port" : /* int: The port the game should connect to via /gpgnet 127.0.0.1:port */
   "connected" : /* boolean: Is the game connected? */
