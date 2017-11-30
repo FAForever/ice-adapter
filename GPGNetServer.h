@@ -52,8 +52,7 @@ public:
 
   void sendPing();
 
-  sigslot::signal1<GPGNetMessage const&,
-                   sigslot::multi_threaded_local> SignalNewGPGNetMessage;
+  sigslot::signal1<GPGNetMessage, sigslot::multi_threaded_local> SignalNewGPGNetMessage;
   sigslot::signal0<sigslot::multi_threaded_local> SignalClientConnected;
   sigslot::signal0<sigslot::multi_threaded_local> SignalClientDisconnected;
 protected:
