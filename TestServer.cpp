@@ -322,12 +322,19 @@ void TestServer::_rpcSendIceMsg(Json::Value const& paramsArray, Json::Value & re
 
 void TestServer::_rpcPlayers(Json::Value const& paramsArray, Json::Value & result, Json::Value & error, rtc::AsyncSocket* socket)
 {
-  for (auto it = _playersLogins.begin(), end = _playersLogins.end(); it != end; ++it)
+  if (_playersLogins.empty())
   {
-    Json::Value pInfo;
-    pInfo["id"] = it->first;
-    pInfo["login"] = it->second;
-    result.append(pInfo);
+    result = Json::Value(Json::arrayValue);
+  }
+  else
+  {
+    for (auto it = _playersLogins.begin(), end = _playersLogins.end(); it != end; ++it)
+    {
+      Json::Value pInfo;
+      pInfo["id"] = it->first;
+      pInfo["login"] = it->second;
+      result.append(pInfo);
+    }
   }
 }
 
