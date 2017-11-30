@@ -103,7 +103,7 @@ protected:
   void _tryExecuteGameTasks();
   void _onGameConnected();
   void _onGameDisconnected();
-  void _onGpgNetMessage(GPGNetMessage const& message);
+  void _onGpgNetMessage(GPGNetMessage message);
   std::shared_ptr<PeerRelay> _createPeerRelay(int remotePlayerId,
                                               std::string const& remotePlayerLogin,
                                               bool createOffer);
