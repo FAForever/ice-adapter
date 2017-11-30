@@ -190,27 +190,25 @@ void TestClient::_rpcStartIceAdapter(Json::Value const& paramsArray, Json::Value
     error = "ice-adapter already started";
     return;
   }
-  if (paramsArray.size() < 1)
-  {
-    error = "Need 1 parameter: argument array";
-    return;
-  }
   std::vector<std::string> args = {"--login", _login,
                                    "--id", std::to_string(_id),
                                    "--rpc-port", std::to_string(_iceAdapterPort),
                                    "--gpgnet-port", "0",
                                    "--lobby-port", "0", /* the ice adapter should come up with a lobby UDP port and sends it back in CreateLobby */
                                    "--log-level" , "debug"};
-  for (Json::Value const& arg: paramsArray[0])
+  if (paramsArray.size() >= 1)
   {
-    args.push_back(arg.asString());
+    for (Json::Value const& arg: paramsArray[0])
+    {
+      args.push_back(arg.asString());
+    }
   }
   _iceAdapterProcess.open("faf-ice-adapter",
                           args);
   result = "ok";
 }
 
-void TestClient::_rpcConnectToIceAdapter(Json::Value const& paramsArray, Json::Value & result, Json::Value & error, rtc::AsyncSocket* socket)
+void TestClient::_rpcConnectToIceAdapter(Json::Value const& , Json::Value & result, Json::Value & error, rtc::AsyncSocket* socket)
 {
   _iceAdapterConnection.connect("localhost", _iceAdapterPort);
   result = "ok";
