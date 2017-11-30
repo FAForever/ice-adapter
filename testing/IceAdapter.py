@@ -53,9 +53,12 @@ class IceAdapter(object):
     self._client.call("startIceAdapter")
     self.callStatus()
 
-  def on_enter_not_connected(self):
+  def sendConnect(self):
     self._client.call("connectToIceAdapter")
-    QtCore.QTimer.singleShot(300, self.callStatus)
+    QtCore.QTimer.singleShot(200, self.callStatus)
+
+  def on_enter_not_connected(self):
+    QtCore.QTimer.singleShot(200, self.sendConnect)
 
   def on_enter_no_ice_servers(self):
     coturn_host = "vmrbg145.informatik.tu-muenchen.de"

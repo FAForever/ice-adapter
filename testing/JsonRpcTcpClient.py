@@ -82,7 +82,7 @@ class JsonRpcTcpClient(QObject):
         while self.socket.bytesAvailable():
             newData += bytes(self.socket.readAll())
 
-        # this seems to be a new notification, which invalidates out buffer. This may happen on malformed JSON data
+        # this seems to be a new notification, which invalidates our buffer. This may happen on malformed JSON data
         if newData.startswith(b"{\"jsonrpc\":\"2.0\""):
             if len(self.buffer) > 0:
                 self._logger.error("parse error: discarding old possibly malformed buffer data {}".format(self.buffer))
@@ -120,6 +120,7 @@ class JsonRpcTcpClient(QObject):
                         except ValueError:
                             self._logger.error("json.loads failed for {}".format(complete_json_buf))
                             return b''
+                        print("JsonRpcTcpClient received: {}".format(request))
                         # is this a request?
                         if "method" in request:
                             self.parseRequest(request)

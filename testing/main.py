@@ -2,6 +2,7 @@ from ServerConnection import ServerConnection
 from TestClient import TestClient
 from IceAdapter import IceAdapter
 from GPGNet import GPGNet
+from P2PConnection import P2PConnection
 
 import sys
 
@@ -15,10 +16,25 @@ gpgnets = {}
 host_id = 0
 host_login = "?"
 
-def createTestsForPlayer(clientState):
+def hosterReady(id):
+  pass
+
+def joinerReady(id):
+  pass
+
+
+def initIceAdapterForPlayer(clientState):
   playerId = clientState['id']
-  ice_adapters[playerId] = IceAdapter(clients[playerId])
-  gpgnets[playerId] = GPGNet(clients[playerId], host_id, host_login)
+  ice_adapter = IceAdapter(clients[playerId])
+  ice_adapters[playerId] = ice_adapter
+
+  gpg_net = GPGNet(clients[playerId], host_id, host_login)
+  gpgnets[playerId] = gpg_net
+
+  ice_adapter._machine.on_enter_ice_adapter_ready(gpg_net.trigger)
+  ice_adapter._machine.on_enter_no_ice_servers(gpg_net.callStatus)
+  gpg_net._machine.on_enter_hosting(lambda id=playerId: hosterReady(id))
+  gpg_net._machine.on_enter_joining(lambda id=playerId: joinerReady(id))
 
 
 def onMasterEvent(event, playerId, args):
@@ -44,7 +60,7 @@ def startPlayers(playerList):
       host_id = player["id"]
       host_login = player["login"]
     clients[player["id"]] = TestClient(c, player["id"], player["login"], i==0)
-    clients[player["id"]].call("status", callback_result=createTestsForPlayer)
+    clients[player["id"]].call("status", callback_result=initIceAdapterForPlayer)
 
 c = ServerConnection(onMasterEvent)
 c.client.call("players", [], startPlayers)

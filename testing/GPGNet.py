@@ -10,8 +10,7 @@ class GPGNet(object):
     'idle',          # the game send GameState "Idle"
     'lobby',
     'hosting',
-    'joining',
-    'ready'
+    'joining'
   ]
 
   def __init__(self, client, host_id, host_login):
@@ -37,12 +36,8 @@ class GPGNet(object):
     self._machine.add_transition(trigger='trigger', source='idle', dest='lobby',
                                  conditions=['is_state_lobby'],
                                  after='showstate')
-    self._machine.add_transition(trigger='received_hostgame_command', source='lobby', dest='hosting',
-                                 conditions=['is_state_hosting'],
-                                 after='showstate')
-    self._machine.add_transition(trigger='received_joingame_command', source='lobby', dest='joining',
-                                 conditions=['is_state_joining'],
-                                 after='showstate')
+    self._machine.add_transition(trigger='received_hostgame_command', source='lobby', dest='hosting', after='showstate')
+    self._machine.add_transition(trigger='received_joingame_command', source='lobby', dest='joining', after='showstate')
 
     self._clientState = None
     self._iceState = None
@@ -69,6 +64,13 @@ class GPGNet(object):
       self._clientState = clientState
       self.trigger()
 
+  def has_client_state(self):
+    if self._clientState is None:
+      self.callStatus()
+      return False
+    else:
+      return True
+
   def callIceStatus(self):
     self._client.call("sendToIceAdapter", ["status", []], callback_result=self.setIceStatus)
 
@@ -78,6 +80,10 @@ class GPGNet(object):
       self.trigger()
 
   def has_ice_state(self):
+    if not self.has_client_state():
+      return False
+    if not self._clientState['ice_adapter_connected']:
+      return False
     if self._iceState is None:
       self.callIceStatus()
       return False
@@ -91,8 +97,8 @@ class GPGNet(object):
       return False
 
   def gpgnet_is_connected(self):
-    if self._clientState:
-      return self._clientState["gpgnet_connected"]
+    if self._iceState:
+      return self._iceState["gpgnet"]["connected"]
     else:
       return False
 
@@ -112,10 +118,8 @@ class GPGNet(object):
     return "Joining" in self._iceState["gpgnet"]["task_string"]
 
   def on_enter_not_connected(self):
-    if self._iceState:
-      self._client.call("connectToGPGNet", [self._iceState["gpgnet"]["local_port"]])
-    else:
-      self.callIceStatus()
+    self._client.call("connectToGPGNet", [self._iceState["gpgnet"]["local_port"]])
+    QtCore.QTimer.singleShot(500, self.callIceStatus)
 
   def on_enter_none(self):
     self._client.call("sendToGpgNet", ["GameState", ["Idle"]])
@@ -129,4 +133,3 @@ class GPGNet(object):
       self._client.call("sendToIceAdapter", ["hostGame", ["testmap"]])
     else:
       self._client.call("sendToIceAdapter", ["joinGame", [self._host_login, self._host_id]])
-    self.callIceStatus()

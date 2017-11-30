@@ -19,6 +19,6 @@ def makePlayersQuit(playerList):
 client.connect("localhost", 54321)
 client.socket.waitForConnected(1000)
 client.call("master")
-client.call("players", [], makePlayersQuit)
+client.call("players", callback_result=makePlayersQuit)
 
 app.exec_()
