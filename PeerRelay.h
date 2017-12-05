@@ -62,7 +62,6 @@ protected:
   webrtc::PeerConnectionInterface::IceServers _iceServerList;
   rtc::scoped_refptr<webrtc::PeerConnectionInterface> _peerConnection;
   rtc::scoped_refptr<webrtc::DataChannelInterface> _dataChannel;
-  webrtc::SessionDescriptionInterface* _localSdp;
 
   /* Callback objects for WebRTC API calls */
   rtc::scoped_refptr<CreateOfferObserver> _createOfferObserver;
@@ -98,6 +97,7 @@ protected:
   std::string _remoteCandAddress;
   std::string _localCandType;
   std::string _remoteCandType;
+  std::string _localSdp;
 
   /* connectivity check data */
   Timer _checkConnectionTimer;

@@ -7,14 +7,19 @@
 
 namespace faf {
 
-#define OBSERVER_LOG(x) LOG(x) << "PeerRelay for " << _relay->_remotePlayerLogin << " (" << _relay->_remotePlayerId << "): "
+
+#define OBSERVER_LOG_ERROR FAF_LOG_ERROR << "PeerRelay for " << _relay->_remotePlayerLogin << " (" << _relay->_remotePlayerId << "): "
+#define OBSERVER_LOG_WARN FAF_LOG_WARN << "PeerRelay for " << _relay->_remotePlayerLogin << " (" << _relay->_remotePlayerId << "): "
+#define OBSERVER_LOG_INFO FAF_LOG_INFO << "PeerRelay for " << _relay->_remotePlayerLogin << " (" << _relay->_remotePlayerId << "): "
+#define OBSERVER_LOG_DEBUG FAF_LOG_DEBUG << "PeerRelay for " << _relay->_remotePlayerLogin << " (" << _relay->_remotePlayerId << "): "
+#define OBSERVER_LOG_TRACE FAF_LOG_TRACE << "PeerRelay for " << _relay->_remotePlayerLogin << " (" << _relay->_remotePlayerId << "): "
 
 void CreateOfferObserver::OnSuccess(webrtc::SessionDescriptionInterface *sdp)
 {
-  //FAF_LOG_DEBUG << "CreateOfferObserver::OnSuccess";
+  OBSERVER_LOG_TRACE << "CreateOfferObserver::OnSuccess";
   if (_relay->_peerConnection)
   {
-    _relay->_localSdp = sdp;
+    sdp->ToString(&_relay->_localSdp);
     _relay->_peerConnection->SetLocalDescription(_relay->_setLocalDescriptionObserver,
                                                  sdp);
   }
@@ -22,15 +27,15 @@ void CreateOfferObserver::OnSuccess(webrtc::SessionDescriptionInterface *sdp)
 
 void CreateOfferObserver::OnFailure(const std::string &msg)
 {
-  OBSERVER_LOG(LS_WARNING) << "CreateOfferObserver::OnFailure: " << msg;
+  OBSERVER_LOG_WARN << "CreateOfferObserver::OnFailure: " << msg;
 }
 
 void CreateAnswerObserver::OnSuccess(webrtc::SessionDescriptionInterface *sdp)
 {
-  //FAF_LOG_DEBUG << "CreateAnswerObserver::OnSuccess";
+  OBSERVER_LOG_TRACE << "CreateAnswerObserver::OnSuccess";
   if (_relay->_peerConnection)
   {
-    _relay->_localSdp = sdp;
+    sdp->ToString(&_relay->_localSdp);
     _relay->_peerConnection->SetLocalDescription(_relay->_setLocalDescriptionObserver,
                                                  sdp);
   }
@@ -38,34 +43,30 @@ void CreateAnswerObserver::OnSuccess(webrtc::SessionDescriptionInterface *sdp)
 
 void CreateAnswerObserver::OnFailure(const std::string &msg)
 {
-  OBSERVER_LOG(LS_WARNING) << "CreateAnswerObserver::OnFailure: " << msg;
-  //FAF_LOG_DEBUG << "CreateAnswerObserver::OnFailure: " << msg;
+  OBSERVER_LOG_WARN << "CreateAnswerObserver::OnFailure: " << msg;
 }
 
 void SetLocalDescriptionObserver::OnSuccess()
 {
-  //FAF_LOG_DEBUG << "SetLocalDescriptionObserver::OnSuccess";
-  if (_relay->_localSdp &&
-      _relay->_iceMessageCallback)
+  OBSERVER_LOG_DEBUG << "SetLocalDescriptionObserver::OnSuccess";
+  if (_relay->_iceMessageCallback)
   {
     Json::Value iceMsg;
     std::string sdpString;
-    _relay->_localSdp->ToString(&sdpString);
     iceMsg["type"] = _relay->_createOffer ? "offer" : "answer";
-    iceMsg["sdp"] = sdpString;
+    iceMsg["sdp"] = _relay->_localSdp;
     _relay->_iceMessageCallback(iceMsg);
   }
 }
 
 void SetLocalDescriptionObserver::OnFailure(const std::string &msg)
 {
-  OBSERVER_LOG(LS_WARNING) << "SetLocalDescriptionObserver::OnFailure: " << msg;
-  //FAF_LOG_DEBUG << "SetLocalDescriptionObserver::OnFailure";
+  OBSERVER_LOG_WARN << "SetLocalDescriptionObserver::OnFailure: " << msg;
 }
 
 void SetRemoteDescriptionObserver::OnSuccess()
 {
-  //FAF_LOG_DEBUG << "SetRemoteDescriptionObserver::OnSuccess";
+  OBSERVER_LOG_DEBUG << "SetRemoteDescriptionObserver::OnSuccess";
   if (_relay->_peerConnection &&
       !_relay->_createOffer)
   {
@@ -76,17 +77,17 @@ void SetRemoteDescriptionObserver::OnSuccess()
 
 void SetRemoteDescriptionObserver::OnFailure(const std::string &msg)
 {
-  OBSERVER_LOG(LS_WARNING) << "SetRemoteDescriptionObserver::OnFailure: " << msg;
-  //FAF_LOG_DEBUG << "SetRemoteDescriptionObserver::OnFailure";
+  OBSERVER_LOG_WARN << "SetRemoteDescriptionObserver::OnFailure: " << msg;
 }
 
 void PeerConnectionObserver::OnSignalingChange(webrtc::PeerConnectionInterface::SignalingState new_state)
 {
-  //FAF_LOG_DEBUG << "PeerConnectionObserver::OnSignalingChange";
+  OBSERVER_LOG_DEBUG << "PeerConnectionObserver::OnSignalingChange";
 }
 
 void PeerConnectionObserver::OnIceConnectionChange(webrtc::PeerConnectionInterface::IceConnectionState new_state)
 {
+  OBSERVER_LOG_DEBUG << "PeerConnectionObserver::OnIceConnectionChange" << static_cast<int>(new_state);
   switch (new_state)
   {
     case webrtc::PeerConnectionInterface::kIceConnectionNew:
@@ -118,12 +119,12 @@ void PeerConnectionObserver::OnIceConnectionChange(webrtc::PeerConnectionInterfa
 
 void PeerConnectionObserver::OnIceGatheringChange(webrtc::PeerConnectionInterface::IceGatheringState new_state)
 {
-  FAF_LOG_DEBUG << "PeerConnectionObserver::OnIceGatheringChange";
+  OBSERVER_LOG_DEBUG << "PeerConnectionObserver::OnIceGatheringChange" << static_cast<int>(new_state);
 }
 
 void PeerConnectionObserver::OnIceCandidate(const webrtc::IceCandidateInterface *candidate)
 {
-  FAF_LOG_DEBUG << "PeerConnectionObserver::OnIceCandidate";
+  OBSERVER_LOG_DEBUG << "PeerConnectionObserver::OnIceCandidate";
 
   if (_relay->_iceMessageCallback)
   {
@@ -142,24 +143,24 @@ void PeerConnectionObserver::OnIceCandidate(const webrtc::IceCandidateInterface 
 
 void PeerConnectionObserver::OnRenegotiationNeeded()
 {
-  FAF_LOG_DEBUG << "PeerConnectionObserver::OnRenegotiationNeeded";
+  OBSERVER_LOG_DEBUG << "PeerConnectionObserver::OnRenegotiationNeeded";
 }
 
 void PeerConnectionObserver::OnDataChannel(rtc::scoped_refptr<webrtc::DataChannelInterface> data_channel)
 {
-  FAF_LOG_DEBUG << "PeerConnectionObserver::OnDataChannel";
+  OBSERVER_LOG_DEBUG << "PeerConnectionObserver::OnDataChannel";
   _relay->_dataChannel = data_channel;
   _relay->_dataChannel->RegisterObserver(_relay->_dataChannelObserver.get());
 }
 
 void PeerConnectionObserver::OnAddStream(rtc::scoped_refptr<webrtc::MediaStreamInterface> stream)
 {
-  FAF_LOG_DEBUG << "PeerConnectionObserver::OnAddStream";
+  OBSERVER_LOG_DEBUG << "PeerConnectionObserver::OnAddStream";
 }
 
 void PeerConnectionObserver::OnRemoveStream(rtc::scoped_refptr<webrtc::MediaStreamInterface> stream)
 {
-  FAF_LOG_DEBUG << "PeerConnectionObserver::OnRemoveStream";
+  OBSERVER_LOG_DEBUG << "PeerConnectionObserver::OnRemoveStream";
 }
 
 void DataChannelObserver::OnStateChange()
@@ -169,17 +170,17 @@ void DataChannelObserver::OnStateChange()
     switch(_relay->_dataChannel->state())
     {
       case webrtc::DataChannelInterface::kConnecting:
-        //FAF_LOG_DEBUG << "DataChannelObserver::OnStateChange to Connecting";
+        OBSERVER_LOG_DEBUG << "DataChannelObserver::OnStateChange to Connecting";
         break;
       case webrtc::DataChannelInterface::kOpen:
-        //FAF_LOG_DEBUG << "DataChannelObserver::OnStateChange to Open";
+        OBSERVER_LOG_DEBUG << "DataChannelObserver::OnStateChange to Open";
         _relay->_setConnected(true);
         break;
       case webrtc::DataChannelInterface::kClosing:
-        //FAF_LOG_DEBUG << "DataChannelObserver::OnStateChange to Closing";
+        OBSERVER_LOG_DEBUG << "DataChannelObserver::OnStateChange to Closing";
         break;
       case webrtc::DataChannelInterface::kClosed:
-        //FAF_LOG_DEBUG << "DataChannelObserver::OnStateChange to Closed";
+        OBSERVER_LOG_DEBUG << "DataChannelObserver::OnStateChange to Closed";
         _relay->_setConnected(false);
         break;
     }
@@ -187,17 +188,19 @@ void DataChannelObserver::OnStateChange()
 }
 void DataChannelObserver::OnMessage(const webrtc::DataBuffer& buffer)
 {
-  //FAF_LOG_DEBUG << "DataChannelObserver::OnMessage";
+  OBSERVER_LOG_DEBUG << "DataChannelObserver::OnMessage";
   if (_relay->_localUdpSocket)
   {
     _relay->_localUdpSocket->SendTo(buffer.data.cdata(),
                                     buffer.data.size(),
                                     _relay->_gameUdpAddress);
   }
+  OBSERVER_LOG_DEBUG << "DataChannelObserver::OnMessage done";
 }
 
 void RTCStatsCollectorCallback::OnStatsDelivered(const rtc::scoped_refptr<const webrtc::RTCStatsReport>& report)
 {
+  OBSERVER_LOG_DEBUG << "RTCStatsCollectorCallback::OnStatsDelivered";
   if (!report)
   {
     return;

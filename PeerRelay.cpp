@@ -19,7 +19,6 @@ PeerRelay::PeerRelay(int remotePlayerId,
                      int gameUdpPort,
                      rtc::scoped_refptr<webrtc::PeerConnectionFactoryInterface> const& pcfactory):
   _pcfactory(pcfactory),
-  _localSdp(nullptr),
   _createOfferObserver(new rtc::RefCountedObject<CreateOfferObserver>(this)),
   _createAnswerObserver(new rtc::RefCountedObject<CreateAnswerObserver>(this)),
   _setLocalDescriptionObserver(new rtc::RefCountedObject<SetLocalDescriptionObserver>(this)),
