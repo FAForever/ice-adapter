@@ -101,3 +101,12 @@ add_executable(faf-ice-testclient
 target_link_libraries(faf-ice-testclient
   fafice
   )
+
+add_executable(webrtctest
+  WebrtcTest.cpp
+  )
+target_compile_definitions(webrtctest PUBLIC WEBRTC_POSIX)
+
+target_link_libraries(webrtctest
+  ${WEBRTC_LIBRARIES}
+  )
