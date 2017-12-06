@@ -23,6 +23,7 @@ struct PingPacket
   uint32_t senderId;
   uint32_t answererId;
   uint32_t pingId;
+  uint8_t bloat[512];
 }
 #if !defined(_MSC_VER)
 __attribute__((packed));

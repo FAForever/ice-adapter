@@ -106,8 +106,17 @@ add_executable(webrtctest
   WebrtcTest.cpp
   Timer.cpp
   )
-target_compile_definitions(webrtctest PUBLIC WEBRTC_POSIX)
-
 target_link_libraries(webrtctest
+  fafice
+  ${WEBRTC_LIBRARIES}
+  )
+
+add_executable(webrtctestwithpingtracker
+  WebrtcTestWithPingtracker.cpp
+  Timer.cpp
+  Pingtracker.cpp
+  )
+target_link_libraries(webrtctestwithpingtracker
+  fafice
   ${WEBRTC_LIBRARIES}
   )

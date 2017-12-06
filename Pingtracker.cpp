@@ -22,13 +22,18 @@ Pingtracker::Pingtracker(int localPeerId,
   _peerAddress(peerAddress)
 {
   _updateTimer.start(1000, std::bind(&Pingtracker::_update, this));
-  _pingTimer.start(100, std::bind(&Pingtracker::_sendPing, this));
+  _pingTimer.start(20, std::bind(&Pingtracker::_sendPing, this));
 }
 
 void Pingtracker::onPingPacket(PingPacket const* p)
 {
   if (p->type == PingPacket::PING)
   {
+    if (p->answererId != _localPeerId)
+    {
+      FAF_LOG_ERROR << "PING receiver mismatch";
+      return;
+    }
     PingPacket response(*p);
     response.type = PingPacket::PONG;
     _gameLobbySocket->SendTo(reinterpret_cast<const char *>(&response),
@@ -37,6 +42,11 @@ void Pingtracker::onPingPacket(PingPacket const* p)
   }
   else if (p->type == PingPacket::PONG)
   {
+    if (p->senderId != _localPeerId)
+    {
+      FAF_LOG_ERROR << "PING sender mismatch";
+      return;
+    }
     auto pingIt = _pendingPings.find(p->pingId);
     if (pingIt == _pendingPings.end())
     {
