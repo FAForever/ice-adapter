@@ -14,6 +14,7 @@ install:
   - "\"C:\\Program Files\\7-Zip\\7z.exe\" a ..\\faf-ice-adapter-win32.zip faf-ice-adapter.exe"
   - "\"C:\\Program Files\\7-Zip\\7z.exe\" a ..\\faf-ice-testclient-win32.zip faf-ice-testclient.exe faf-ice-adapter.exe"
   - "\"C:\\Program Files\\7-Zip\\7z.exe\" a ..\\faf-ice-testserver-win32.zip faf-ice-testserver.exe"
+  - "\"C:\\Program Files\\7-Zip\\7z.exe\" a ..\\faf-ice-tests-win32.zip webrtctestwithpingtracker.exe webrtctest.exe"
 
 artifacts:
   - path: 'faf-ice-adapter-win32.zip'
@@ -22,6 +23,8 @@ artifacts:
     name: ice_testclient_archive
   - path: 'faf-ice-testserver-win32.zip'
     name: ice_testserver_archive
+  - path: 'faf-ice-tests-win32.zip'
+    name: ice_tests_archive
 
 deploy:
   - provider: GitHub
