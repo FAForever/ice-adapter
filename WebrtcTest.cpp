@@ -9,6 +9,8 @@
 #include <webrtc/rtc_base/thread.h>
 #include <webrtc/media/engine/webrtcmediaengine.h>
 
+#include "Timer.h"
+
 class PeerConnection;
 rtc::scoped_refptr<webrtc::PeerConnectionFactoryInterface> pcfactory;
 
@@ -26,6 +28,8 @@ public:
 };
 
 std::unordered_map<std::pair<PeerId, PeerId>, std::shared_ptr<PeerConnection>, PeerIdPairHash> directedPeerConnections;
+
+faf::Timer quitTimer;
 
 class PeerConnectionObserver;
 class DataChannelObserver;
@@ -323,15 +327,20 @@ void checkDatachannels()
         {
           return;
         }
-        //std::cout << "datachannel " << pc->localId << " -> " << pc->remoteId << " opened" << std::endl;
       }
     }
   }
   std::cout << "all " << directedPeerConnections.size() << " datachannels opened" << std::endl;
-  std::cout << "clearing connections" << std::endl;
-  directedPeerConnections.clear();
-  std::cout << "stopping application" << std::endl;
-  rtc::Thread::Current()->Quit();
+  if (!quitTimer.started())
+  {
+    quitTimer.start(1, [&]()
+    {
+      std::cout << "clearing connections" << std::endl;
+      directedPeerConnections.clear();
+      std::cout << "stopping application" << std::endl;
+      rtc::Thread::Current()->Quit();
+    });
+  }
 }
 
 int main(int argc, char *argv[])
@@ -342,9 +351,9 @@ int main(int argc, char *argv[])
     std::exit(1);
   }
 
-  pcfactory = webrtc::CreateModularPeerConnectionFactory(rtc::Thread::Current(),
-                                                         rtc::Thread::Current(),
-                                                         rtc::Thread::Current(),
+  pcfactory = webrtc::CreateModularPeerConnectionFactory(nullptr,
+                                                         nullptr,
+                                                         nullptr,
                                                          nullptr,
                                                          nullptr,
                                                          nullptr,

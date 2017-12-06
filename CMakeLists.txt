@@ -104,6 +104,7 @@ target_link_libraries(faf-ice-testclient
 
 add_executable(webrtctest
   WebrtcTest.cpp
+  Timer.cpp
   )
 target_compile_definitions(webrtctest PUBLIC WEBRTC_POSIX)
 
