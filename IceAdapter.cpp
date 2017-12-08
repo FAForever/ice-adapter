@@ -14,27 +14,15 @@
 
 namespace faf {
 
-IceAdapter::IceAdapter(int argc, char *argv[]):
-  _options(faf::IceAdapterOptions::init(argc, argv)),
+IceAdapter::IceAdapter(IceAdapterOptions const& options):
+  _options(options),
   _gpgnetGameState("None"),
   _gametaskString("Idle"),
   _lobbyInitMode("normal"),
   _lobbyPort(_options.gameUdpPort)
 {
-  logging_init(_options.logLevel);
-  if (!_options.logDirectory.empty())
-  {
-    logging_init_log_dir(_options.logLevel, _options.logDirectory);
-  }
-
   _jsonRpcServer.listen(_options.rpcPort);
   _gpgnetServer.listen(_options.gpgNetPort);
-
-  if (!rtc::InitializeSSL())
-  {
-    FAF_LOG_ERROR << "Error in InitializeSSL()";
-    std::exit(1);
-  }
 
   auto audio_device_module = FakeAudioCaptureModule::Create();
   _pcfactory = webrtc::CreatePeerConnectionFactory(rtc::Thread::Current(),
@@ -65,16 +53,6 @@ IceAdapter::IceAdapter(int argc, char *argv[]):
   _gpgnetServer.SignalClientConnected.connect(this, &IceAdapter::_onGameConnected);
   _gpgnetServer.SignalClientDisconnected.connect(this, &IceAdapter::_onGameDisconnected);
   _connectRpcMethods();
-}
-
-IceAdapter::~IceAdapter()
-{
-  rtc::CleanupSSL();
-}
-
-void IceAdapter::run()
-{
-  rtc::Thread::Current()->Run();
 }
 
 void IceAdapter::hostGame(std::string const& map)
@@ -643,8 +621,25 @@ int main(int argc, char *argv[])
 #if defined(WEBRTC_POSIX)
   signal(SIGSEGV, exception_handler);   // install our exception handler
 #endif
-  faf::IceAdapter iceAdapter(argc, argv);
+  auto options = faf::IceAdapterOptions::init(argc, argv);
 
-  iceAdapter.run();
+  faf::logging_init(options.logLevel);
+  if (!options.logDirectory.empty())
+  {
+    faf::logging_init_log_dir(options.logLevel, options.logDirectory);
+  }
+
+  if (!rtc::InitializeSSL())
+  {
+    FAF_LOG_ERROR << "Error in InitializeSSL()";
+    std::exit(1);
+  }
+
+  faf::IceAdapter iceAdapter(options);
+
+  rtc::Thread::Current()->Run();
+
+  rtc::CleanupSSL();
+
   return 0;
 }

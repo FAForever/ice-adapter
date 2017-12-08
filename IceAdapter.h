@@ -30,11 +30,7 @@ struct IceAdapterGameTask
 class IceAdapter : public sigslot::has_slots<>
 {
 public:
-  IceAdapter(int argc, char *argv[]);
-  virtual ~IceAdapter();
-
-  /** \brief Execute programs mainloop */
-  void run();
+  IceAdapter(IceAdapterOptions const& options);
 
   /** \brief Sets the IceAdapter in hosting mode and tells the connected game to host the map once
    *         it reaches "Lobby" state
