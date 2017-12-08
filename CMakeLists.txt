@@ -32,12 +32,11 @@ add_custom_target(docs
   )
 
 add_library(fafice
-  GPGNetClient.cpp
   GPGNetServer.cpp
   GPGNetMessage.cpp
+  IceAdapter.cpp
   IceAdapterOptions.cpp
   JsonRpc.cpp
-  JsonRpcClient.cpp
   JsonRpcServer.cpp
   logging.cpp
   PeerRelay.cpp
@@ -76,47 +75,62 @@ else() # we assume MSVC for now
 endif()
 
 add_executable(faf-ice-adapter
-  IceAdapter.cpp
+  main.cpp
 )
-
 target_link_libraries(faf-ice-adapter
   fafice
 )
 
-add_executable(faf-ice-testserver
-  TestServer.cpp
+
+add_library(faficetest
+  test/GPGNetClient.cpp
+  test/JsonRpcClient.cpp
+  test/Process.cpp
+  test/Pingtracker.cpp
+  )
+target_link_libraries(faficetest
+  fafice
 )
 
+add_executable(faf-ice-testserver
+  test/TestServer.cpp
+)
 target_link_libraries(faf-ice-testserver
   fafice
+  faficetest
 )
 
 add_executable(faf-ice-testclient
-  TestClient.cpp
-  Process.cpp
-  Pingtracker.cpp
-  ${testclient_srcs}
+  test/TestClient.cpp
   )
-
 target_link_libraries(faf-ice-testclient
   fafice
+  faficetest
   )
 
 add_executable(webrtctest
-  WebrtcTest.cpp
-  Timer.cpp
+  test/WebrtcTest.cpp
   )
 target_link_libraries(webrtctest
   fafice
+  faficetest
   ${WEBRTC_LIBRARIES}
   )
 
 add_executable(webrtctestwithpingtracker
-  WebrtcTestWithPingtracker.cpp
-  Timer.cpp
-  Pingtracker.cpp
+  test/WebrtcTestWithPingtracker.cpp
   )
 target_link_libraries(webrtctestwithpingtracker
   fafice
+  faficetest
+  ${WEBRTC_LIBRARIES}
+  )
+
+add_executable(IceAdapterTest
+  test/IceAdapterTest.cpp
+  )
+target_link_libraries(IceAdapterTest
+  fafice
+  faficetest
   ${WEBRTC_LIBRARIES}
   )

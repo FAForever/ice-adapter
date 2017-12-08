@@ -1,6 +1,7 @@
 #include "Pingtracker.h"
 
 #include <chrono>
+#include <iostream>
 
 #include <webrtc/rtc_base/thread.h>
 #include <webrtc/api/datachannelinterface.h>
@@ -23,6 +24,7 @@ Pingtracker::Pingtracker(int localPeerId,
 {
   _updateTimer.start(1000, std::bind(&Pingtracker::_update, this));
   _pingTimer.start(20, std::bind(&Pingtracker::_sendPing, this));
+  std::cout << localPeerId << " -> " << remotePeerId << " PINGTRACKER STARTED " << std::endl;
 }
 
 void Pingtracker::onPingPacket(PingPacket const* p)
