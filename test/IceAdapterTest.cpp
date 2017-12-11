@@ -5,9 +5,12 @@
 #include <memory>
 #include <array>
 #include <random>
+#include <ctime>
 
 #include <webrtc/rtc_base/ssladapter.h>
 #include <webrtc/rtc_base/thread.h>
+#include <webrtc/rtc_base/messagedigest.h>
+#include <webrtc/rtc_base/base64.h>
 #include <third_party/json/json.h>
 
 #include "IceAdapterOptions.h"
@@ -95,6 +98,13 @@ public:
                                    Json::Value&,
                                    rtc::AsyncSocket*)
     {
+      auto iceMsg = paramsArray[2];
+      auto candidateString = iceMsg["candidate"]["candidate"].asString();
+      if (iceMsg["type"].asString() == "candidate" &&
+          iceMsg["candidate"]["candidate"].asString().find("relay") != std::string::npos)
+      {
+        return;
+      }
       iceAdapters.at(paramsArray[1].asInt())->iceMsg(localId, paramsArray[2]);
     });
     _client->setRpcCallback("onIceConnectionStateChanged",
@@ -174,6 +184,31 @@ protected:
     {
       localId = result["options"]["player_id"].asInt();
     });
+
+    char digest[64];
+    std::time_t authValidUntil = std::time(nullptr) + 3600*24;
+    std::string authUsername = std::to_string(authValidUntil) + ":mylogin";
+    auto digestSize = rtc::ComputeHmac(rtc::DIGEST_SHA_1,
+                                       "banana",
+                                       sizeof("banana"),
+                                       authUsername.c_str(),
+                                       authUsername.length(),
+                                       digest,
+                                       sizeof(digest));
+    auto authToken = rtc::Base64::Encode(std::string(digest, digestSize));
+
+    Json::Value iceServer;
+    iceServer["urls"].append("turn:vmrbg145.informatik.tu-muenchen.de?transport=tcp");
+    iceServer["urls"].append("turn:vmrbg145.informatik.tu-muenchen.de?transport=udp");
+    iceServer["urls"].append("stun:vmrbg145.informatik.tu-muenchen.de");
+    iceServer["username"] = authUsername;
+    iceServer["credential"] = authToken;
+    iceServer["credentialType"] = "token";
+    Json::Value iceServers(Json::arrayValue);
+    iceServers.append(iceServer);
+    Json::Value rpcParams(Json::arrayValue);
+    rpcParams.append(iceServers);
+    _client->sendRequest("setIceServers", rpcParams);
   }
 };
 
