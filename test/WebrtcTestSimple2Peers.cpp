@@ -14,22 +14,7 @@
 class PeerConnection;
 rtc::scoped_refptr<webrtc::PeerConnectionFactoryInterface> pcfactory;
 
-typedef std::size_t PeerId;
-
-static constexpr std::size_t numPeers = 2;
-std::set<std::pair<PeerId, PeerId>> offers;
-
-struct PeerIdPairHash {
-public:
-  std::size_t operator()(const std::pair<PeerId, PeerId> &x) const
-  {
-    return std::hash<PeerId>()(x.first) ^ std::hash<PeerId>()(x.second);
-  }
-};
-
-std::unordered_map<std::pair<PeerId, PeerId>, std::shared_ptr<PeerConnection>, PeerIdPairHash> directedPeerConnections;
-
-faf::Timer quitTimer;
+static std::shared_ptr<PeerConnection> pc1, pc2;
 
 class PeerConnectionObserver;
 class DataChannelObserver;
@@ -41,9 +26,6 @@ class SetRemoteDescriptionObserver;
 class PeerConnection
 {
 public:
-  PeerId localId;
-  PeerId remoteId;
-
   std::unique_ptr<PeerConnectionObserver> pcObserver;
   std::unique_ptr<DataChannelObserver> dcObserver;
   rtc::scoped_refptr<CreateOfferObserver> offerObserver;
@@ -53,8 +35,7 @@ public:
   rtc::scoped_refptr<webrtc::PeerConnectionInterface> peerConnection;
   rtc::scoped_refptr<webrtc::DataChannelInterface> dataChannel;
 
-  PeerConnection(PeerId localId,
-                 PeerId remoteId);
+  PeerConnection();
 
   ~PeerConnection();
 
@@ -81,7 +62,6 @@ private:
     std::cout << "DataChannelObserver::OnStateChange" << std::endl;
     if (_pc->dataChannel->state() == webrtc::DataChannelInterface::kOpen)
     {
-      std::cout << "datachannel " << _pc->localId << " -> " << _pc->remoteId << " opened" << std::endl;
       checkDatachannels();
     }
   }
@@ -133,25 +113,36 @@ public:
   {
     std::cout << "PeerConnectionObserver::OnIceGatheringChange " << static_cast<int>(new_state) << std::endl;
   }
+
   virtual void OnIceCandidate(const webrtc::IceCandidateInterface *candidate) override
   {
-    std::cout << "PeerConnectionObserver::OnIceCandidate" << std::endl;
-    directedPeerConnections.at({_pc->remoteId, _pc->localId})->addRemoteCandidate(candidate);
+    if (_pc == pc1.get())
+    {
+      pc2->addRemoteCandidate(candidate);
+    }
+    else
+    {
+      pc1->addRemoteCandidate(candidate);
+    }
   }
+
   virtual void OnRenegotiationNeeded() override
   {
     std::cout << "PeerConnectionObserver::OnRenegotiationNeeded" << std::endl;
   }
+
   virtual void OnDataChannel(rtc::scoped_refptr<webrtc::DataChannelInterface> data_channel) override
   {
     std::cout << "PeerConnectionObserver::OnDataChannel" << std::endl;
     _pc->dataChannel = data_channel;
     data_channel->RegisterObserver( _pc->dcObserver.get());
   }
+
   virtual void OnAddStream(rtc::scoped_refptr<webrtc::MediaStreamInterface> stream) override
   {
     std::cout << "PeerConnectionObserver::OnAddStream" << std::endl;
   }
+
   virtual void OnRemoveStream(rtc::scoped_refptr<webrtc::MediaStreamInterface> stream) override
   {
     std::cout << "PeerConnectionObserver::OnRemoveStream" << std::endl;
@@ -211,8 +202,8 @@ public:
   virtual void OnSuccess(webrtc::SessionDescriptionInterface *sdp) override
   {
     std::cout << "CreateOfferObserver::OnSuccess" << std::endl;
-    _pc->peerConnection->SetLocalDescription(_pc->setLocalDescriptionObserver, sdp);
-    directedPeerConnections.at({_pc->remoteId, _pc->localId})->createAnswer(sdp);
+    pc1->peerConnection->SetLocalDescription(_pc->setLocalDescriptionObserver, sdp);
+    pc2->createAnswer(sdp);
   }
 
   virtual void OnFailure(const std::string &msg) override
@@ -234,8 +225,7 @@ public:
   {
     std::cout << "CreateAnswerObserver::OnSuccess" << std::endl;
     _pc->peerConnection->SetLocalDescription(_pc->setLocalDescriptionObserver, sdp);
-    auto remotePc = directedPeerConnections.at({_pc->remoteId, _pc->localId});
-    remotePc->peerConnection->SetRemoteDescription(remotePc->setRemoteDescriptionObserver, sdp);
+    pc1->peerConnection->SetRemoteDescription(pc1->setRemoteDescriptionObserver, sdp);
   }
 
   virtual void OnFailure(const std::string &msg) override
@@ -244,10 +234,7 @@ public:
   }
 };
 
-PeerConnection::PeerConnection(PeerId localId,
-                 PeerId remoteId):
-    localId(localId),
-    remoteId(remoteId)
+PeerConnection::PeerConnection()
 {
   pcObserver = std::make_unique<PeerConnectionObserver>(this);
   dcObserver = std::make_unique<DataChannelObserver>(this);
@@ -280,16 +267,10 @@ PeerConnection::~PeerConnection()
 
 void PeerConnection::createOffer()
 {
-  //webrtc::DataChannelInit dataChannelInit;
-  //dataChannelInit.maxRetransmits = 0;
-  //dataChannelInit.ordered = false;
   dataChannel = peerConnection->CreateDataChannel("faf",
                                                   nullptr);
 
   dataChannel->RegisterObserver(dcObserver.get());
-  //webrtc::PeerConnectionInterface::RTCOfferAnswerOptions options;
-  //options.offer_to_receive_audio = 0;
-  //options.offer_to_receive_video = 0;
   peerConnection->CreateOffer(offerObserver.get(),
                               nullptr);
 }
@@ -316,33 +297,11 @@ void PeerConnection::addRemoteCandidate(const webrtc::IceCandidateInterface *can
 
 void checkDatachannels()
 {
-  for (PeerId localId = 0; localId < numPeers; ++localId)
+  if (pc1->dataChannel && pc1->dataChannel->state() == webrtc::DataChannelInterface::kOpen &&
+      pc2->dataChannel && pc2->dataChannel->state() == webrtc::DataChannelInterface::kOpen)
   {
-    for (PeerId remoteId = 0; remoteId < numPeers; ++remoteId)
-    {
-      if (localId != remoteId)
-      {
-        auto pc = directedPeerConnections.at({localId, remoteId});
-        if (pc->dataChannel && pc->dataChannel->state() != webrtc::DataChannelInterface::kOpen)
-        {
-          return;
-        }
-      }
-    }
+    std::cout << "all datachannels opened" << std::endl;
   }
-  std::cout << "all " << directedPeerConnections.size() << " datachannels opened" << std::endl;
-  /*
-  if (!quitTimer.started())
-  {
-    quitTimer.start(1, [&]()
-    {
-      std::cout << "clearing connections" << std::endl;
-      directedPeerConnections.clear();
-      std::cout << "stopping application" << std::endl;
-      rtc::Thread::Current()->Quit();
-    });
-  }
-  */
 }
 
 int main(int argc, char *argv[])
@@ -367,24 +326,9 @@ int main(int argc, char *argv[])
                                                          nullptr);
 
   /* create all PeerConnections */
-  for (PeerId localId = 0; localId < numPeers; ++localId)
-  {
-    for (PeerId remoteId = 0; remoteId < numPeers; ++remoteId)
-    {
-      if (localId != remoteId)
-      {
-        auto directionPair = std::make_pair(localId, remoteId);
-        auto pc = std::make_shared<PeerConnection>(localId, remoteId);
-        if (offers.find(directionPair) == offers.end())
-        {
-          pc->createOffer();
-          offers.insert(directionPair);
-          offers.insert({remoteId, localId});
-        }
-        directedPeerConnections.insert({{localId, remoteId}, pc});
-      }
-    }
-  }
+  pc1 = std::make_shared<PeerConnection>();
+  pc2 = std::make_shared<PeerConnection>();
+  pc1->createOffer();
 
   rtc::Thread::Current()->Run();
   return 0;

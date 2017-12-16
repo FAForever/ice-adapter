@@ -108,6 +108,16 @@ target_link_libraries(faf-ice-testclient
   faficetest
   )
 
+
+add_executable(webrtctestsimple2peers
+  test/WebrtcTestSimple2Peers.cpp
+  )
+target_link_libraries(webrtctestsimple2peers
+  fafice
+  faficetest
+  ${WEBRTC_LIBRARIES}
+  )
+
 add_executable(webrtctest
   test/WebrtcTest.cpp
   )
