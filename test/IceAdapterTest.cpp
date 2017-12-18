@@ -145,8 +145,7 @@ public:
                                                  remId,
                                                  lobbySockets.at(locId).get(),
                                                  directedPeerAddresses.at({locId, remId}))
-        }
-                );
+        });
 
       }
     });
@@ -335,7 +334,19 @@ int main(int argc, char *argv[])
     std::exit(1);
   }
 
-  auto startTest = []()
+  auto restartP2PSessions = []()
+  {
+    gpgnetClients.clear();
+    lobbySockets.clear();
+    directedPeerAddresses.clear();
+    directedPingTrackers.clear();
+    for (PeerId localId = 0; localId < numPeers; ++localId)
+    {
+      gpgnetClients.insert({localId, std::make_unique<GPGNetHandler>(iceAdapters.at(localId)->options().gpgNetPort)});
+    }
+  };
+
+  auto restartTest = [restartP2PSessions]()
   {
     iceAdapters.clear();
     gpgnetClients.clear();
@@ -380,13 +391,16 @@ int main(int argc, char *argv[])
 
       iceAdapters.insert({localId, std::make_unique<faf::IceAdapter>(options)});
       clients.insert({localId, std::make_unique<IceAdapterHandler>(rpcPort, localId == 0)});
-      gpgnetClients.insert({localId, std::make_unique<GPGNetHandler>(gpgnetPort)});
     }
+    restartP2PSessions();
   };
 
   faf::Timer restartTestTimer;
-  restartTestTimer.start(20000, startTest);
-  startTest();
+  restartTestTimer.start(40000, restartTest);
+  restartTest();
+
+  faf::Timer restartP2PTimer;
+  restartP2PTimer.start(3000, restartP2PSessions);
 
   rtc::Thread::Current()->Run();
 
