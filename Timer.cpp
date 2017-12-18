@@ -5,6 +5,16 @@
 
 #include "logging.h"
 
+#ifdef WEBRTC_POSIX /* dirty fix for linker errors */
+namespace rtc
+{
+MessageHandler::~MessageHandler()
+{
+  MessageQueueManager::Clear(this);
+}
+}
+#endif
+
 namespace faf {
 
 Timer::Timer():
