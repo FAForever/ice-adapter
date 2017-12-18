@@ -23,7 +23,7 @@
 
 /* number of simulated peers. Note that the number of PeerConnections will be
  * 2 * (N-1)^2, so don't overdo it */
-static constexpr std::size_t numPeers = 5;
+static constexpr std::size_t numPeers = 2;
 typedef std::size_t PeerId;
 
 static  std::unordered_map<PeerId, std::unique_ptr<faf::IceAdapter>> iceAdapters;
@@ -140,7 +140,7 @@ public:
 
         directedPingTrackers.insert(
         {
-              std::make_pair<PeerId, PeerId>(locId, remId),
+              std::make_pair<PeerId, PeerId>(PeerId(locId), PeerId(remId)),
               std::make_unique<faf::Pingtracker>(locId,
                                                  remId,
                                                  lobbySockets.at(locId).get(),
@@ -328,50 +328,65 @@ protected:
 
 int main(int argc, char *argv[])
 {
+  //faf::logging_init("verbose");
   if (!rtc::InitializeSSL())
   {
     std::cerr << "Error in InitializeSSL()";
     std::exit(1);
   }
 
-  for (PeerId localId = 0; localId < numPeers; ++localId)
+  auto startTest = []()
   {
+    iceAdapters.clear();
+    gpgnetClients.clear();
+    clients.clear();
+    lobbySockets.clear();
+    offers.clear();
+    directedPingTrackers.clear();
+    directedPeerAddresses.clear();
 
-    /* detect unused tcp server ports for the ice-adapter */
-    int rpcPort;
+    for (PeerId localId = 0; localId < numPeers; ++localId)
     {
-      auto serverSocket = rtc::Thread::Current()->socketserver()->CreateAsyncSocket(SOCK_STREAM);
-      if (serverSocket->Bind(rtc::SocketAddress("127.0.0.1", 0)) != 0)
+      /* detect unused tcp server ports for the ice-adapter */
+      int rpcPort;
       {
-        FAF_LOG_ERROR << "unable to bind tcp server";
-        std::exit(1);
+        auto serverSocket = rtc::Thread::Current()->socketserver()->CreateAsyncSocket(SOCK_STREAM);
+        if (serverSocket->Bind(rtc::SocketAddress("127.0.0.1", 0)) != 0)
+        {
+          FAF_LOG_ERROR << "unable to bind tcp server";
+          std::exit(1);
+        }
+        serverSocket->Listen(5);
+        rpcPort = serverSocket->GetLocalAddress().port();
+        delete serverSocket;
       }
-      serverSocket->Listen(5);
-      rpcPort = serverSocket->GetLocalAddress().port();
-      delete serverSocket;
-    }
-    int gpgnetPort;
-    {
-      auto serverSocket = rtc::Thread::Current()->socketserver()->CreateAsyncSocket(SOCK_STREAM);
-      if (serverSocket->Bind(rtc::SocketAddress("127.0.0.1", 0)) != 0)
+      int gpgnetPort;
       {
-        FAF_LOG_ERROR << "unable to bind tcp server";
-        std::exit(1);
+        auto serverSocket = rtc::Thread::Current()->socketserver()->CreateAsyncSocket(SOCK_STREAM);
+        if (serverSocket->Bind(rtc::SocketAddress("127.0.0.1", 0)) != 0)
+        {
+          FAF_LOG_ERROR << "unable to bind tcp server";
+          std::exit(1);
+        }
+        serverSocket->Listen(5);
+        gpgnetPort = serverSocket->GetLocalAddress().port();
+        delete serverSocket;
       }
-      serverSocket->Listen(5);
-      gpgnetPort = serverSocket->GetLocalAddress().port();
-      delete serverSocket;
+
+      auto options = faf::IceAdapterOptions::init(localId,
+                                                  std::string("Player") + std::to_string(localId));
+      options.rpcPort = rpcPort;
+      options.gpgNetPort = gpgnetPort;
+
+      iceAdapters.insert({localId, std::make_unique<faf::IceAdapter>(options)});
+      clients.insert({localId, std::make_unique<IceAdapterHandler>(rpcPort, localId == 0)});
+      gpgnetClients.insert({localId, std::make_unique<GPGNetHandler>(gpgnetPort)});
     }
+  };
 
-    auto options = faf::IceAdapterOptions::init(localId,
-                                                std::string("Player") + std::to_string(localId));
-    options.rpcPort = rpcPort;
-    options.gpgNetPort = gpgnetPort;
-
-    iceAdapters.insert({localId, std::make_unique<faf::IceAdapter>(options)});
-    clients.insert({localId, std::make_unique<IceAdapterHandler>(rpcPort, localId == 0)});
-    gpgnetClients.insert({localId, std::make_unique<GPGNetHandler>(gpgnetPort)});
-  }
+  faf::Timer restartTestTimer;
+  restartTestTimer.start(20000, startTest);
+  startTest();
 
   rtc::Thread::Current()->Run();
 
