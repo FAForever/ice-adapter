@@ -133,12 +133,13 @@ void PeerRelay::_initPeerConnection()
   }
   _setIceState("none");
 
+  _closing = false;
   webrtc::PeerConnectionInterface::RTCConfiguration configuration;
+  configuration.servers = _iceServerList;
   _peerConnection = _pcfactory->CreatePeerConnection(configuration,
                                                      nullptr,
                                                      nullptr,
                                                      _peerConnectionObserver.get());
-  _closing = false;
   if (_createOffer)
   {
     webrtc::DataChannelInit dataChannelInit;
@@ -176,6 +177,10 @@ void PeerRelay::_setIceState(std::string const& state)
 {
   RELAY_LOG_DEBUG << "ice state changed to" << state;
   _iceState = state;
+  if (_closing)
+  {
+    return;
+  }
   if (_iceState == "connected" ||
       _iceState == "completed")
   {

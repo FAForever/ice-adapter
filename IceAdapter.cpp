@@ -555,7 +555,7 @@ void IceAdapter::_createPeerRelay(int remotePlayerId,
   }
 
   PeerRelay::Callbacks callbacks;
-  callbacks.iceMessageCallback = [this, remotePlayerId](Json::Value const& iceMsg)
+  callbacks.iceMessageCallback = [this, remotePlayerId](Json::Value iceMsg)
   {
     Json::Value onIceMsgParams(Json::arrayValue);
     onIceMsgParams.append(_options.localPlayerId);
@@ -565,7 +565,7 @@ void IceAdapter::_createPeerRelay(int remotePlayerId,
                                onIceMsgParams);
   };
 
-  callbacks.stateCallback = [this, remotePlayerId](std::string const& state)
+  callbacks.stateCallback = [this, remotePlayerId](std::string state)
   {
     Json::Value onIceStateChangedParams(Json::arrayValue);
     onIceStateChangedParams.append(_options.localPlayerId);

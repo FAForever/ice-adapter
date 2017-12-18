@@ -1,3 +1,8 @@
+v6.1.2
+======
+
+- fix not using ICE servers
+
 v6.1.1
 ======
 

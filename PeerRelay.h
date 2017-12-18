@@ -26,8 +26,8 @@ class PeerRelay : public sigslot::has_slots<>
 public:
   struct Callbacks
   {
-    std::function<void (Json::Value const& iceMsg)> iceMessageCallback;
-    std::function<void (std::string const& state)> stateCallback;
+    std::function<void (Json::Value iceMsg)> iceMessageCallback;
+    std::function<void (std::string state)> stateCallback;
     std::function<void (bool)> connectedCallback;
   };
 
