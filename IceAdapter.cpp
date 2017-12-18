@@ -8,6 +8,7 @@
 #include <webrtc/api/mediaconstraintsinterface.h>
 #include <webrtc/api/test/fakeconstraints.h>
 #include <third_party/json/json.h>
+#include <webrtc/media/engine/webrtcmediaengine.h>
 
 #include "logging.h"
 
@@ -24,11 +25,18 @@ IceAdapter::IceAdapter(IceAdapterOptions const& options):
   _gpgnetServer.listen(_options.gpgNetPort);
 
   auto audio_device_module = FakeAudioCaptureModule::Create();
-  _pcfactory = webrtc::CreatePeerConnectionFactory(rtc::Thread::Current(),
-                                                   rtc::Thread::Current(),
-                                                   audio_device_module,
-                                                   nullptr,
-                                                   nullptr);
+  _pcfactory = webrtc::CreateModularPeerConnectionFactory(nullptr,
+                                                          nullptr,
+                                                          nullptr,
+                                                          nullptr,
+                                                          nullptr,
+                                                          nullptr,
+                                                          nullptr,
+                                                          nullptr,
+                                                          nullptr,
+                                                          nullptr,
+                                                          nullptr,
+                                                          nullptr);
   if (!_pcfactory)
   {
     FAF_LOG_ERROR << "Error in CreatePeerConnectionFactory()";
@@ -528,7 +536,7 @@ void IceAdapter::_onGpgNetMessage(GPGNetMessage message)
                              rpcParams);
 }
 
-std::shared_ptr<PeerRelay> IceAdapter::_createPeerRelay(int remotePlayerId,
+void IceAdapter::_createPeerRelay(int remotePlayerId,
                                                         std::string const& remotePlayerLogin,
                                                         bool createOffer)
 {
@@ -543,16 +551,11 @@ std::shared_ptr<PeerRelay> IceAdapter::_createPeerRelay(int remotePlayerId,
   if (existingRelay != _relays.end())
   {
     FAF_LOG_WARN << "PeerRelay for remote player " << remotePlayerLogin << "(" << remotePlayerId << ") already exists! Skipping instantiation of new PeerRelay.";
-    return existingRelay->second;
+    return;
   }
 
-  auto relay = std::make_shared<PeerRelay>(remotePlayerId,
-                                           remotePlayerLogin,
-                                           createOffer,
-                                           _lobbyPort,
-                                           _pcfactory);
-
-  relay->setIceMessageCallback([this, remotePlayerId](Json::Value const& iceMsg)
+  PeerRelay::Callbacks callbacks;
+  callbacks.iceMessageCallback = [this, remotePlayerId](Json::Value const& iceMsg)
   {
     Json::Value onIceMsgParams(Json::arrayValue);
     onIceMsgParams.append(_options.localPlayerId);
@@ -560,9 +563,9 @@ std::shared_ptr<PeerRelay> IceAdapter::_createPeerRelay(int remotePlayerId,
     onIceMsgParams.append(iceMsg);
     _jsonRpcServer.sendRequest("onIceMsg",
                                onIceMsgParams);
-  });
+  };
 
-  relay->setStateCallback([this, remotePlayerId](std::string const& state)
+  callbacks.stateCallback = [this, remotePlayerId](std::string const& state)
   {
     Json::Value onIceStateChangedParams(Json::arrayValue);
     onIceStateChangedParams.append(_options.localPlayerId);
@@ -570,9 +573,9 @@ std::shared_ptr<PeerRelay> IceAdapter::_createPeerRelay(int remotePlayerId,
     onIceStateChangedParams.append(state);
     _jsonRpcServer.sendRequest("onIceConnectionStateChanged",
                                onIceStateChangedParams);
-  });
+  };
 
-  relay->setConnectedCallback([this, remotePlayerId](bool connected)
+  callbacks.connectedCallback = [this, remotePlayerId](bool connected)
   {
     Json::Value onConnectedParams(Json::arrayValue);
     onConnectedParams.append(_options.localPlayerId);
@@ -580,15 +583,19 @@ std::shared_ptr<PeerRelay> IceAdapter::_createPeerRelay(int remotePlayerId,
     onConnectedParams.append(connected);
     _jsonRpcServer.sendRequest("onConnected",
                                onConnectedParams);
-  });
+  };
 
-  relay->setIceServers(_iceServers);
+  PeerRelay::Options options = {
+    remotePlayerId,
+    remotePlayerLogin,
+    createOffer,
+    _lobbyPort,
+    _iceServers
+  };
 
-  _relays[remotePlayerId] = relay;
-
-  relay->reinit();
-
-  return relay;
+  _relays[remotePlayerId] = std::make_shared<PeerRelay>(options,
+                                                        callbacks,
+                                                        _pcfactory);
 }
 
 IceAdapterOptions const& IceAdapter::options() const

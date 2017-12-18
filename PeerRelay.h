@@ -24,33 +24,37 @@ class RTCStatsCollectorCallback;
 class PeerRelay : public sigslot::has_slots<>
 {
 public:
-  PeerRelay(int remotePlayerId,
-            std::string const& remotePlayerLogin,
-            bool createOffer,
-            int gameUdpPort,
+  struct Callbacks
+  {
+    std::function<void (Json::Value const& iceMsg)> iceMessageCallback;
+    std::function<void (std::string const& state)> stateCallback;
+    std::function<void (bool)> connectedCallback;
+  };
+
+  struct Options
+  {
+    int remotePlayerId;
+    std::string remotePlayerLogin;
+    bool createOffer;
+    int gameUdpPort;
+    webrtc::PeerConnectionInterface::IceServers iceServers;
+  };
+
+  PeerRelay(Options options,
+            Callbacks callbacks,
             rtc::scoped_refptr<webrtc::PeerConnectionFactoryInterface> const& pcfactory);
   virtual ~PeerRelay();
-
-  typedef std::function<void (Json::Value const& iceMsg)> IceMessageCallback;
-  void setIceMessageCallback(IceMessageCallback cb);
-
-  typedef std::function<void (std::string const& state)> StateCallback;
-  void setStateCallback(StateCallback cb);
-
-  typedef std::function<void (bool)> ConnectedCallback;
-  void setConnectedCallback(ConnectedCallback cb);
 
   void setIceServers(webrtc::PeerConnectionInterface::IceServers const& iceServers);
 
   void addIceMessage(Json::Value const& iceMsg);
-
-  void reinit();
 
   int localUdpSocketPort() const;
 
   Json::Value status() const;
 
 protected:
+  void _initPeerConnection();
   void _closePeerConnection();
   void _setIceState(std::string const& state);
   void _setConnected(bool connected);
@@ -83,12 +87,8 @@ protected:
   int _localUdpSocketPort;
   std::array<char, 2048> _readBuffer;
 
-  /* callbacks */
-  IceMessageCallback _iceMessageCallback;
-  StateCallback _stateCallback;
-  ConnectedCallback _connectedCallback;
-
   /* ICE state data */
+  Callbacks _callbacks;
   bool _receivedOffer;
   bool _isConnected;
   bool _closing;

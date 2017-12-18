@@ -49,13 +49,13 @@ void CreateAnswerObserver::OnFailure(const std::string &msg)
 void SetLocalDescriptionObserver::OnSuccess()
 {
   OBSERVER_LOG_DEBUG << "SetLocalDescriptionObserver::OnSuccess";
-  if (_relay->_iceMessageCallback)
+  if (_relay->_callbacks.iceMessageCallback)
   {
     Json::Value iceMsg;
     std::string sdpString;
     iceMsg["type"] = _relay->_createOffer ? "offer" : "answer";
     iceMsg["sdp"] = _relay->_localSdp;
-    _relay->_iceMessageCallback(iceMsg);
+    _relay->_callbacks.iceMessageCallback(iceMsg);
   }
 }
 
@@ -126,7 +126,7 @@ void PeerConnectionObserver::OnIceCandidate(const webrtc::IceCandidateInterface 
 {
   OBSERVER_LOG_DEBUG << "PeerConnectionObserver::OnIceCandidate";
 
-  if (_relay->_iceMessageCallback)
+  if (_relay->_callbacks.iceMessageCallback)
   {
     Json::Value candidateJson;
     std::string candidateString;
@@ -137,7 +137,7 @@ void PeerConnectionObserver::OnIceCandidate(const webrtc::IceCandidateInterface 
     Json::Value iceMsg;
     iceMsg["type"] = "candidate";
     iceMsg["candidate"] = candidateJson;
-    _relay->_iceMessageCallback(iceMsg);
+    _relay->_callbacks.iceMessageCallback(iceMsg);
   }
 }
 
@@ -186,16 +186,15 @@ void DataChannelObserver::OnStateChange()
     }
   }
 }
+
 void DataChannelObserver::OnMessage(const webrtc::DataBuffer& buffer)
 {
-  OBSERVER_LOG_DEBUG << "DataChannelObserver::OnMessage";
   if (_relay->_localUdpSocket)
   {
     _relay->_localUdpSocket->SendTo(buffer.data.cdata(),
                                     buffer.data.size(),
                                     _relay->_gameUdpAddress);
   }
-  OBSERVER_LOG_DEBUG << "DataChannelObserver::OnMessage done";
 }
 
 void RTCStatsCollectorCallback::OnStatsDelivered(const rtc::scoped_refptr<const webrtc::RTCStatsReport>& report)

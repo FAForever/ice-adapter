@@ -102,9 +102,9 @@ protected:
   void _onGameConnected();
   void _onGameDisconnected();
   void _onGpgNetMessage(GPGNetMessage message);
-  std::shared_ptr<PeerRelay> _createPeerRelay(int remotePlayerId,
-                                              std::string const& remotePlayerLogin,
-                                              bool createOffer);
+  void _createPeerRelay(int remotePlayerId,
+                        std::string const& remotePlayerLogin,
+                        bool createOffer);
 
   IceAdapterOptions _options;
   rtc::scoped_refptr<webrtc::PeerConnectionFactoryInterface> _pcfactory;
