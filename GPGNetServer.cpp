@@ -135,12 +135,17 @@ void GPGNetServer::sendPing()
 
 void GPGNetServer::_onNewClient(rtc::AsyncSocket* socket)
 {
-  rtc::SocketAddress accept_addr;
+  if (socket != _server.get())
+  {
+    FAF_LOG_ERROR << "??";
+    return;
+  }
   if (_connectedSocket)
   {
     FAF_LOG_WARN << "only one connected GPGNet client supported. Dropping previous connection";
     _connectedSocket->Close();
   }
+  rtc::SocketAddress accept_addr;
   _connectedSocket.reset(_server->Accept(&accept_addr));
   _connectedSocket->SignalReadEvent.connect(this, &GPGNetServer::_onRead);
   _connectedSocket->SignalCloseEvent.connect(this, &GPGNetServer::_onClientDisconnect);
@@ -150,9 +155,12 @@ void GPGNetServer::_onNewClient(rtc::AsyncSocket* socket)
 
 void GPGNetServer::_onClientDisconnect(rtc::AsyncSocket* socket, int _whatsThis_)
 {
-  _connectedSocket.reset();
-  FAF_LOG_DEBUG << "GPGNetServer client disconnected: " << _whatsThis_;
-  SignalClientDisconnected.emit();
+  if (socket == _connectedSocket.get())
+  {
+    _connectedSocket.reset();
+    FAF_LOG_DEBUG << "GPGNetServer client disconnected: " << _whatsThis_;
+    SignalClientDisconnected.emit();
+  }
 }
 
 void GPGNetServer::_onRead(rtc::AsyncSocket* socket)
@@ -160,7 +168,7 @@ void GPGNetServer::_onRead(rtc::AsyncSocket* socket)
   int msgLength = 0;
   do
   {
-    msgLength = _connectedSocket->Recv(_readBuffer.data(), _readBuffer.size(), nullptr);
+    msgLength = socket->Recv(_readBuffer.data(), _readBuffer.size(), nullptr);
 
     if (msgLength > 0)
     {
