@@ -1,3 +1,8 @@
+v6.1.1
+======
+
+- testing and debugging
+
 v6.1.0
 ======
 
