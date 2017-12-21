@@ -53,6 +53,8 @@ public:
 
   Json::Value status() const;
 
+  bool isConnected() const;
+
 protected:
   void _initPeerConnection();
   void _closePeerConnection();

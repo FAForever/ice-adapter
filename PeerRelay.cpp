@@ -73,6 +73,11 @@ Json::Value PeerRelay::status() const
   return result;
 }
 
+bool PeerRelay::isConnected() const
+{
+  return _isConnected;
+}
+
 void PeerRelay::setIceServers(webrtc::PeerConnectionInterface::IceServers const& iceServers)
 {
   _iceServerList = iceServers;

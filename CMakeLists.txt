@@ -144,3 +144,21 @@ target_link_libraries(IceAdapterTest
   faficetest
   ${WEBRTC_LIBRARIES}
   )
+
+add_executable(GPGNetServerTest
+  test/GPGNetServerTest.cpp
+  )
+target_link_libraries(GPGNetServerTest
+  fafice
+  faficetest
+  ${WEBRTC_LIBRARIES}
+  )
+
+add_executable(PeerRelayTest
+  test/PeerRelayTest.cpp
+  )
+target_link_libraries(PeerRelayTest
+  fafice
+  faficetest
+  ${WEBRTC_LIBRARIES}
+  )

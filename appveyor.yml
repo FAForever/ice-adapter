@@ -14,7 +14,7 @@ install:
   - "\"C:\\Program Files\\7-Zip\\7z.exe\" a ..\\faf-ice-adapter-win32.zip faf-ice-adapter.exe"
   - "\"C:\\Program Files\\7-Zip\\7z.exe\" a ..\\faf-ice-testclient-win32.zip faf-ice-testclient.exe faf-ice-adapter.exe"
   - "\"C:\\Program Files\\7-Zip\\7z.exe\" a ..\\faf-ice-testserver-win32.zip faf-ice-testserver.exe"
-  - "\"C:\\Program Files\\7-Zip\\7z.exe\" a ..\\faf-ice-tests-win32.zip webrtctestwithpingtracker.exe webrtctest.exe"
+  - "\"C:\\Program Files\\7-Zip\\7z.exe\" a ..\\faf-ice-tests-win32.zip webrtctestwithpingtracker.exe webrtctest.exe GPGNetServerTest.exe PeerRelayTest.exe"
 
 artifacts:
   - path: 'faf-ice-adapter-win32.zip'
