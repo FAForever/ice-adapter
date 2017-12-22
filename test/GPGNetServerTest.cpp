@@ -102,13 +102,13 @@ protected:
   void _onClient1Connected(rtc::AsyncSocket* socket)
   {
     std::cout << counter++ << " GPGNetClient: connected" << std::endl;
-    rtc::Thread::Current()->PostDelayed(RTC_FROM_HERE, 100, this, static_cast<uint32_t>(Message::StartClient2));
+    rtc::Thread::Current()->PostDelayed(RTC_FROM_HERE, 50, this, static_cast<uint32_t>(Message::StartClient2));
   }
 
   void _onClient2Connected(rtc::AsyncSocket* socket)
   {
     std::cout << counter++ << " GPGNetClient: connected" << std::endl;
-    rtc::Thread::Current()->PostDelayed(RTC_FROM_HERE, 100, this, static_cast<uint32_t>(Message::StartClient1));
+    rtc::Thread::Current()->PostDelayed(RTC_FROM_HERE, 50, this, static_cast<uint32_t>(Message::StartClient1));
   }
 
   virtual void OnMessage(rtc::Message* msg) override

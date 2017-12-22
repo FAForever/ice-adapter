@@ -11,6 +11,8 @@
 
 #include "Timer.h"
 #include "PeerRelay.h"
+#include "Pingtracker.h"
+#include "logging.h"
 
 
 class PeerRelayTest : public sigslot::has_slots<>, public rtc::MessageHandler
@@ -33,13 +35,20 @@ protected:
   void _onConnectedPr1(bool connected);
   void _onConnectedPr2(bool connected);
   virtual void OnMessage(rtc::Message* msg) override;
+  void _onPeerdataToGame(rtc::AsyncSocket* socket);
 
   rtc::scoped_refptr<webrtc::PeerConnectionFactoryInterface> _pcfactory;
   std::unique_ptr<faf::PeerRelay> _pr1;
   std::unique_ptr<faf::PeerRelay> _pr2;
+  std::unique_ptr<faf::Pingtracker> _pt1;
+  std::unique_ptr<faf::Pingtracker> _pt2;
+  std::unique_ptr<rtc::AsyncSocket> _lobbySocket;
+  std::array<char, 2048> _readBuffer;
+  bool _proxyOnly;
 };
 
-PeerRelayTest::PeerRelayTest()
+PeerRelayTest::PeerRelayTest():
+  _proxyOnly(false)
 {
   _pcfactory = webrtc::CreateModularPeerConnectionFactory(nullptr,
                                                           nullptr,
@@ -53,6 +62,10 @@ PeerRelayTest::PeerRelayTest()
                                                           nullptr,
                                                           nullptr,
                                                           nullptr);
+
+  _lobbySocket.reset(rtc::Thread::Current()->socketserver()->CreateAsyncSocket(AF_INET, SOCK_DGRAM));
+  _lobbySocket->SignalReadEvent.connect(this, &PeerRelayTest::_onPeerdataToGame);
+  _lobbySocket->Bind(rtc::SocketAddress("127.0.0.1", 54321));
 
   rtc::Thread::Current()->Post(RTC_FROM_HERE, this, static_cast<uint32_t>(Message::RestartRelays));
 }
@@ -111,11 +124,13 @@ void  PeerRelayTest::_restartRelays()
 void PeerRelayTest::_onIceMsgPr1(Json::Value iceMsg)
 {
   auto candidateString = iceMsg["candidate"]["candidate"].asString();
-  if (iceMsg["type"].asString() == "candidate" &&
+  if (_proxyOnly &&
+      iceMsg["type"].asString() == "candidate" &&
       iceMsg["candidate"]["candidate"].asString().find("relay") == std::string::npos)
   {
     return;
   }
+  std::cout << "ICE msg 1->2: " << iceMsg.toStyledString() << std::endl;
   if (_pr2)
   {
     _pr2->addIceMessage(iceMsg);
@@ -125,11 +140,13 @@ void PeerRelayTest::_onIceMsgPr1(Json::Value iceMsg)
 void PeerRelayTest::_onIceMsgPr2(Json::Value iceMsg)
 {
   auto candidateString = iceMsg["candidate"]["candidate"].asString();
-  if (iceMsg["type"].asString() == "candidate" &&
+  if (_proxyOnly &&
+      iceMsg["type"].asString() == "candidate" &&
       iceMsg["candidate"]["candidate"].asString().find("relay") == std::string::npos)
   {
     return;
   }
+  std::cout << "ICE msg 2->1: " << iceMsg.toStyledString() << std::endl;
   if (_pr1)
   {
     _pr1->addIceMessage(iceMsg);
@@ -154,6 +171,7 @@ void PeerRelayTest::_onConnectedPr1(bool connected)
   {
     rtc::Thread::Current()->PostDelayed(RTC_FROM_HERE, 1000, this, static_cast<uint32_t>(Message::RestartRelays));
   }
+  _pt1.reset(new faf::Pingtracker(1, 2, _lobbySocket.get(), rtc::SocketAddress("127.0.0.1", _pr1->localUdpSocketPort())));
 }
 
 void PeerRelayTest::_onConnectedPr2(bool connected)
@@ -164,6 +182,7 @@ void PeerRelayTest::_onConnectedPr2(bool connected)
   {
     rtc::Thread::Current()->PostDelayed(RTC_FROM_HERE, 1000, this, static_cast<uint32_t>(Message::RestartRelays));
   }
+  _pt2.reset(new faf::Pingtracker(2, 1, _lobbySocket.get(), rtc::SocketAddress("127.0.0.1", _pr2->localUdpSocketPort())));
 }
 
 void PeerRelayTest::OnMessage(rtc::Message* msg)
@@ -176,8 +195,54 @@ void PeerRelayTest::OnMessage(rtc::Message* msg)
   }
 }
 
+void PeerRelayTest::_onPeerdataToGame(rtc::AsyncSocket* socket)
+{
+  auto msgLength = socket->Recv(_readBuffer.data(), _readBuffer.size(), nullptr);
+  if (msgLength != sizeof (faf::PingPacket))
+  {
+    std::cerr << "msgLength != sizeof (PingPacket)" << std::endl;
+    return;
+  }
+  auto pingPacket = reinterpret_cast<faf::PingPacket*>(_readBuffer.data());
+  if (pingPacket->type == faf::PingPacket::PING)
+  {
+    if (pingPacket->senderId == 1 &&
+        _pt2)
+    {
+      _pt2->onPingPacket(pingPacket);
+    }
+    if (pingPacket->senderId == 2 &&
+        _pt1)
+    {
+      _pt1->onPingPacket(pingPacket);
+    }
+  }
+  else
+  {
+    if (pingPacket->senderId == 1 &&
+        _pt1)
+    {
+      _pt1->onPingPacket(pingPacket);
+      if (_pt1->successfulPings() % 10 ==0)
+      {
+        std::cout << "PING count 1 -> 2: " << _pt1->successfulPings() << std::endl;
+      }
+    }
+    if (pingPacket->senderId == 2 &&
+        _pt2)
+    {
+      _pt2->onPingPacket(pingPacket);
+      if (_pt2->successfulPings() % 10 ==0)
+      {
+        std::cout << "PING count 2 -> 1: " << _pt2->successfulPings() << std::endl;
+      }
+    }
+  }
+}
+
 int main(int argc, char *argv[])
 {
+  faf::logging_init("info");
   if (!rtc::InitializeSSL())
   {
     std::cerr << "Error in InitializeSSL()";

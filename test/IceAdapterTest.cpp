@@ -21,33 +21,43 @@
 #include "test/JsonRpcClient.h"
 #include "test/Pingtracker.h"
 
-/* number of simulated peers. Note that the number of PeerConnections will be
- * 2 * (N-1)^2, so don't overdo it */
-static constexpr std::size_t numPeers = 2;
-typedef std::size_t PeerId;
-
-static  std::unordered_map<PeerId, std::unique_ptr<faf::IceAdapter>> iceAdapters;
-
 class GPGNetHandler;
-static  std::unordered_map<PeerId, std::unique_ptr<GPGNetHandler>> gpgnetClients;
-
 class IceAdapterHandler;
-static  std::unordered_map<PeerId, std::unique_ptr<IceAdapterHandler>> clients;
 
-static  std::unordered_map<PeerId, std::unique_ptr<rtc::AsyncSocket>> lobbySockets;
-
-static  std::unordered_map<PeerId, std::unordered_set<PeerId>> offers;
-
-struct PeerIdPairHash {
+static class Test : public sigslot::has_slots<>, public rtc::MessageHandler
+{
 public:
-  std::size_t operator()(const std::pair<PeerId, PeerId> &x) const
-  {
-    return std::hash<PeerId>()(x.first) ^ std::hash<PeerId>()(x.second);
-  }
-};
+  /* number of simulated peers. Note that the number of PeerConnections will be
+   * 2 * (N-1)^2, so don't overdo it */
+  static constexpr std::size_t numPeers = 2;
+  typedef std::size_t PeerId;
 
-static  std::unordered_map<std::pair<PeerId, PeerId>, std::unique_ptr<faf::Pingtracker>, PeerIdPairHash> directedPingTrackers;
-static  std::unordered_map<std::pair<PeerId, PeerId>, rtc::SocketAddress, PeerIdPairHash> directedPeerAddresses;
+  std::unordered_map<PeerId, std::unique_ptr<faf::IceAdapter>> iceAdapters;
+
+  std::unordered_map<PeerId, std::unique_ptr<GPGNetHandler>> gpgnetClients;
+
+  std::unordered_map<PeerId, std::unique_ptr<IceAdapterHandler>> clients;
+
+  std::unordered_map<PeerId, std::unique_ptr<rtc::AsyncSocket>> lobbySockets;
+
+  std::unordered_map<PeerId, std::unordered_set<PeerId>> offers;
+  struct PeerIdPairHash {
+  public:
+    std::size_t operator()(const std::pair<PeerId, PeerId> &x) const
+    {
+      return std::hash<PeerId>()(x.first) ^ std::hash<PeerId>()(x.second);
+    }
+  };
+  std::unordered_map<std::pair<PeerId, PeerId>, std::unique_ptr<faf::Pingtracker>, PeerIdPairHash> directedPingTrackers;
+  std::unordered_map<std::pair<PeerId, PeerId>, rtc::SocketAddress, PeerIdPairHash> directedPeerAddresses;
+
+  void restartP2PSessions();
+  void restart();
+  virtual void OnMessage(rtc::Message* msg) override
+  {
+
+  }
+} test;
 
 class IceAdapterHandler : public sigslot::has_slots<>
 {
@@ -55,7 +65,7 @@ class IceAdapterHandler : public sigslot::has_slots<>
 
 public:
   bool hosting;
-  PeerId localId;
+  Test::PeerId localId;
   faf::Timer statusTimer;
 
   IceAdapterHandler(int port, bool hosting):
@@ -82,8 +92,8 @@ public:
         else
         {
           Json::Value rpcParams(Json::arrayValue);
-          rpcParams.append(iceAdapters.at(0)->options().localPlayerLogin);
-          rpcParams.append(iceAdapters.at(0)->options().localPlayerId);
+          rpcParams.append(test.iceAdapters.at(0)->options().localPlayerLogin);
+          rpcParams.append(test.iceAdapters.at(0)->options().localPlayerId);
           _client->sendRequest("joinGame", rpcParams);
         }
       }
@@ -105,7 +115,7 @@ public:
       {
         return;
       }
-      iceAdapters.at(paramsArray[1].asInt())->iceMsg(localId, paramsArray[2]);
+      test.iceAdapters.at(paramsArray[1].asInt())->iceMsg(localId, paramsArray[2]);
     });
     _client->setRpcCallback("onIceConnectionStateChanged",
                             [this](Json::Value const& paramsArray,
@@ -126,25 +136,25 @@ public:
       {
         auto locId = paramsArray[0].asInt();
         auto remId = paramsArray[1].asInt();
-        if (lobbySockets.count(locId) == 0)
+        if (test.lobbySockets.count(locId) == 0)
         {
           std::cerr << "missing lobbysocket for local Id " << locId << std::endl;
           return;
         }
-        if (directedPeerAddresses.count({locId, remId}) == 0)
+        if (test.directedPeerAddresses.count({locId, remId}) == 0)
         {
           std::cerr << "missing peer address for " << locId << " -> " << remId << std::endl;
           return;
         }
         std::cout << paramsArray[0].asInt() << " -> " << paramsArray[1].asInt() << " PLAYERS CONNECTED " << std::endl;
 
-        directedPingTrackers.insert(
+        test.directedPingTrackers.insert(
         {
-              std::make_pair<PeerId, PeerId>(PeerId(locId), PeerId(remId)),
+              std::make_pair<Test::PeerId, Test::PeerId>(Test::PeerId(locId), Test::PeerId(remId)),
               std::make_unique<faf::Pingtracker>(locId,
                                                  remId,
-                                                 lobbySockets.at(locId).get(),
-                                                 directedPeerAddresses.at({locId, remId}))
+                                                 test.lobbySockets.at(locId).get(),
+                                                 test.directedPeerAddresses.at({locId, remId}))
         });
 
       }
@@ -159,18 +169,18 @@ public:
 
   void connectPeers()
   {
-    for (PeerId remoteId = 0; remoteId < numPeers; ++remoteId)
+    for (Test::PeerId remoteId = 0; remoteId < test.numPeers; ++remoteId)
     {
       if (localId != remoteId &&
           remoteId != 0)
       {
-        bool isOfferer = offers.count(localId) ? offers.at(localId).count(remoteId) == 0 : true;
-        offers[localId].insert(remoteId);
-        offers[remoteId].insert(localId);
+        bool isOfferer = test.offers.count(localId) ? test.offers.at(localId).count(remoteId) == 0 : true;
+        test.offers[localId].insert(remoteId);
+        test.offers[remoteId].insert(localId);
 
         Json::Value rpcParams(Json::arrayValue);
-        rpcParams.append(iceAdapters.at(remoteId)->options().localPlayerLogin);
-        rpcParams.append(iceAdapters.at(remoteId)->options().localPlayerId);
+        rpcParams.append(test.iceAdapters.at(remoteId)->options().localPlayerLogin);
+        rpcParams.append(test.iceAdapters.at(remoteId)->options().localPlayerId);
         rpcParams.append(isOfferer);
         _client->sendRequest("connectToPeer", rpcParams);
       }
@@ -227,8 +237,8 @@ public:
     auto pingPacket = reinterpret_cast<faf::PingPacket*>(_readBuffer.data());
     if (pingPacket->type == faf::PingPacket::PING)
     {
-      auto ptIt = directedPingTrackers.find({pingPacket->answererId, pingPacket->senderId});
-      if (ptIt == directedPingTrackers.end())
+      auto ptIt = test.directedPingTrackers.find({pingPacket->answererId, pingPacket->senderId});
+      if (ptIt == test.directedPingTrackers.end())
       {
         std::cerr << "no pingtracker for sender id " << pingPacket->senderId << std::endl;
       }
@@ -239,8 +249,8 @@ public:
     }
     else
     {
-      auto ptIt = directedPingTrackers.find({pingPacket->senderId, pingPacket->answererId});
-      if (ptIt == directedPingTrackers.end())
+      auto ptIt = test.directedPingTrackers.find({pingPacket->senderId, pingPacket->answererId});
+      if (ptIt == test.directedPingTrackers.end())
       {
         std::cerr << "no pingtracker for answerer id " << pingPacket->answererId;
       }
@@ -261,7 +271,7 @@ class GPGNetHandler : public sigslot::has_slots<>
 {
   std::unique_ptr<faf::GPGNetClient> _client;
 public:
-  PeerId localId;
+  Test::PeerId localId;
   faf::Timer dummyTimer;
 
   GPGNetHandler(int port):
@@ -276,27 +286,27 @@ public:
         auto lobbyPort = msg.chunks.at(1).asInt();
         localId = msg.chunks.at(3).asInt();
         _client->sendMessage({"GameState", {"Lobby"}});
-        lobbySockets.insert({localId, std::unique_ptr<rtc::AsyncSocket>(rtc::Thread::Current()->socketserver()->CreateAsyncSocket(AF_INET, SOCK_DGRAM))});
-        lobbySockets.at(localId)->SignalReadEvent.connect(&ldr, &LobbyDataReceiver::onPeerdataToGame);
-        lobbySockets.at(localId)->Bind(rtc::SocketAddress("127.0.0.1", lobbyPort));
+        test.lobbySockets.insert({localId, std::unique_ptr<rtc::AsyncSocket>(rtc::Thread::Current()->socketserver()->CreateAsyncSocket(AF_INET, SOCK_DGRAM))});
+        test.lobbySockets.at(localId)->SignalReadEvent.connect(&ldr, &LobbyDataReceiver::onPeerdataToGame);
+        test.lobbySockets.at(localId)->Bind(rtc::SocketAddress("127.0.0.1", lobbyPort));
       }
       else if (msg.header == "HostGame")
       {
-        clients.at(localId)->connectPeers();
+        test.clients.at(localId)->connectPeers();
       }
       else if (msg.header == "JoinGame")
       {
-        clients.at(localId)->connectPeers();
+        test.clients.at(localId)->connectPeers();
 
         rtc::SocketAddress addr;
         addr.FromString(msg.chunks[0].asString());
-        directedPeerAddresses.insert({{localId, msg.chunks[2].asInt()}, addr});
+        test.directedPeerAddresses.insert({{localId, msg.chunks[2].asInt()}, addr});
       }
       else if (msg.header == "ConnectToPeer")
       {
         rtc::SocketAddress addr;
         addr.FromString(msg.chunks[0].asString());
-        directedPeerAddresses.insert({{localId, msg.chunks[2].asInt()}, addr});
+        test.directedPeerAddresses.insert({{localId, msg.chunks[2].asInt()}, addr});
       }
     });
 
@@ -325,82 +335,79 @@ protected:
   }
 };
 
+void Test::restartP2PSessions()
+{
+  FAF_LOG_DEBUG << "restarting P2P sessions";
+  gpgnetClients.clear();
+  lobbySockets.clear();
+  directedPeerAddresses.clear();
+  directedPingTrackers.clear();
+  for (PeerId localId = 0; localId < numPeers; ++localId)
+  {
+    gpgnetClients.insert({localId, std::make_unique<GPGNetHandler>(iceAdapters.at(localId)->options().gpgNetPort)});
+  }
+}
+
+void Test::restart()
+{
+  FAF_LOG_DEBUG << "restarting test";
+  iceAdapters.clear();
+  gpgnetClients.clear();
+  clients.clear();
+  lobbySockets.clear();
+  offers.clear();
+  directedPingTrackers.clear();
+  directedPeerAddresses.clear();
+
+  for (PeerId localId = 0; localId < numPeers; ++localId)
+  {
+    /* detect unused tcp server ports for the ice-adapter */
+    int rpcPort;
+    {
+      auto serverSocket = rtc::Thread::Current()->socketserver()->CreateAsyncSocket(SOCK_STREAM);
+      if (serverSocket->Bind(rtc::SocketAddress("127.0.0.1", 0)) != 0)
+      {
+        FAF_LOG_ERROR << "unable to bind tcp server";
+        std::exit(1);
+      }
+      serverSocket->Listen(5);
+      rpcPort = serverSocket->GetLocalAddress().port();
+      delete serverSocket;
+    }
+    int gpgnetPort;
+    {
+      auto serverSocket = rtc::Thread::Current()->socketserver()->CreateAsyncSocket(SOCK_STREAM);
+      if (serverSocket->Bind(rtc::SocketAddress("127.0.0.1", 0)) != 0)
+      {
+        FAF_LOG_ERROR << "unable to bind tcp server";
+        std::exit(1);
+      }
+      serverSocket->Listen(5);
+      gpgnetPort = serverSocket->GetLocalAddress().port();
+      delete serverSocket;
+    }
+
+    auto options = faf::IceAdapterOptions::init(localId,
+                                                std::string("Player") + std::to_string(localId));
+    options.rpcPort = rpcPort;
+    options.gpgNetPort = gpgnetPort;
+
+    iceAdapters.insert({localId, std::make_unique<faf::IceAdapter>(options)});
+    clients.insert({localId, std::make_unique<IceAdapterHandler>(rpcPort, localId == 0)});
+  }
+  restartP2PSessions();
+}
+
 int main(int argc, char *argv[])
 {
-  //faf::logging_init("verbose");
+  faf::logging_init("verbose");
   if (!rtc::InitializeSSL())
   {
     std::cerr << "Error in InitializeSSL()";
     std::exit(1);
   }
 
-  auto restartP2PSessions = []()
-  {
-    gpgnetClients.clear();
-    lobbySockets.clear();
-    directedPeerAddresses.clear();
-    directedPingTrackers.clear();
-    for (PeerId localId = 0; localId < numPeers; ++localId)
-    {
-      gpgnetClients.insert({localId, std::make_unique<GPGNetHandler>(iceAdapters.at(localId)->options().gpgNetPort)});
-    }
-  };
-
-  auto restartTest = [restartP2PSessions]()
-  {
-    iceAdapters.clear();
-    gpgnetClients.clear();
-    clients.clear();
-    lobbySockets.clear();
-    offers.clear();
-    directedPingTrackers.clear();
-    directedPeerAddresses.clear();
-
-    for (PeerId localId = 0; localId < numPeers; ++localId)
-    {
-      /* detect unused tcp server ports for the ice-adapter */
-      int rpcPort;
-      {
-        auto serverSocket = rtc::Thread::Current()->socketserver()->CreateAsyncSocket(SOCK_STREAM);
-        if (serverSocket->Bind(rtc::SocketAddress("127.0.0.1", 0)) != 0)
-        {
-          FAF_LOG_ERROR << "unable to bind tcp server";
-          std::exit(1);
-        }
-        serverSocket->Listen(5);
-        rpcPort = serverSocket->GetLocalAddress().port();
-        delete serverSocket;
-      }
-      int gpgnetPort;
-      {
-        auto serverSocket = rtc::Thread::Current()->socketserver()->CreateAsyncSocket(SOCK_STREAM);
-        if (serverSocket->Bind(rtc::SocketAddress("127.0.0.1", 0)) != 0)
-        {
-          FAF_LOG_ERROR << "unable to bind tcp server";
-          std::exit(1);
-        }
-        serverSocket->Listen(5);
-        gpgnetPort = serverSocket->GetLocalAddress().port();
-        delete serverSocket;
-      }
-
-      auto options = faf::IceAdapterOptions::init(localId,
-                                                  std::string("Player") + std::to_string(localId));
-      options.rpcPort = rpcPort;
-      options.gpgNetPort = gpgnetPort;
-
-      iceAdapters.insert({localId, std::make_unique<faf::IceAdapter>(options)});
-      clients.insert({localId, std::make_unique<IceAdapterHandler>(rpcPort, localId == 0)});
-    }
-    restartP2PSessions();
-  };
-
-  faf::Timer restartTestTimer;
-  restartTestTimer.start(40000, restartTest);
-  restartTest();
-
-  faf::Timer restartP2PTimer;
-  restartP2PTimer.start(3000, restartP2PSessions);
+  test.restart();
 
   rtc::Thread::Current()->Run();
 
