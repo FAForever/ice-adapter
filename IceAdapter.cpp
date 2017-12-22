@@ -491,15 +491,19 @@ void IceAdapter::_tryExecuteGameTasks()
 void IceAdapter::_onGameConnected()
 {
   FAF_LOG_INFO << "game connected";
+  Json::Value params(Json::arrayValue);
+  params.append("Connected");
   _jsonRpcServer.sendRequest("onConnectionStateChanged",
-                             {"Connected"});
+                             params);
 }
 
 void IceAdapter::_onGameDisconnected()
 {
   FAF_LOG_INFO << "game disconnected";
+  Json::Value params(Json::arrayValue);
+  params.append("Disconnected");
   _jsonRpcServer.sendRequest("onConnectionStateChanged",
-                             {"Disconnected"});
+                             params);
   _gametaskString = "Idle";
   _gpgnetGameState = "None";
   _relays.clear();
@@ -537,8 +541,8 @@ void IceAdapter::_onGpgNetMessage(GPGNetMessage message)
 }
 
 void IceAdapter::_createPeerRelay(int remotePlayerId,
-                                                        std::string const& remotePlayerLogin,
-                                                        bool createOffer)
+                                  std::string const& remotePlayerLogin,
+                                  bool createOffer)
 {
 
   if (_iceServers.empty())

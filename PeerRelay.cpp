@@ -48,6 +48,7 @@ PeerRelay::PeerRelay(Options options,
 PeerRelay::~PeerRelay()
 {
   _closePeerConnection();
+  RELAY_LOG_INFO << "destructor";
 }
 
 int PeerRelay::localUdpSocketPort() const
