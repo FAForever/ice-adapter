@@ -1,3 +1,9 @@
+v6.1.3
+======
+
+- fixing the GPGNetServer
+- a lot more testing
+
 v6.1.2
 ======
 
