@@ -9,6 +9,47 @@
 
 namespace faf {
 
+GPGNetConnectionHandler::GPGNetConnectionHandler(rtc::AsyncSocket* socket):
+  _socket(socket)
+{
+  rtc::SocketAddress accept_addr;
+  _socket->SignalReadEvent.connect(this, &GPGNetConnectionHandler::_onRead);
+  _socket->SignalCloseEvent.connect(this, &GPGNetConnectionHandler::_onClientDisconnect);
+  FAF_LOG_DEBUG << "GPGNetServer client connected from " << accept_addr;
+}
+
+void GPGNetConnectionHandler::send(std::string const& msg)
+{
+  _socket->Send(msg.c_str(), msg.length());
+}
+
+void GPGNetConnectionHandler::_onClientDisconnect(rtc::AsyncSocket* socket, int _whatsThis_)
+{
+  if (socket == _socket)
+  {
+    SignalClientDisconnected.emit(this);
+  }
+}
+
+void GPGNetConnectionHandler::_onRead(rtc::AsyncSocket* socket)
+{
+  int msgLength = 0;
+  do
+  {
+    msgLength = socket->Recv(_readBuffer.data(), _readBuffer.size(), nullptr);
+
+    if (msgLength > 0)
+    {
+      _currentMsg.append(_readBuffer.data(), std::size_t(msgLength));
+      GPGNetMessage::parse(_currentMsg, [this](GPGNetMessage const& msg)
+      {
+        FAF_LOG_TRACE << "GPGNetServer received " << msg.toDebug();
+        SignalNewGPGNetMessage.emit(msg);
+      });
+    }
+  }
+  while(msgLength > 0);
+}
 
 GPGNetServer::GPGNetServer():
   _server(rtc::Thread::Current()->socketserver()->CreateAsyncSocket(SOCK_STREAM))
@@ -32,19 +73,17 @@ int GPGNetServer::listenPort() const
 
 bool GPGNetServer::hasConnectedClient() const
 {
-  return bool(_connectedSocket);
+  return !_connectedSockets.empty();
 }
 
 void GPGNetServer::sendMessage(GPGNetMessage const& msg)
 {
-  if (!_connectedSocket)
-  {
-    FAF_LOG_ERROR << "No GPGNetConnection. Wait for the game to connect before sending messages";
-    return;
-  }
   auto msgString = msg.toBinary();
-  _connectedSocket->Send(msgString.c_str(), msgString.length());
   FAF_LOG_INFO << "GPGNetServer::sendMessage: " << msg.toDebug();
+  for(auto it = _connectedSockets.begin(), end = _connectedSockets.end(); it != end; ++it)
+  {
+    (*it)->send(msgString);
+  }
 }
 
 void GPGNetServer::sendCreateLobby(InitMode initMode,
@@ -140,47 +179,31 @@ void GPGNetServer::_onNewClient(rtc::AsyncSocket* socket)
     FAF_LOG_ERROR << "??";
     return;
   }
-  if (_connectedSocket)
-  {
-    FAF_LOG_WARN << "only one connected GPGNet client supported. Dropping previous connection";
-    _connectedSocket->Close();
-  }
   rtc::SocketAddress accept_addr;
-  _connectedSocket.reset(_server->Accept(&accept_addr));
-  _connectedSocket->SignalReadEvent.connect(this, &GPGNetServer::_onRead);
-  _connectedSocket->SignalCloseEvent.connect(this, &GPGNetServer::_onClientDisconnect);
-  FAF_LOG_DEBUG << "GPGNetServer client connected from " << accept_addr;
+
+  auto handler = new GPGNetConnectionHandler(_server->Accept(&accept_addr));
+  _connectedSockets.insert(handler);
+  handler->SignalNewGPGNetMessage.connect(this, &GPGNetServer::_onClientMessage);
+  handler->SignalClientDisconnected.connect(this, &GPGNetServer::_onClientDisconnect);
   SignalClientConnected.emit();
 }
 
-void GPGNetServer::_onClientDisconnect(rtc::AsyncSocket* socket, int _whatsThis_)
+void GPGNetServer::_onClientDisconnect(GPGNetConnectionHandler* handler)
 {
-  if (socket == _connectedSocket.get())
-  {
-    _connectedSocket.reset();
-    FAF_LOG_DEBUG << "GPGNetServer client disconnected: " << _whatsThis_;
-    SignalClientDisconnected.emit();
-  }
+  rtc::Thread::Current()->Post(RTC_FROM_HERE, this, 0, new rtc::TypedMessageData<GPGNetConnectionHandler*>(handler));
 }
 
-void GPGNetServer::_onRead(rtc::AsyncSocket* socket)
+void GPGNetServer::_onClientMessage(GPGNetMessage msg)
 {
-  int msgLength = 0;
-  do
-  {
-    msgLength = socket->Recv(_readBuffer.data(), _readBuffer.size(), nullptr);
+  SignalNewGPGNetMessage.emit(msg);
+}
 
-    if (msgLength > 0)
-    {
-      _currentMsg.append(_readBuffer.data(), std::size_t(msgLength));
-      GPGNetMessage::parse(_currentMsg, [this](GPGNetMessage const& msg)
-      {
-        FAF_LOG_TRACE << "GPGNetServer received " << msg.toDebug();
-        SignalNewGPGNetMessage.emit(msg);
-      });
-    }
-  }
-  while(msgLength > 0);
+void GPGNetServer::OnMessage(rtc::Message* msg)
+{
+  auto handler = static_cast<rtc::TypedMessageData<GPGNetConnectionHandler*>*>(msg->pdata)->data();
+  delete handler;
+  _connectedSockets.erase(handler);
+  SignalClientDisconnected.emit();
 }
 
 } // namespace faf

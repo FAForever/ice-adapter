@@ -4,7 +4,9 @@
 #include <string>
 #include <array>
 
+#include <webrtc/rtc_base/sigslot.h>
 #include <webrtc/rtc_base/asyncsocket.h>
+#include <webrtc/rtc_base/messagehandler.h>
 
 #include "GPGNetMessage.h"
 
@@ -16,7 +18,27 @@ enum class InitMode : unsigned int
   AutoLobby = 1
 };
 
-class GPGNetServer : public sigslot::has_slots<>
+class GPGNetConnectionHandler : public sigslot::has_slots<>
+{
+public:
+  GPGNetConnectionHandler(rtc::AsyncSocket* socket);
+
+  void send(std::string const& msg);
+
+  sigslot::signal1<GPGNetMessage, sigslot::multi_threaded_local> SignalNewGPGNetMessage;
+  sigslot::signal1<GPGNetConnectionHandler*, sigslot::multi_threaded_local> SignalClientDisconnected;
+
+protected:
+  void _onClientDisconnect(rtc::AsyncSocket* socket, int);
+  void _onRead(rtc::AsyncSocket* socket);
+
+  rtc::AsyncSocket* _socket;
+  std::array<char, 2048> _readBuffer;
+  std::string _currentMsg;
+  RTC_DISALLOW_COPY_AND_ASSIGN(GPGNetConnectionHandler);
+};
+
+class GPGNetServer : public sigslot::has_slots<>, public rtc::MessageHandler
 {
 public:
   GPGNetServer();
@@ -57,14 +79,15 @@ public:
   sigslot::signal0<sigslot::multi_threaded_local> SignalClientDisconnected;
 protected:
   void _onNewClient(rtc::AsyncSocket* socket);
-  void _onClientDisconnect(rtc::AsyncSocket* socket, int);
+  void _onClientDisconnect(GPGNetConnectionHandler* handler);
+  void _onClientMessage(GPGNetMessage msg);
   void _onRead(rtc::AsyncSocket* socket);
+  virtual void OnMessage(rtc::Message* msg) override;
   std::unique_ptr<rtc::AsyncSocket> _server;
-  std::unique_ptr<rtc::AsyncSocket> _connectedSocket;
-  std::array<char, 2048> _readBuffer;
-  std::string _currentMsg;
+  std::set<GPGNetConnectionHandler*> _connectedSockets;
 
   RTC_DISALLOW_COPY_AND_ASSIGN(GPGNetServer);
 };
+
 
 } // namespace faf
