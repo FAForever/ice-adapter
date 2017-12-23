@@ -100,7 +100,7 @@ void  PeerRelayTest::_restartRelays()
   faf::PeerRelay::Options options1;
   options1.remotePlayerId = 2;
   options1.remotePlayerLogin = "Player2";
-  options1.createOffer = true;
+  options1.isOfferer = true;
   options1.gameUdpPort = 54321;
   options1.iceServers.push_back(iceServer);
 
@@ -114,7 +114,7 @@ void  PeerRelayTest::_restartRelays()
   faf::PeerRelay::Options options2;
   options2.remotePlayerId = 1;
   options2.remotePlayerLogin = "Player1";
-  options2.createOffer = false;
+  options2.isOfferer = false;
   options2.gameUdpPort = 54321;
   options2.iceServers.push_back(iceServer);
 

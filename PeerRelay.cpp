@@ -25,11 +25,10 @@ PeerRelay::PeerRelay(Options options,
   _peerConnectionObserver(std::make_shared<PeerConnectionObserver>(this)),
   _remotePlayerId(options.remotePlayerId),
   _remotePlayerLogin(options.remotePlayerLogin),
-  _createOffer(options.createOffer),
+  _isOfferer(options.isOfferer),
   _gameUdpAddress("127.0.0.1", options.gameUdpPort),
   _localUdpSocket(rtc::Thread::Current()->socketserver()->CreateAsyncSocket(AF_INET, SOCK_DGRAM)),
   _callbacks(callbacks),
-  _receivedOffer(false),
   _isConnected(false),
   _closing(false),
   _iceState("none"),
@@ -42,13 +41,31 @@ PeerRelay::PeerRelay(Options options,
   }
   _localUdpSocketPort = _localUdpSocket->GetLocalAddress().port();
   RELAY_LOG_INFO << "listening on UDP port " << _localUdpSocketPort;
-  _initPeerConnection();
+
+  _connectStartTime = std::chrono::steady_clock::now();
+
+  webrtc::PeerConnectionInterface::RTCConfiguration configuration;
+  configuration.servers = _iceServerList;
+  _peerConnection = _pcfactory->CreatePeerConnection(configuration,
+                                                     nullptr,
+                                                     nullptr,
+                                                     _peerConnectionObserver.get());
+  _createOffer();
 }
 
 PeerRelay::~PeerRelay()
 {
-  _closePeerConnection();
-  RELAY_LOG_INFO << "destructor";
+  _closing = true;
+  if (_dataChannel)
+  {
+    _dataChannel->UnregisterObserver();
+    _dataChannel.release();
+  }
+  if (_peerConnection)
+  {
+    _peerConnection->Close();
+    _peerConnection.release();
+  }
 }
 
 int PeerRelay::localUdpSocketPort() const
@@ -96,7 +113,6 @@ void PeerRelay::addIceMessage(Json::Value const& iceMsg)
       iceMsg["type"].asString() == "answer")
   {
     webrtc::SdpParseError error;
-    _receivedOffer = iceMsg["type"].asString() == "offer";
     auto sdp = webrtc::CreateSessionDescription(iceMsg["type"].asString(), iceMsg["sdp"].asString(), &error);
     if (sdp)
     {
@@ -126,27 +142,10 @@ void PeerRelay::addIceMessage(Json::Value const& iceMsg)
   }
 }
 
-void PeerRelay::_initPeerConnection()
+void PeerRelay::_createOffer()
 {
-  _connectStartTime = std::chrono::steady_clock::now();
-  _setConnected(false);
-  _receivedOffer = false;
-
-  _closePeerConnection();
-  if (!_checkConnectionTimer.started())
-  {
-    _checkConnectionTimer.start(1000, std::bind(&PeerRelay::_checkConnectionTimeout, this));
-  }
-  _setIceState("none");
-
-  _closing = false;
-  webrtc::PeerConnectionInterface::RTCConfiguration configuration;
-  configuration.servers = _iceServerList;
-  _peerConnection = _pcfactory->CreatePeerConnection(configuration,
-                                                     nullptr,
-                                                     nullptr,
-                                                     _peerConnectionObserver.get());
-  if (_createOffer)
+  bool reconnect = _dataChannel;
+  if (_isOfferer)
   {
     webrtc::DataChannelInit dataChannelInit;
     _dataChannel = _peerConnection->CreateDataChannel("faf",
@@ -155,27 +154,16 @@ void PeerRelay::_initPeerConnection()
     webrtc::PeerConnectionInterface::RTCOfferAnswerOptions options;
     options.offer_to_receive_audio = 0;
     options.offer_to_receive_video = 0;
+    options.ice_restart = reconnect;
     _peerConnection->CreateOffer(_createOfferObserver,
                                  options);
-  }
-}
-
-void PeerRelay::_closePeerConnection()
-{
-  _closing = true;
-  if (_dataChannel)
-  {
-    _dataChannel->UnregisterObserver();
-    _dataChannel.release();
-  }
-  if (_peerConnection)
-  {
-    _peerConnection->Close();
-    _peerConnection.release();
-  }
-  if (_checkConnectionTimer.started())
-  {
-    _checkConnectionTimer.stop();
+    _restartOfferTimer.start(3000, [this]
+    {
+      if (!_isConnected)
+      {
+        _createOffer();
+      }
+    });
   }
 }
 
@@ -207,10 +195,17 @@ void PeerRelay::_setIceState(std::string const& state)
   {
     _callbacks.stateCallback(_iceState);
   }
-  if (_iceState == "failed")
+
+  if (_isOfferer)
   {
-    RELAY_LOG_WARN << "Connection failed, forcing reconnect immediately.";
-    _initPeerConnection();
+    if (_iceState == "failed" ||
+        _iceState == "disconnected" ||
+        (_iceState == "closed" && _isOfferer))
+
+    {
+      RELAY_LOG_WARN << "Connection lost, forcing reconnect immediately.";
+      _createOffer();
+    }
   }
 }
 
@@ -231,32 +226,6 @@ void PeerRelay::_setConnected(bool connected)
     else
     {
       RELAY_LOG_INFO << "disconnected";
-    }
-  }
-}
-
-void PeerRelay::_checkConnectionTimeout()
-{
-  if (_iceState == "new" ||
-      _iceState == "closed" ||
-      _iceState == "disconnected" ||
-      _iceState == "failed" ||
-      _iceState == "none" ||
-      _iceState == "checking"
-      )
-  {
-    auto timeSinceLastConnectionAttempt = std::chrono::steady_clock::now() - _connectStartTime;
-    if (timeSinceLastConnectionAttempt > _connectionAttemptTimeout)
-    {
-      if (_createOffer)
-      {
-        RELAY_LOG_WARN << "ICE connection state is stuck in offerer. Forcing reconnect...";
-      }
-      else if (_receivedOffer)
-      {
-        RELAY_LOG_WARN << "ICE connection state is stuck in answerer. Forcing reconnect...";
-      }
-      _initPeerConnection();
     }
   }
 }

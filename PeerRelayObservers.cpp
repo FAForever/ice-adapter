@@ -53,7 +53,7 @@ void SetLocalDescriptionObserver::OnSuccess()
   {
     Json::Value iceMsg;
     std::string sdpString;
-    iceMsg["type"] = _relay->_createOffer ? "offer" : "answer";
+    iceMsg["type"] = _relay->_isOfferer ? "offer" : "answer";
     iceMsg["sdp"] = _relay->_localSdp;
     _relay->_callbacks.iceMessageCallback(iceMsg);
   }
@@ -68,7 +68,7 @@ void SetRemoteDescriptionObserver::OnSuccess()
 {
   OBSERVER_LOG_DEBUG << "SetRemoteDescriptionObserver::OnSuccess";
   if (_relay->_peerConnection &&
-      !_relay->_createOffer)
+      !_relay->_isOfferer)
   {
     _relay->_peerConnection->CreateAnswer(_relay->_createAnswerObserver,
                                       nullptr);

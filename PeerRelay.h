@@ -35,7 +35,7 @@ public:
   {
     int remotePlayerId;
     std::string remotePlayerLogin;
-    bool createOffer;
+    bool isOfferer;
     int gameUdpPort;
     webrtc::PeerConnectionInterface::IceServers iceServers;
   };
@@ -56,11 +56,9 @@ public:
   bool isConnected() const;
 
 protected:
-  void _initPeerConnection();
-  void _closePeerConnection();
+  void _createOffer();
   void _setIceState(std::string const& state);
   void _setConnected(bool connected);
-  void _checkConnectionTimeout();
   void _onPeerdataFromGame(rtc::AsyncSocket* socket);
 
   /* runtime objects for WebRTC */
@@ -81,7 +79,7 @@ protected:
   /* local identifying data */
   int _remotePlayerId;
   std::string _remotePlayerLogin;
-  bool _createOffer;
+  bool _isOfferer;
 
   /* game P2P socket data */
   rtc::SocketAddress _gameUdpAddress;
@@ -91,7 +89,6 @@ protected:
 
   /* ICE state data */
   Callbacks _callbacks;
-  bool _receivedOffer;
   bool _isConnected;
   bool _closing;
   std::string _iceState;
@@ -102,7 +99,7 @@ protected:
   std::string _localSdp;
 
   /* connectivity check data */
-  Timer _checkConnectionTimer;
+  Timer _restartOfferTimer;
   std::chrono::steady_clock::time_point _connectStartTime;
   std::chrono::steady_clock::duration _connectDuration;
   std::chrono::steady_clock::duration _connectionAttemptTimeout;
