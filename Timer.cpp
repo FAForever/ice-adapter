@@ -29,16 +29,9 @@ Timer::~Timer()
 
 void Timer::start(int intervalMs, std::function<void()> callback)
 {
-  if (!_callback && intervalMs > 0)
-  {
-    _interval = intervalMs;
-    _callback = callback;
-    rtc::Thread::Current()->PostDelayed(RTC_FROM_HERE, _interval, this);
-  }
-  else
-  {
-    FAF_LOG_ERROR << "error starting timer";
-  }
+  _interval = intervalMs;
+  _callback = callback;
+  rtc::Thread::Current()->PostDelayed(RTC_FROM_HERE, _interval, this);
 }
 
 bool Timer::started() const
