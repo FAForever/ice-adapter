@@ -1,3 +1,8 @@
+v6.2.0
+======
+
+- change reconnect behaviour
+
 v6.1.3
 ======
 
