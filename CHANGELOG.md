@@ -1,3 +1,9 @@
+v6.2.1
+======
+
+- more work on reconnect
+- more status information
+
 v6.2.0
 ======
 
