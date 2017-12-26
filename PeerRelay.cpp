@@ -147,10 +147,15 @@ void PeerRelay::_createOffer()
   bool reconnect = _dataChannel;
   if (_isOfferer)
   {
-    webrtc::DataChannelInit dataChannelInit;
-    _dataChannel = _peerConnection->CreateDataChannel("faf",
-                                                      &dataChannelInit);
-    _dataChannel->RegisterObserver(_dataChannelObserver.get());
+    if (!_dataChannel)
+    {
+      webrtc::DataChannelInit dataChannelInit;
+      dataChannelInit.ordered = false;
+      dataChannelInit.maxRetransmits = 0;
+      _dataChannel = _peerConnection->CreateDataChannel("faf",
+                                                        &dataChannelInit);
+      _dataChannel->RegisterObserver(_dataChannelObserver.get());
+    }
     webrtc::PeerConnectionInterface::RTCOfferAnswerOptions options;
     options.offer_to_receive_audio = 0;
     options.offer_to_receive_video = 0;
@@ -159,7 +164,7 @@ void PeerRelay::_createOffer()
                                  options);
     _restartOfferTimer.start(3000, [this]
     {
-      if (!_isConnected)
+      if (!isConnected())
       {
         _createOffer();
       }
@@ -175,22 +180,23 @@ void PeerRelay::_setIceState(std::string const& state)
   {
     return;
   }
+
   if (_iceState == "connected" ||
       _iceState == "completed")
   {
     _setConnected(true);
   }
+  else
+  {
+    _setConnected(false);
+  }
+
   if (!_closing &&
       _peerConnection)
   {
     _peerConnection->GetStats(_rtcStatsCollectorCallback.get());
   }
-  if (_iceState == "disconnected" ||
-      _iceState == "failed" ||
-      _iceState == "closed")
-  {
-    _setConnected(false);
-  }
+
   if (_callbacks.stateCallback)
   {
     _callbacks.stateCallback(_iceState);
@@ -200,7 +206,7 @@ void PeerRelay::_setIceState(std::string const& state)
   {
     if (_iceState == "failed" ||
         _iceState == "disconnected" ||
-        (_iceState == "closed" && _isOfferer))
+        _iceState == "closed")
 
     {
       RELAY_LOG_WARN << "Connection lost, forcing reconnect immediately.";

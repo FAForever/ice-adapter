@@ -169,19 +169,17 @@ void DataChannelObserver::OnStateChange()
   {
     switch(_relay->_dataChannel->state())
     {
-      case webrtc::DataChannelInterface::kConnecting:
-        OBSERVER_LOG_DEBUG << "DataChannelObserver::OnStateChange to Connecting";
-        break;
       case webrtc::DataChannelInterface::kOpen:
         OBSERVER_LOG_DEBUG << "DataChannelObserver::OnStateChange to Open";
-        _relay->_setConnected(true);
+        break;
+      case webrtc::DataChannelInterface::kConnecting:
+        OBSERVER_LOG_DEBUG << "DataChannelObserver::OnStateChange to Connecting";
         break;
       case webrtc::DataChannelInterface::kClosing:
         OBSERVER_LOG_DEBUG << "DataChannelObserver::OnStateChange to Closing";
         break;
       case webrtc::DataChannelInterface::kClosed:
         OBSERVER_LOG_DEBUG << "DataChannelObserver::OnStateChange to Closed";
-        _relay->_setConnected(false);
         break;
     }
   }
