@@ -144,11 +144,12 @@ void PeerRelay::addIceMessage(Json::Value const& iceMsg)
 
 void PeerRelay::_createOffer()
 {
-  bool reconnect = _dataChannel;
   if (_isOfferer)
   {
+    bool reconnect = true;
     if (!_dataChannel)
     {
+      reconnect = false;
       webrtc::DataChannelInit dataChannelInit;
       dataChannelInit.ordered = false;
       dataChannelInit.maxRetransmits = 0;
@@ -162,7 +163,7 @@ void PeerRelay::_createOffer()
     options.ice_restart = reconnect;
     _peerConnection->CreateOffer(_createOfferObserver,
                                  options);
-    _restartOfferTimer.start(3000, [this]
+    _restartOfferTimer.start(7000, [this]
     {
       if (!isConnected())
       {
