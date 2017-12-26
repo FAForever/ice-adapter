@@ -120,6 +120,18 @@ void PeerConnectionObserver::OnIceConnectionChange(webrtc::PeerConnectionInterfa
 void PeerConnectionObserver::OnIceGatheringChange(webrtc::PeerConnectionInterface::IceGatheringState new_state)
 {
   OBSERVER_LOG_DEBUG << "PeerConnectionObserver::OnIceGatheringChange" << static_cast<int>(new_state);
+  switch(new_state)
+  {
+    case webrtc::PeerConnectionInterface::kIceGatheringNew:
+      _relay->_iceGatheringState = "new";
+      break;
+    case webrtc::PeerConnectionInterface::kIceGatheringGathering:
+      _relay->_iceGatheringState = "gathering";
+      break;
+    case webrtc::PeerConnectionInterface::kIceGatheringComplete:
+      _relay->_iceGatheringState = "complete";
+      break;
+  }
 }
 
 void PeerConnectionObserver::OnIceCandidate(const webrtc::IceCandidateInterface *candidate)
@@ -171,15 +183,19 @@ void DataChannelObserver::OnStateChange()
     {
       case webrtc::DataChannelInterface::kOpen:
         OBSERVER_LOG_DEBUG << "DataChannelObserver::OnStateChange to Open";
+        _relay->_dataChannelState = "open";
         break;
       case webrtc::DataChannelInterface::kConnecting:
         OBSERVER_LOG_DEBUG << "DataChannelObserver::OnStateChange to Connecting";
+        _relay->_dataChannelState = "connecting";
         break;
       case webrtc::DataChannelInterface::kClosing:
         OBSERVER_LOG_DEBUG << "DataChannelObserver::OnStateChange to Closing";
+        _relay->_dataChannelState = "closing";
         break;
       case webrtc::DataChannelInterface::kClosed:
         OBSERVER_LOG_DEBUG << "DataChannelObserver::OnStateChange to Closed";
+        _relay->_dataChannelState = "closed";
         break;
     }
   }

@@ -97,6 +97,8 @@ protected:
   std::string _localCandType;
   std::string _remoteCandType;
   std::string _localSdp;
+  std::string _iceGatheringState;
+  std::string _dataChannelState;
 
   /* connectivity check data */
   Timer _restartOfferTimer;

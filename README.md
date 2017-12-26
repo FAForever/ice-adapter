@@ -43,14 +43,17 @@ The `faf-ice-adapter` is controlled using a bi-directional [JSON-RPC](http://www
   "game_state" : /* string: The last received "GameState" */
   "task_string" : /* string: A string describing the task/role of the game (joining/hosting)*/
   }
-"relays" : [/* An array of relay information*/
+"relays" : [/* An array of relay information for each peer */
   {
     "remote_player_id" : /* int: The ID of the remote player */
     "remote_player_login" : /* string: The name of the remote player */
     "local_game_udp_port" : /* int: The UDP port opened for the game to connect to */
-    "ice_agent": {/* Information about the IceAgent for this peer */
+    "ice": {/* ICE state information for this peer */
+      "offerer": /* bool: one peer is always offerer, one answerer */
       "state": /* string: The connection state https://developer.mozilla.org/en-US/docs/Web/API/RTCPeerConnection/iceConnectionState */
-      "connected": /* bool: Is the data channel open for sending/receiving game packets ? */
+      "gathering_state": /* string: The gathering state https://developer.mozilla.org/en-US/docs/Web/API/RTCPeerConnection/iceGatheringState */
+      "datachannel_state": /* string: The state of the https://developer.mozilla.org/en-US/docs/Web/API/RTCDataChannel */
+      "connected": /* bool: Is the peer connected? Needs to be in sync with the remote peer. */
       "loc_cand_addr": /* string: The local address used for the connection */
       "rem_cand_addr": /* string: The remote address used for the connection */
       "loc_cand_type": /* string: The type of the local candidate 'local'/'stun'/'relay' */

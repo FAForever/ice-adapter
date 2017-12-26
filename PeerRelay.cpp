@@ -32,6 +32,8 @@ PeerRelay::PeerRelay(Options options,
   _isConnected(false),
   _closing(false),
   _iceState("none"),
+  _iceGatheringState("none"),
+  _dataChannelState("none"),
   _connectionAttemptTimeout(std::chrono::seconds(10))
 {
   _localUdpSocket->SignalReadEvent.connect(this, &PeerRelay::_onPeerdataFromGame);
@@ -79,15 +81,17 @@ Json::Value PeerRelay::status() const
   result["remote_player_id"] = _remotePlayerId;
   result["remote_player_login"] = _remotePlayerLogin;
   result["local_game_udp_port"] = _localUdpSocketPort;
-  result["local_game_udp_port"] = _localUdpSocketPort;
-  result["ice_agent"] = Json::Value();
-  result["ice_agent"]["state"] = _iceState;
-  result["ice_agent"]["connected"] = _isConnected;
-  result["ice_agent"]["loc_cand_addr"] = _localCandAddress;
-  result["ice_agent"]["rem_cand_addr"] = _remoteCandAddress;
-  result["ice_agent"]["loc_cand_type"] = _localCandType;
-  result["ice_agent"]["rem_cand_type"] = _remoteCandType;
-  result["ice_agent"]["time_to_connected"] = _isConnected ? std::chrono::duration_cast<std::chrono::milliseconds>(_connectDuration).count() / 1000. : 0.;
+  result["ice"] = Json::Value();
+  result["ice"]["offerer"] = _isOfferer;
+  result["ice"]["state"] = _iceState;
+  result["ice"]["gathering_state"] = _iceGatheringState;
+  result["ice"]["datachannel_state"] = _dataChannelState;
+  result["ice"]["connected"] = _isConnected;
+  result["ice"]["loc_cand_addr"] = _localCandAddress;
+  result["ice"]["rem_cand_addr"] = _remoteCandAddress;
+  result["ice"]["loc_cand_type"] = _localCandType;
+  result["ice"]["rem_cand_type"] = _remoteCandType;
+  result["ice"]["time_to_connected"] = _isConnected ? std::chrono::duration_cast<std::chrono::milliseconds>(_connectDuration).count() / 1000. : 0.;
   return result;
 }
 
