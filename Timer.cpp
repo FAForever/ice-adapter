@@ -29,6 +29,7 @@ Timer::~Timer()
 
 void Timer::start(int intervalMs, std::function<void()> callback)
 {
+  stop();
   _interval = intervalMs;
   _callback = callback;
   rtc::Thread::Current()->PostDelayed(RTC_FROM_HERE, _interval, this);
