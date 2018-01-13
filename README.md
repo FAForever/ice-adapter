@@ -105,8 +105,8 @@ faf-ice-adapter usage:
 ## Building `faf-ice-adapter`
 ###  Linux
 Webrtc is build using clang and linked against clangs libc++, so you need to use these for building the ice-adapter.
-1. Build [libwebrtc](https://github.com/FAForever/libwebrtc) with `cmake -G Ninja -DCMAKE_BUILD_TYPE=Release -DWEBRTC_BRANCH_HEAD=refs/branch-heads/60 -DBUILD_TESTS=ON`
-2. Build the ice-adapter with `cmake -DWEBRTC_INCLUDE_DIRS="path/to/webrtc/include" -DWEBRTC_LIBRARIES="path/to/webrtc/lib/libwebrtc.a" -DCMAKE_BUILD_TYPE=Release`
+1. Build [libwebrtc](https://github.com/FAForever/libwebrtc) with `cmake -G Ninja -DCMAKE_BUILD_TYPE=Release -DWEBRTC_BRANCH_HEAD=refs/branch-heads/62 -DBUILD_TESTS=ON`
+2. Build the ice-adapter with `cmake -DCMAKE_CXX_COMPILER="/usr/bin/clang++" -DCMAKE_CXX_FLAGS="-stdlib=libc++" -DWEBRTC_INCLUDE_DIRS="path/to/webrtc/include" -DWEBRTC_LIBRARIES="path/to/webrtc/lib/libwebrtc.a" -DCMAKE_BUILD_TYPE=Release` and `make`
 ###  Windows
 1. Download and extract [latest libwebrtc win32 release zip file](https://github.com/FAForever/libwebrtc/releases/latest).
 2. Install Visual Studio 2015 compilers and open x86 shell.
