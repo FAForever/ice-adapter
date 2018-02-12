@@ -2,8 +2,6 @@
 
 #include <iostream>
 
-#include <webrtc/pc/test/fakeaudiocapturemodule.h>
-//#include <webrtc/rtc_base/logging.h>
 #include <webrtc/rtc_base/thread.h>
 #include <webrtc/api/mediaconstraintsinterface.h>
 #include <webrtc/api/test/fakeconstraints.h>
@@ -24,7 +22,6 @@ IceAdapter::IceAdapter(IceAdapterOptions const& options):
   _jsonRpcServer.listen(_options.rpcPort);
   _gpgnetServer.listen(_options.gpgNetPort);
 
-  auto audio_device_module = FakeAudioCaptureModule::Create();
   _pcfactory = webrtc::CreateModularPeerConnectionFactory(nullptr,
                                                           nullptr,
                                                           nullptr,
@@ -43,7 +40,7 @@ IceAdapter::IceAdapter(IceAdapterOptions const& options):
     std::exit(1);
   }
 
-  /* ICE adapter should determine lobby port */
+  /* ICE adapter should determine lobby port. This may fail due to race conditions, but we can't pass a socket to the game */
   if (_lobbyPort == 0)
   {
     auto serverSocket = rtc::Thread::Current()->socketserver()->CreateAsyncSocket(SOCK_DGRAM);
@@ -213,6 +210,11 @@ Json::Value IceAdapter::status() const
     result["relays"] = relays;
   }
   return result;
+}
+
+IceAdapterOptions const& IceAdapter::options() const
+{
+  return _options;
 }
 
 void IceAdapter::_connectRpcMethods()
@@ -600,11 +602,6 @@ void IceAdapter::_createPeerRelay(int remotePlayerId,
   _relays[remotePlayerId] = std::make_shared<PeerRelay>(options,
                                                         callbacks,
                                                         _pcfactory);
-}
-
-IceAdapterOptions const& IceAdapter::options() const
-{
-  return _options;
 }
 
 } // namespace faf
