@@ -52,6 +52,10 @@ PeerRelay::PeerRelay(Options options,
                                                      nullptr,
                                                      nullptr,
                                                      _peerConnectionObserver.get());
+  if (!_peerConnection)
+  {
+    FAF_LOG_ERROR << "_pcfactory->CreatePeerConnection() failed!";
+  }
   _createOffer();
 }
 
