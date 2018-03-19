@@ -3,6 +3,7 @@
 #include <memory>
 #include <functional>
 #include <chrono>
+#include <optional>
 #include <array>
 
 #include <webrtc/api/peerconnectioninterface.h>
@@ -60,6 +61,8 @@ protected:
   void _setIceState(std::string const& state);
   void _setConnected(bool connected);
   void _onPeerdataFromGame(rtc::AsyncSocket* socket);
+  void _onRemoteMessage(const uint8_t* data, std::size_t size);
+  void _checkConnection();
 
   /* runtime objects for WebRTC */
   rtc::scoped_refptr<webrtc::PeerConnectionFactoryInterface> _pcfactory;
@@ -89,22 +92,24 @@ protected:
 
   /* ICE state data */
   Callbacks _callbacks;
-  bool _isConnected;
-  bool _closing;
-  std::string _iceState;
+  bool _isConnected{false};
+  bool _closing{false};
+  std::string _iceState{"none"};
   std::string _localCandAddress;
   std::string _remoteCandAddress;
   std::string _localCandType;
   std::string _remoteCandType;
   std::string _localSdp;
-  std::string _iceGatheringState;
-  std::string _dataChannelState;
+  std::string _iceGatheringState{"none"};
+  std::string _dataChannelState{"none"};
 
   /* connectivity check data */
-  Timer _restartOfferTimer;
+  Timer _offererConnectionCheckTimer;
   std::chrono::steady_clock::time_point _connectStartTime;
+  std::optional<std::chrono::steady_clock::time_point> _lastSentPingTime;
+  std::optional<std::chrono::steady_clock::time_point> _lastReceivedPongTime;
+  unsigned int _missedPings{0};
   std::chrono::steady_clock::duration _connectDuration;
-  std::chrono::steady_clock::duration _connectionAttemptTimeout;
 
   /* access declarations for observers */
   friend CreateOfferObserver;

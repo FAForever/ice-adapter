@@ -1,5 +1,7 @@
 #include "PeerRelay.h"
 
+#include <algorithm>
+
 #include "logging.h"
 #include "PeerRelayObservers.h"
 
@@ -10,6 +12,9 @@ namespace faf {
 #define RELAY_LOG_INFO FAF_LOG_INFO << "PeerRelay for " << _remotePlayerLogin << " (" << _remotePlayerId << "): "
 #define RELAY_LOG_DEBUG FAF_LOG_DEBUG << "PeerRelay for " << _remotePlayerLogin << " (" << _remotePlayerId << "): "
 #define RELAY_LOG_TRACE FAF_LOG_TRACE << "PeerRelay for " << _remotePlayerLogin << " (" << _remotePlayerId << "): "
+
+static constexpr uint8_t PingMessage[] = "ICEADAPTERPING";
+static constexpr uint8_t PongMessage[] = "ICEADAPTERPONG";
 
 PeerRelay::PeerRelay(Options options,
                      Callbacks callbacks,
@@ -28,13 +33,7 @@ PeerRelay::PeerRelay(Options options,
   _isOfferer(options.isOfferer),
   _gameUdpAddress("127.0.0.1", options.gameUdpPort),
   _localUdpSocket(rtc::Thread::Current()->socketserver()->CreateAsyncSocket(AF_INET, SOCK_DGRAM)),
-  _callbacks(callbacks),
-  _isConnected(false),
-  _closing(false),
-  _iceState("none"),
-  _iceGatheringState("none"),
-  _dataChannelState("none"),
-  _connectionAttemptTimeout(std::chrono::seconds(10))
+  _callbacks(callbacks)
 {
   _localUdpSocket->SignalReadEvent.connect(this, &PeerRelay::_onPeerdataFromGame);
   if (_localUdpSocket->Bind(rtc::SocketAddress("127.0.0.1", 0)) != 0)
@@ -56,7 +55,12 @@ PeerRelay::PeerRelay(Options options,
   {
     FAF_LOG_ERROR << "_pcfactory->CreatePeerConnection() failed!";
   }
-  _createOffer();
+
+  if (_isOfferer)
+  {
+    _createOffer();
+    _offererConnectionCheckTimer.start(7000, std::bind(&PeerRelay::_checkConnection, this));
+  }
 }
 
 PeerRelay::~PeerRelay()
@@ -171,13 +175,6 @@ void PeerRelay::_createOffer()
     options.ice_restart = reconnect;
     _peerConnection->CreateOffer(_createOfferObserver,
                                  options);
-    _restartOfferTimer.start(7000, [this]
-    {
-      if (!isConnected())
-      {
-        _createOffer();
-      }
-    });
   }
 }
 
@@ -231,12 +228,15 @@ void PeerRelay::_setConnected(bool connected)
     _isConnected = connected;
     if (_callbacks.connectedCallback)
     {
-      _callbacks.connectedCallback(true);
+      _callbacks.connectedCallback(connected);
     }
     if (connected)
     {
       _connectDuration = std::chrono::steady_clock::now() - _connectStartTime;
       RELAY_LOG_INFO << "connected after " <<  std::chrono::duration_cast<std::chrono::milliseconds>(_connectDuration).count() / 1000.;
+      _missedPings = 0;
+      _lastSentPingTime.reset();
+      _lastReceivedPongTime.reset();
     }
     else
     {
@@ -256,6 +256,64 @@ void PeerRelay::_onPeerdataFromGame(rtc::AsyncSocket* socket)
   if (msgLength > 0 && _dataChannel)
   {
     _dataChannel->Send(webrtc::DataBuffer(rtc::CopyOnWriteBuffer(_readBuffer.data(), static_cast<std::size_t>(msgLength)), true));
+  }
+}
+
+void PeerRelay::_onRemoteMessage(const uint8_t* data, std::size_t size)
+{
+  if (_isOfferer &&
+      size == sizeof(PongMessage) &&
+      std::equal(data,
+                 data + sizeof(PongMessage),
+                 PongMessage))
+  {
+    _lastReceivedPongTime = std::chrono::steady_clock::now();
+    return;
+  }
+  if (!_isOfferer &&
+      size == sizeof(PingMessage) &&
+      std::equal(data,
+                 data + sizeof(PingMessage),
+                 PingMessage) &&
+      _dataChannel)
+  {
+    _dataChannel->Send(webrtc::DataBuffer(rtc::CopyOnWriteBuffer(PongMessage, sizeof(PongMessage)), true));
+    return;
+  }
+  if (_localUdpSocket)
+  {
+    _localUdpSocket->SendTo(data,
+                            size,
+                            _gameUdpAddress);
+  }
+}
+
+void PeerRelay::_checkConnection()
+{
+  if (_isOfferer)
+  {
+    if (!isConnected())
+    {
+      _createOffer();
+    }
+    else
+    {
+      if (_lastSentPingTime &&
+          !_lastReceivedPongTime)
+      {
+        ++_missedPings;
+        if (_missedPings == 2)
+        {
+          _createOffer();
+        }
+      }
+      if (_dataChannel)
+      {
+        _dataChannel->Send(webrtc::DataBuffer(rtc::CopyOnWriteBuffer(PingMessage, sizeof(PingMessage)), true));
+        _lastSentPingTime = std::chrono::steady_clock::now();
+        _lastReceivedPongTime.reset();
+      }
+    }
   }
 }
 

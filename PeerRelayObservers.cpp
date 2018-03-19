@@ -203,12 +203,8 @@ void DataChannelObserver::OnStateChange()
 
 void DataChannelObserver::OnMessage(const webrtc::DataBuffer& buffer)
 {
-  if (_relay->_localUdpSocket)
-  {
-    _relay->_localUdpSocket->SendTo(buffer.data.cdata(),
-                                    buffer.data.size(),
-                                    _relay->_gameUdpAddress);
-  }
+  _relay->_onRemoteMessage(buffer.data.cdata(),
+                           buffer.data.size());
 }
 
 void RTCStatsCollectorCallback::OnStatsDelivered(const rtc::scoped_refptr<const webrtc::RTCStatsReport>& report)
