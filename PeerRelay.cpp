@@ -59,7 +59,6 @@ PeerRelay::PeerRelay(Options options,
   if (_isOfferer)
   {
     _createOffer();
-    _offererConnectionCheckTimer.start(7000, std::bind(&PeerRelay::_checkConnection, this));
   }
 }
 
@@ -175,6 +174,8 @@ void PeerRelay::_createOffer()
     options.ice_restart = reconnect;
     _peerConnection->CreateOffer(_createOfferObserver,
                                  options);
+    /* restart the timer to ensure we have the full check interval to be connected */
+    _offererConnectionCheckTimer.start(_connectionCheckIntervalMs, std::bind(&PeerRelay::_checkConnection, this));
   }
 }
 
@@ -294,6 +295,7 @@ void PeerRelay::_checkConnection()
   {
     if (!isConnected())
     {
+      RELAY_LOG_INFO << "_checkConnection: not connected, sending offer";
       _createOffer();
     }
     else
@@ -304,6 +306,18 @@ void PeerRelay::_checkConnection()
         ++_missedPings;
         if (_missedPings == 2)
         {
+          RELAY_LOG_INFO << "_checkConnection: 2 missed pings, sending offer";
+          _createOffer();
+        }
+      }
+      if (_lastSentPingTime &&
+          _lastReceivedPongTime &&
+          _lastSentPingTime > _lastReceivedPongTime) /* no pong received within _connectionCheckIntervalMs for our last sent ping */
+      {
+        auto pingDurationSeconds = std::chrono::duration_cast<std::chrono::seconds>(*_lastSentPingTime - *_lastReceivedPongTime);
+        if (pingDurationSeconds.count() >= 15)
+        {
+          RELAY_LOG_INFO << "_checkConnection: no pong received for 15 seconds, sending offer";
           _createOffer();
         }
       }

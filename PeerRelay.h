@@ -109,6 +109,7 @@ protected:
   std::optional<std::chrono::steady_clock::time_point> _lastSentPingTime;
   std::optional<std::chrono::steady_clock::time_point> _lastReceivedPongTime;
   unsigned int _missedPings{0};
+  unsigned int _connectionCheckIntervalMs{7000};
   std::chrono::steady_clock::duration _connectDuration;
 
   /* access declarations for observers */
