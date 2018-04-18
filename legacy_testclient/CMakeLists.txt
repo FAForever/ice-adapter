@@ -30,24 +30,24 @@ endif()
 include_directories(${Qt5Widgets_INCLUDE_DIRS})
 include_directories(${Qt5Network_INCLUDE_DIRS})
 
-add_executable(faf-ice-testserver
+add_executable(faf-ice-legacy-testserver
     Testserver.cpp
     JsonRpcProtocol.cpp
     JsonRpcQTcpServer.cpp
     JsonRpcQTcpSocket.cpp
     Socket.cpp
 )
-target_link_libraries(faf-ice-testserver
+target_link_libraries(faf-ice-legacy-testserver
   ${faf_test_libs}
   ${JSON_LIBRARIES}
 )
-set_property(TARGET faf-ice-testserver PROPERTY CXX_STANDARD 11)
-set_property(TARGET faf-ice-testserver PROPERTY CXX_STANDARD_REQUIRED ON)
+set_property(TARGET faf-ice-legacy-testserver PROPERTY CXX_STANDARD 11)
+set_property(TARGET faf-ice-legacy-testserver PROPERTY CXX_STANDARD_REQUIRED ON)
 if (NOT CMAKE_BUILD_TYPE STREQUAL "Debug")
-  add_custom_command(TARGET faf-ice-testserver
+  add_custom_command(TARGET faf-ice-legacy-testserver
     POST_BUILD
-    COMMAND ${CMAKE_STRIP} -s "$<TARGET_FILE:faf-ice-testserver>"
-    COMMENT "Stripping executable $<TARGET_FILE_NAME:faf-ice-testserver>"
+    COMMAND ${CMAKE_STRIP} -s "$<TARGET_FILE:faf-ice-legacy-testserver>"
+    COMMENT "Stripping executable $<TARGET_FILE_NAME:faf-ice-legacy-testserver>"
     )
 endif()
 
