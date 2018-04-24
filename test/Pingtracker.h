@@ -56,7 +56,7 @@ protected:
   std::map<int, int64_t> _pendingPings;
   int _lostPings;
   int _successfulPings;
-  std::vector<int64_t> _pingHistory;
+  float _currentPing{0};
   int _currentPingId;
   rtc::AsyncSocket* _gameLobbySocket;
   rtc::SocketAddress _peerAddress;

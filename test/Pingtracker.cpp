@@ -60,23 +60,13 @@ void Pingtracker::onPingPacket(PingPacket const* p)
     auto ping = now - pingIt->second;
     _pendingPings.erase(pingIt);
     ++_successfulPings;
-    _pingHistory.push_back(ping);
+    _currentPing = (_currentPing * 9 + ping) / 10;
   }
 }
 
 float Pingtracker::currentPing() const
 {
-  float result = 1e10;
-  if (_pingHistory.size() > 0)
-  {
-    result = 0;
-    for (int time : _pingHistory)
-    {
-      result += time;
-    }
-    result /= _pingHistory.size();
-  }
-  return result;
+  return _currentPing;
 }
 
 uint16_t Pingtracker::port() const
@@ -101,11 +91,11 @@ int Pingtracker::successfulPings() const
 
 void Pingtracker::_update()
 {
+  auto currentTime = std::chrono::duration_cast< std::chrono::milliseconds >(
+                       std::chrono::system_clock::now().time_since_epoch()).count();
   while (_pendingPings.size() > 0)
   {
     auto it = _pendingPings.begin();
-    auto currentTime = std::chrono::duration_cast< std::chrono::milliseconds >(
-                         std::chrono::system_clock::now().time_since_epoch()).count();
     if ((currentTime - it->second) > 5000)
     {
       _pendingPings.erase(it);
@@ -119,10 +109,6 @@ void Pingtracker::_update()
   if (_pendingPings.size() > 60)
   {
     FAF_LOG_WARN << "mPendingPings.size() > 60";
-  }
-  while (_pingHistory.size() > 50)
-  {
-    _pingHistory.erase(_pingHistory.begin());
   }
 }
 

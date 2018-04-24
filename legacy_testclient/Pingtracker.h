@@ -46,7 +46,7 @@ protected:
   QMap<int, qint64> mPendingPings;
   int mLostPings;
   int mSuccessfulPings;
-  QList<qint64> mPingHistory;
+  float _currentPing{0};
   int mCurrentPingId;
   QUdpSocket& mLobbySocket;
   QTimer mPingTimer;

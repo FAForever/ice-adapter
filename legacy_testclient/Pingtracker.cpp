@@ -13,8 +13,8 @@ Pingtracker::Pingtracker(int localPeerId,
   mPort(port),
   mLostPings(0),
   mSuccessfulPings(0),
-  mLobbySocket(lobbySocket),
-  mCurrentPingId(0)
+  mCurrentPingId(0),
+  mLobbySocket(lobbySocket)
 {
   auto updateTimer = new QTimer(this);
   connect(updateTimer,
@@ -72,23 +72,13 @@ void Pingtracker::onPingPacket(PingPacket const* p)
     auto ping = QDateTime::currentMSecsSinceEpoch() - mPendingPings.value(p->pingId);
     mPendingPings.remove(p->pingId);
     ++mSuccessfulPings;
-    mPingHistory.push_back(ping);
+    _currentPing = (_currentPing * 9 + ping) / 10;
   }
 }
 
 float Pingtracker::currentPing() const
 {
-  float result = 1e10;
-  if (mPingHistory.size() > 0)
-  {
-    result = 0;
-    for (int time : mPingHistory)
-    {
-      result += time;
-    }
-    result /= mPingHistory.size();
-  }
-  return result;
+  return _currentPing;
 }
 
 quint16 Pingtracker::port() const
@@ -113,10 +103,10 @@ int Pingtracker::successfulPings() const
 
 void Pingtracker::update()
 {
+  auto currentTime = QDateTime::currentMSecsSinceEpoch();
   while (mPendingPings.size() > 0)
   {
     auto it = mPendingPings.begin();
-    auto currentTime = QDateTime::currentMSecsSinceEpoch();
     if ((currentTime - it.value()) > 5000)
     {
       mPendingPings.erase(it);
@@ -130,10 +120,6 @@ void Pingtracker::update()
   if (mPendingPings.size() > 60)
   {
     qWarning() << "mPendingPings.size() > 60";
-  }
-  while (mPingHistory.size() > 50)
-  {
-    mPingHistory.pop_front();
   }
   Q_EMIT pingStats(mRemotePeerId,
                    currentPing(),
