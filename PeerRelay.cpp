@@ -248,7 +248,9 @@ void PeerRelay::_setConnected(bool connected)
 
 void PeerRelay::_onPeerdataFromGame(rtc::AsyncSocket* socket)
 {
-  auto msgLength = socket->Recv(_readBuffer.data(), _readBuffer.size(), nullptr);
+  _sendCowBuffer.EnsureCapacity(sendBufferSize);
+  auto msgLength = socket->Recv(_sendCowBuffer.data(), sendBufferSize, nullptr);
+
   if (!_isConnected)
   {
     RELAY_LOG_TRACE << "skipping " << msgLength << " bytes of P2P data until ICE connection is established";
@@ -256,7 +258,9 @@ void PeerRelay::_onPeerdataFromGame(rtc::AsyncSocket* socket)
   }
   if (msgLength > 0 && _dataChannel)
   {
-    _dataChannel->Send(webrtc::DataBuffer(rtc::CopyOnWriteBuffer(_readBuffer.data(), static_cast<std::size_t>(msgLength)), true));
+    /* I hope the buffer doesn't shrink upon SetSize() */
+    _sendCowBuffer.SetSize(msgLength);
+    _dataChannel->Send({_sendCowBuffer, true});
   }
 }
 

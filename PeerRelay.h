@@ -7,6 +7,7 @@
 #include <array>
 
 #include <webrtc/api/peerconnectioninterface.h>
+#include <webrtc/rtc_base/copyonwritebuffer.h>
 
 #include <third_party/json/json.h>
 
@@ -88,7 +89,8 @@ protected:
   rtc::SocketAddress _gameUdpAddress;
   std::unique_ptr<rtc::AsyncSocket> _localUdpSocket;
   int _localUdpSocketPort;
-  std::array<char, 2048> _readBuffer;
+  static constexpr const std::size_t sendBufferSize = 2048;
+  rtc::CopyOnWriteBuffer _sendCowBuffer{sendBufferSize};
 
   /* ICE state data */
   Callbacks _callbacks;
