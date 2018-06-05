@@ -35,7 +35,7 @@ public class TestClient {
 	private static void informationThread() {
 		while(true) {
 
-			ClientInformationMessage message = new ClientInformationMessage(username, playerID, System.currentTimeMillis(), ICEAdapter.status(), "", isGameRunning.get() ? forgedAlliance.getPeers() : null);
+			ClientInformationMessage message = new ClientInformationMessage(username, playerID, System.currentTimeMillis(), TestServerAccessor.latencies, ICEAdapter.status(), "", isGameRunning.get() ? forgedAlliance.getPeers() : null);
 
 			TestServerAccessor.send(message);
 //			Logger.info("Sent: %s", new Gson().toJson(message));
@@ -48,6 +48,7 @@ public class TestClient {
 
 
 	public static void main(String args[]) {
+//		Logger.enableLogging();
 		Logger.init("ICE adapter testclient");
 
 		GUI.init(args);
@@ -67,6 +68,8 @@ public class TestClient {
 
 		TestServerAccessor.disconnect();
 		ICEAdapter.close();
+
+		Logger.close();
 
 		System.exit(0);
 	}

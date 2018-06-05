@@ -4,6 +4,8 @@ import com.google.gson.Gson;
 import logging.Logger;
 import lombok.Getter;
 import net.ClientInformationMessage;
+import net.EchoRequest;
+import net.EchoResponse;
 import net.IceMessage;
 
 import java.io.DataInputStream;
@@ -94,6 +96,10 @@ public class Player {
 
 				if(message instanceof ClientInformationMessage) {
 					Logger.debug("Client information message: %s", gson.toJson(message));
+				}
+
+				if(message instanceof EchoRequest) {
+					send(new EchoResponse(((EchoRequest)message).getTimestamp()));
 				}
 			}
 		} catch(IOException | ClassNotFoundException e) {

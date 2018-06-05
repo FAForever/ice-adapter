@@ -2,7 +2,8 @@ package data;
 
 import lombok.Data;
 
-import java.util.Stack;
+import java.util.LinkedList;
+import java.util.Queue;
 
 @Data
 public class ForgedAlliancePeer {
@@ -16,14 +17,14 @@ public class ForgedAlliancePeer {
 
 	public int echoRequestsSent;
 	public long lastPacketReceived = System.currentTimeMillis();
-	public Stack<Integer> latencies = new Stack<>();
+	public Queue<Integer> latencies = new LinkedList<>();
 
 	public int addLatency(int lat) {
 		lastPacketReceived = System.currentTimeMillis();
 
-		latencies.push(lat);
+		latencies.add(lat);
 		if(latencies.size() > 10) {
-			latencies.pop();
+			latencies.remove();
 		}
 		return getLatency();
 	}

@@ -15,6 +15,7 @@ public class TestServer {
 	public static List<Game> games = new LinkedList<>();
 
 	public static void main(String args[]) {
+		Logger.enableLogging();
 		Logger.init("ICE adapter testserver");
 
 		try {

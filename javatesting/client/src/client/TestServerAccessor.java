@@ -13,13 +13,15 @@ import java.io.DataInputStream;
 import java.io.DataOutputStream;
 import java.io.IOException;
 import java.net.Socket;
+import java.util.LinkedList;
+import java.util.Queue;
 import java.util.concurrent.CompletableFuture;
 
 import static com.github.nocatch.NoCatch.noCatch;
 
 public class TestServerAccessor {
 
-	public static final String TEST_SERVER_ADDRESS = "geosearchef.de";
+	public static final String TEST_SERVER_ADDRESS = "localhost";
 	private static Gson gson = new Gson();
 	public static BooleanProperty connected = new SimpleBooleanProperty(false);
 
@@ -27,8 +29,11 @@ public class TestServerAccessor {
 	private static DataInputStream in;
 	private static DataOutputStream out;
 
+	public static Queue<Integer> latencies = new LinkedList<>();
+
 	public static void init() {
 		connect();
+		new Thread(TestServerAccessor::echoThread).start();
 	}
 
 
@@ -75,6 +80,15 @@ public class TestServerAccessor {
 				if(message instanceof LeaveGameMessage) {
 					TestClient.leaveGame();
 				}
+
+
+				if(message instanceof EchoResponse) {
+					latencies.add((int) (System.currentTimeMillis() - ((EchoResponse) message).getTimestamp()));
+					if(latencies.size() > 10) {
+						latencies.remove();
+					}
+				}
+
 			}
 		} catch(IOException | ClassNotFoundException e) {
 			TestClient.close();
@@ -90,6 +104,13 @@ public class TestServerAccessor {
 				Logger.error("Error while sending to server", e);
 				System.exit(123);
 			}
+		}
+	}
+
+	private static void echoThread() {
+		while(connected.get()) {
+			send(new EchoRequest(System.currentTimeMillis()));
+			try { Thread.sleep(1000); } catch(InterruptedException e) {}
 		}
 	}
 
