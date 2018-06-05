@@ -1,20 +1,20 @@
 package client;
 
 import client.ice.ICEAdapter;
+import common.ICEAdapterTest;
 import data.ForgedAlliancePeer;
 import javafx.application.Application;
 import javafx.application.Platform;
 import javafx.geometry.Orientation;
 import javafx.scene.Scene;
-import javafx.scene.control.Alert;
-import javafx.scene.control.Label;
-import javafx.scene.control.Separator;
-import javafx.scene.control.TextInputDialog;
+import javafx.scene.control.*;
 import javafx.scene.layout.HBox;
+import javafx.scene.layout.Region;
 import javafx.scene.layout.VBox;
 import javafx.stage.Stage;
 import logging.Logger;
 
+import java.util.Optional;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.CountDownLatch;
 
@@ -52,10 +52,26 @@ public class GUI extends Application {
 		});
 	}
 
+	public static void showGDPRDialog() {
+		runAndWait(() -> {
+			Alert gdprDialog = new Alert(Alert.AlertType.CONFIRMATION);
+			gdprDialog.setTitle("ICE adapter test");
+			gdprDialog.setHeaderText("Data usage");
+			gdprDialog.setContentText(ICEAdapterTest.GDPR);
+			gdprDialog.getDialogPane().setMinHeight(Region.USE_PREF_SIZE);
+
+			if(! TestClient.DEBUG_MODE) {
+				Optional<ButtonType> result = gdprDialog.showAndWait();
+				if(! result.isPresent() || result.get() != ButtonType.OK) {
+					System.exit(0);
+				}
+			}
+		});
+	}
+
 	public static CompletableFuture<Alert> showDialog(String s) {
 		CompletableFuture<Alert> future = new CompletableFuture<>();
 		Platform.runLater(() -> {
-			System.out.println(Platform.isFxApplicationThread());
 			Alert alert = new Alert(Alert.AlertType.INFORMATION);
 			alert.setTitle("ICE adapter test");
 			alert.setHeaderText(s);

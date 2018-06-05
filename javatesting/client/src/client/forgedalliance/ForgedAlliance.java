@@ -119,7 +119,7 @@ public class ForgedAlliance {
 
 				//Data
 				peers.stream()
-						.filter(p -> System.currentTimeMillis() - p.lastPacketReceived > 5000)
+						.filter(p -> System.currentTimeMillis() - p.lastPacketReceived > 10000)
 						.forEach(p -> p.addLatency((int)(System.currentTimeMillis() - p.lastPacketReceived)));
 			}
 
@@ -208,6 +208,7 @@ public class ForgedAlliance {
 				}
 
 				if(command.equals(ECHO_RES)) {
+
 					int remoteId = packetIn.readInt();
 					int localId = packetIn.readInt();
 					int echoReqId = packetIn.readInt();
@@ -219,11 +220,14 @@ public class ForgedAlliance {
 					assertThat(localId == TestClient.playerID);
 					int latency = (int) (System.currentTimeMillis() - echoReqTime);
 
-					synchronized (peers) {
-						peers.stream().filter(p -> p.remoteId == remoteId).findAny().ifPresent(p -> p.addLatency(latency));
+
+					if(echoReqId > 5 && latency < 2000 /*TODO HOW?*/) {//block first connecting pings
+						synchronized (peers) {
+							peers.stream().filter(p -> p.remoteId == remoteId).findAny().ifPresent(p -> p.addLatency(latency));
+						}
 					}
 
-					Logger.debug("<FA> Recevied ECHO_RES %d after %d ms from %d", echoReqId, latency, remoteId);
+//					Logger.debug("<FA> Recevied ECHO_RES %d after %d ms from %d", echoReqId, latency, remoteId);
 				}
 			}
 		} catch(IOException e) {

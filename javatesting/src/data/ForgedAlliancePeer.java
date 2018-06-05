@@ -23,9 +23,9 @@ public class ForgedAlliancePeer {
 		lastPacketReceived = System.currentTimeMillis();
 
 		latencies.add(lat);
-		if(latencies.size() > 10) {
-			latencies.remove();
-		}
+//		if(latencies.size() > 10) {
+//			latencies.remove();
+//		}
 		return getLatency();
 	}
 

@@ -3,7 +3,9 @@ package client.ice;
 import client.GUI;
 import client.TestClient;
 import com.github.nocatch.NoCatch;
-import com.google.gson.Gson;
+import com.google.gson.GsonBuilder;
+import com.nbarraille.jjsonrpc.CallbackMethod;
+import com.nbarraille.jjsonrpc.InvalidMethodException;
 import com.nbarraille.jjsonrpc.JJsonPeer;
 import com.nbarraille.jjsonrpc.TcpClient;
 import data.IceStatus;
@@ -22,6 +24,8 @@ import java.nio.charset.Charset;
 import java.security.InvalidKeyException;
 import java.security.NoSuchAlgorithmException;
 import java.util.*;
+import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.ExecutionException;
 
 public class ICEAdapter {
 
@@ -62,38 +66,57 @@ public class ICEAdapter {
 
 
 	public static void hostGame(String mapName) {
-		peer.sendAsyncRequest("hostGame", Arrays.asList(mapName), null, true);
+		peer.sendAsyncRequest("hostGame", Arrays.asList(mapName), null, false);
 	}
 
 	public static void joinGame(String remotePlayerLogin, long remotePlayerId) {
-		peer.sendAsyncRequest("joinGame", Arrays.asList(remotePlayerLogin, remotePlayerId), null, true);
+		peer.sendAsyncRequest("joinGame", Arrays.asList(remotePlayerLogin, remotePlayerId), null, false);
 	}
 	public static void connectToPeer(String remotePlayerLogin, long remotePlayerId, boolean offer) {
-		peer.sendAsyncRequest("connectToPeer", Arrays.asList(remotePlayerLogin, remotePlayerId, offer), null, true);
+		peer.sendAsyncRequest("connectToPeer", Arrays.asList(remotePlayerLogin, remotePlayerId, offer), null, false);
 	}
 
 	public static void disconnectFromPeer(long remotePlayerId) {
-		peer.sendAsyncRequest("disconnectFromPeer", Arrays.asList(remotePlayerId), null, true);
+		peer.sendAsyncRequest("disconnectFromPeer", Arrays.asList(remotePlayerId), null, false);
 	}
 
 	public static void setLobbyInitMode(String lobbyInitMode) {
-		peer.sendAsyncRequest("setLobbyInitMode", Arrays.asList(lobbyInitMode), null, true);
+		peer.sendAsyncRequest("setLobbyInitMode", Arrays.asList(lobbyInitMode), null, false);
 	}
 
 	public static void iceMsg(long remotePlayerId, Object msg) {
-		peer.sendAsyncRequest("iceMsg", Arrays.asList(remotePlayerId, msg), null, true);
+		peer.sendAsyncRequest("iceMsg", Arrays.asList(remotePlayerId, msg), null, false);
 	}
 
 	public static void sendToGpgNet(String header, String... chunks) {
-		peer.sendAsyncRequest("sendToGpgNet", Arrays.asList(header, chunks), null, true);
+		peer.sendAsyncRequest("sendToGpgNet", Arrays.asList(header, chunks), null, false);
 	}
 
 	public static void setIceServers(List<Map<String, Object>> iceServers) {
-		peer.sendAsyncRequest("setIceServers", Arrays.asList(iceServers), null, true);
+		peer.sendAsyncRequest("setIceServers", Arrays.asList(iceServers), null, false);
 	}
 
-	public static IceStatus status() {
-		return new Gson().fromJson((peer.sendSyncRequest("status", Collections.emptyList(), true)).toString(), IceStatus.class);
+	private static volatile CompletableFuture<Object> status = null;
+	public synchronized static IceStatus status() {
+		long time = System.currentTimeMillis();
+		status = new CompletableFuture<>();
+		IceStatus iceStatus = null;
+		try {
+			peer.sendAsyncRequest("status", Collections.emptyList(), new CallbackMethod(StatusCallback.class.getMethod("statusCallback", Object.class), STATUS_CALLBACK_INSTANCE, null), false);
+			iceStatus = new GsonBuilder().serializeNulls().create().fromJson(status.get().toString().replace("{}", "null"), IceStatus.class);
+		} catch (InvalidMethodException | NoSuchMethodException | InterruptedException | ExecutionException e) {
+			Logger.error(e);
+			e.printStackTrace();
+		}
+		Logger.debug("Took %d ms.", System.currentTimeMillis() - time);
+		return iceStatus;
+	}
+
+	private static StatusCallback STATUS_CALLBACK_INSTANCE = new StatusCallback();
+	public static class StatusCallback {
+		public void statusCallback(Object res) {
+			status.complete(res);
+		}
 	}
 
 

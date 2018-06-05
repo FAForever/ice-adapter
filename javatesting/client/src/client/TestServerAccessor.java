@@ -21,7 +21,6 @@ import static com.github.nocatch.NoCatch.noCatch;
 
 public class TestServerAccessor {
 
-	public static final String TEST_SERVER_ADDRESS = "localhost";
 	private static Gson gson = new Gson();
 	public static BooleanProperty connected = new SimpleBooleanProperty(false);
 
@@ -98,6 +97,7 @@ public class TestServerAccessor {
 	public static void send(Object message) {
 		synchronized (out) {
 			try {
+				System.out.println(gson.toJson(message));
 				out.writeUTF(message.getClass().getName());
 				out.writeUTF(gson.toJson(message));
 			} catch(IOException e) {
@@ -116,12 +116,21 @@ public class TestServerAccessor {
 
 	private static void connect() {
 		Alert alert = noCatch(() -> GUI.showDialog("Connecting...").get());
-		Logger.info("Connecting to %s:%d...", TEST_SERVER_ADDRESS, ICEAdapterTest.TEST_SERVER_PORT);
+		Logger.info("Connecting to %s:%d...", ICEAdapterTest.TEST_SERVER_ADDRESS, ICEAdapterTest.TEST_SERVER_PORT);
 
 		try {
-			socket = new Socket(TEST_SERVER_ADDRESS, ICEAdapterTest.TEST_SERVER_PORT);
+			socket = new Socket(ICEAdapterTest.TEST_SERVER_ADDRESS, ICEAdapterTest.TEST_SERVER_PORT);
 			in = new DataInputStream(socket.getInputStream());
 			out = new DataOutputStream(socket.getOutputStream());
+
+			if(in.readInt() != ICEAdapterTest.VERSION) {
+				Logger.error("Wrong version: %d", ICEAdapterTest.VERSION);
+				socket.close();
+				GUI.runAndWait(alert::close);
+				alert = noCatch(() -> GUI.showDialog("Please download the newest version.").get());
+				try { Thread.sleep(3000); } catch(InterruptedException e) {}
+				System.exit(59);
+			}
 
 			out.writeUTF(TestClient.username);
 			if(! in.readBoolean()) {
@@ -144,7 +153,7 @@ public class TestServerAccessor {
 
 
 		connected.set(true);
-		Logger.info("Connected to %s:%d", TEST_SERVER_ADDRESS, ICEAdapterTest.TEST_SERVER_PORT);
+		Logger.info("Connected to %s:%d", ICEAdapterTest.TEST_SERVER_ADDRESS, ICEAdapterTest.TEST_SERVER_PORT);
 
 		new Thread(TestServerAccessor::listener).start();
 

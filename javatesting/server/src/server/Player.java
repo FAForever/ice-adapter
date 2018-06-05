@@ -1,6 +1,7 @@
 package server;
 
 import com.google.gson.Gson;
+import common.ICEAdapterTest;
 import logging.Logger;
 import lombok.Getter;
 import net.ClientInformationMessage;
@@ -50,6 +51,8 @@ public class Player {
 			in = new DataInputStream(socket.getInputStream());
 			out = new DataOutputStream(socket.getOutputStream());
 
+			out.writeInt(ICEAdapterTest.VERSION);
+
 			this.username = in.readUTF();
 
 			if(players.stream().map(Player::getUsername).anyMatch(this.username::equals)) {
@@ -68,6 +71,7 @@ public class Player {
 			this.id = PLAYER_ID_FACTORY++;
 			out.writeInt(id);
 
+			TestServer.collectedData.put(this.id, new CollectedInformation(id, username));
 			connected = true;
 
 		} catch(IOException e) {
@@ -87,6 +91,7 @@ public class Player {
 
 				if(message instanceof IceMessage) {
 					Logger.debug("IceMessage: %s", gson.toJson(message));
+					TestServer.collectedData.get(this.id).getIceMessages().put(System.currentTimeMillis(), (IceMessage) message);
 					synchronized (players) {
 						players.stream()
 								.filter(p -> p.getId() == ((IceMessage)message).getDestPlayerId())
@@ -96,6 +101,7 @@ public class Player {
 
 				if(message instanceof ClientInformationMessage) {
 					Logger.debug("Client information message: %s", gson.toJson(message));
+					TestServer.collectedData.get(this.id).getInformationMessages().add((ClientInformationMessage) message);
 				}
 
 				if(message instanceof EchoRequest) {
@@ -126,6 +132,10 @@ public class Player {
 		synchronized (TestServer.games) {
 			for (Game g : games) {
 				synchronized (players) {
+					if(g.getHost() == this) {//TODO
+						TestServer.close();
+					}
+
 					if (g.getPlayers().contains(this)) {
 						g.left(this);
 					}

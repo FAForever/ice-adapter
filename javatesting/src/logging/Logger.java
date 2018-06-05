@@ -10,6 +10,7 @@ public class Logger {
 	public static final int INFO = 2;
 	public static final int DEBUG = 3;
 
+	public static String collectedLog = "";
 
 	public static boolean loggingEnabled = false;
 	public static int logLevel = DEBUG;
@@ -146,6 +147,8 @@ public class Logger {
 	}
 
 	private synchronized static void writeToLog(String logString) {
+		collectedLog = collectedLog.concat(logString);
+
 		if (loggingEnabled) {
 			try {
 				fileWriter.write(logString);

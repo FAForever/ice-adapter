@@ -47,7 +47,7 @@ public class IceStatus {
 			private String rem_cand_addr;
 			private String loc_cand_type;
 			private String rem_cand_type;
-			private double time_to_connected;
+			private Double time_to_connected;
 		}
 	}
 }
