@@ -64,8 +64,9 @@ public class TestClient {
 	public static void main(String args[]) {
 		if(args.length >= 1 && args[0].equals("debug")) {
 			DEBUG_MODE = true;
+		} else {
+			Logger.enableLogging();
 		}
-//		Logger.enableLogging();
 		Logger.init("ICE adapter testclient");
 
 		GUI.init(args);

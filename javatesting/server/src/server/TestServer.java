@@ -50,7 +50,7 @@ public class TestServer {
 		Scanner scan = new Scanner(System.in);
 		scan.next();
 
-//		close();
+		close();
 	}
 
 	public static void close() {
@@ -141,7 +141,11 @@ public class TestServer {
 					double avg = Arrays.stream(pings).average().orElse(99999);
 					double avgLimited = Arrays.stream(pings).filter(p -> p < 2000).average().orElse(99999);
 
+					double serverPing = collectedData.get(entry1.getKey()).getInformationMessages().stream().flatMap(im -> im.getLatencies().stream()).mapToDouble(Integer::doubleValue).average().orElse(99999)
+										+ collectedData.get(entry2.getKey()).getInformationMessages().stream().flatMap(im -> im.getLatencies().stream()).mapToDouble(Integer::doubleValue).average().orElse(99999);
+
 					writer.write(String.format("%.0f/%.0f(%.0f)/%.0f", min, avg, avgLimited, max));
+					writer.write(String.format("\t(Server: %.0f)", serverPing));
 //					writer.write("\tConnected: " + );
 					writer.write("\tQuiet for: " + entry1.getValue().getInformationMessages().stream()
 							.filter(im -> im.getForgedAlliancePeers().stream().anyMatch(p -> p.getRemoteId() == entry2.getKey() && im.getCurrentTimeMillis() - p.getLastPacketReceived() > 5000))

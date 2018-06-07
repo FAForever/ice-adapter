@@ -98,7 +98,7 @@ public class ICEAdapter {
 
 	private static volatile CompletableFuture<Object> status = null;
 	public synchronized static IceStatus status() {
-		long time = System.currentTimeMillis();
+//		long time = System.currentTimeMillis();
 		status = new CompletableFuture<>();
 		IceStatus iceStatus = null;
 		try {
@@ -108,7 +108,7 @@ public class ICEAdapter {
 			Logger.error(e);
 			e.printStackTrace();
 		}
-		Logger.debug("Took %d ms.", System.currentTimeMillis() - time);
+//		Logger.debug("Took %d ms.", System.currentTimeMillis() - time);
 		return iceStatus;
 	}
 
@@ -126,8 +126,8 @@ public class ICEAdapter {
 		byte[] secret = null;
 		try {
 			Mac mac = Mac.getInstance("HmacSHA1");
-			mac.init(new SecretKeySpec(Charset.forName("UTF-8").encode(COTURN_KEY).array(), "HmacSHA1"));
-			secret = mac.doFinal(Charset.forName("UTF-8").encode(tokenName).array());
+			mac.init(new SecretKeySpec(Charset.forName("cp1252").encode(COTURN_KEY).array(), "HmacSHA1"));
+			secret = mac.doFinal(Charset.forName("cp1252").encode(tokenName).array());
 
 		} catch(NoSuchAlgorithmException | InvalidKeyException e) { Logger.crash(e); }
 		String authToken = Base64.getEncoder().encodeToString(secret);

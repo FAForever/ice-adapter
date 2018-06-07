@@ -2,7 +2,7 @@ package common;
 
 
 public class ICEAdapterTest {
-	public static final int VERSION = 4;
+	public static final int VERSION = 5;
 	public static int TEST_SERVER_PORT = 39456;
 	public static final String TEST_SERVER_ADDRESS = "localhost";
 
