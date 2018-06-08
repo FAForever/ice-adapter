@@ -11,7 +11,7 @@
 #include <webrtc/rtc_base/thread.h>
 #include <webrtc/rtc_base/messagedigest.h>
 #include <webrtc/rtc_base/base64.h>
-#include <third_party/json/json.h>
+#include <webrtc/third_party/jsoncpp/source/include/json/json.h>
 
 #include "IceAdapterOptions.h"
 #include "IceAdapter.h"

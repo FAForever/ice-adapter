@@ -7,7 +7,7 @@
 #include <webrtc/rtc_base/messagedigest.h>
 #include <webrtc/rtc_base/base64.h>
 #include <webrtc/media/engine/webrtcmediaengine.h>
-#include <third_party/json/json.h>
+#include <webrtc/third_party/jsoncpp/source/include/json/json.h>
 
 #include "Timer.h"
 #include "PeerRelay.h"
@@ -51,11 +51,6 @@ PeerRelayTest::PeerRelayTest():
   _proxyOnly(false)
 {
   _pcfactory = webrtc::CreateModularPeerConnectionFactory(nullptr,
-                                                          nullptr,
-                                                          nullptr,
-                                                          nullptr,
-                                                          nullptr,
-                                                          nullptr,
                                                           nullptr,
                                                           nullptr,
                                                           nullptr,

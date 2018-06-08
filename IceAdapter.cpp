@@ -5,7 +5,7 @@
 #include <webrtc/rtc_base/thread.h>
 #include <webrtc/api/mediaconstraintsinterface.h>
 #include <webrtc/api/test/fakeconstraints.h>
-#include <third_party/json/json.h>
+#include <webrtc/third_party/jsoncpp/source/include/json/json.h>
 #include <webrtc/media/engine/webrtcmediaengine.h>
 
 #include "logging.h"
@@ -23,11 +23,6 @@ IceAdapter::IceAdapter(IceAdapterOptions const& options):
   _gpgnetServer.listen(_options.gpgNetPort);
 
   _pcfactory = webrtc::CreateModularPeerConnectionFactory(nullptr,
-                                                          nullptr,
-                                                          nullptr,
-                                                          nullptr,
-                                                          nullptr,
-                                                          nullptr,
                                                           nullptr,
                                                           nullptr,
                                                           nullptr,
@@ -420,10 +415,10 @@ void IceAdapter::_connectRpcMethods()
   });
 
   _jsonRpcServer.setRpcCallback("status",
-                             [this](Json::Value const& paramsArray,
-                             Json::Value & result,
-                             Json::Value & error,
-                             rtc::AsyncSocket* session)
+                                [this](Json::Value const& paramsArray,
+                                       Json::Value & result,
+                                       Json::Value & error,
+                                       rtc::AsyncSocket* session)
   {
     result = status();
   });

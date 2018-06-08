@@ -9,7 +9,7 @@
 #include <webrtc/api/peerconnectioninterface.h>
 #include <webrtc/rtc_base/copyonwritebuffer.h>
 
-#include <third_party/json/json.h>
+#include <webrtc/third_party/jsoncpp/source/include/json/json.h>
 
 #include "Timer.h"
 

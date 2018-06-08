@@ -84,7 +84,7 @@ bool JsonRpcServer::_sendMessage(std::string const& message, rtc::AsyncSocket* s
 {
   if (_connectedSockets.empty())
   {
-    FAF_LOG_ERROR << "mSessions.empty()";
+    FAF_LOG_ERROR << "_connectedSockets.empty()";
     return false;
   }
   for (auto it = _connectedSockets.begin(), end = _connectedSockets.end(); it != end; ++it)

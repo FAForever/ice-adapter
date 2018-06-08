@@ -2,7 +2,7 @@
 
 #include <string>
 #include <functional>
-#include <third_party/json/json.h>
+#include <webrtc/third_party/jsoncpp/source/include/json/json.h>
 
 namespace faf
 {

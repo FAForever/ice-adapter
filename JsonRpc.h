@@ -6,7 +6,7 @@
 #include <functional>
 
 #include <webrtc/rtc_base/asyncsocket.h>
-#include <third_party/json/json.h>
+#include <webrtc/third_party/jsoncpp/source/include/json/json.h>
 
 namespace faf {
 

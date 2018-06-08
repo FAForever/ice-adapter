@@ -21,18 +21,19 @@ class PeerConnection;
 static rtc::scoped_refptr<webrtc::PeerConnectionFactoryInterface> pcfactory;
 
 typedef std::size_t PeerId;
+using PeerIdPair = std::pair<PeerId, PeerId>;
 
-static std::set<std::pair<PeerId, PeerId>> offers;
+static std::set<PeerIdPair> offers;
 
 struct PeerIdPairHash {
 public:
-  std::size_t operator()(const std::pair<PeerId, PeerId> &x) const
+  std::size_t operator()(const PeerIdPair &x) const
   {
     return std::hash<PeerId>()(x.first) ^ std::hash<PeerId>()(x.second);
   }
 };
 
-static  std::unordered_map<std::pair<PeerId, PeerId>, std::shared_ptr<PeerConnection>, PeerIdPairHash> directedPeerConnections;
+static  std::unordered_map<PeerIdPair, std::shared_ptr<PeerConnection>, PeerIdPairHash> directedPeerConnections;
 
 static faf::Timer quitTimer;
 
@@ -447,11 +448,6 @@ int main(int argc, char *argv[])
   }
 
   pcfactory = webrtc::CreateModularPeerConnectionFactory(nullptr,
-                                                         nullptr,
-                                                         nullptr,
-                                                         nullptr,
-                                                         nullptr,
-                                                         nullptr,
                                                          nullptr,
                                                          nullptr,
                                                          nullptr,

@@ -6,6 +6,17 @@ project(faf-ice-adapter
 
 set(CMAKE_CXX_STANDARD 17)
 
+set(WEBRTC_INCLUDE_DIRS "" CACHE PATH "libwebrtc include dir")
+if(NOT EXISTS "${WEBRTC_INCLUDE_DIRS}")
+  message(FATAL_ERROR "please specify WEBRTC_INCLUDE_DIRS to point at the include path of the libwebrtc package from https://github.com/FAForever/libwebrtc/releases")
+endif()
+
+set(WEBRTC_LIBRARIES "" CACHE FILEPATH "libwebrtc lib")
+if(NOT EXISTS "${WEBRTC_LIBRARIES}")
+  message(FATAL_ERROR "please specify WEBRTC_LIBRARIES to point at the lib file of the libwebrtc package from https://github.com/FAForever/libwebrtc/releases")
+endif()
+
+
 if(NOT FAF_VERSION_STRING)
   find_package(Git)
   if(GIT_FOUND)
@@ -20,8 +31,10 @@ if(NOT FAF_VERSION_STRING)
   endif()
 endif()
 
-include_directories(${WEBRTC_INCLUDE_DIRS})
-include_directories(${CMAKE_CURRENT_SOURCE_DIR})
+
+include_directories("${WEBRTC_INCLUDE_DIRS}")
+include_directories("${WEBRTC_INCLUDE_DIRS}/webrtc")
+include_directories("${CMAKE_CURRENT_SOURCE_DIR}")
 
 add_custom_target(docs
   SOURCES
