@@ -1,0 +1,32 @@
+language: cpp
+matrix:
+  include:
+  - os: linux
+    compiler: clang
+    addons:
+      apt:
+        packages:
+        - ninja-build
+        - cmake
+    env:
+    - LIBWEBRTC_VERSION=1.0.0-faf5
+    install:
+    - wget https://github.com/FAForever/libwebrtc/releases/download/v$LIBWEBRTC_VERSION/libwebrtc-$LIBWEBRTC_VERSION-linux-x64.tar.gz
+      -O libwebrtc.tar.gz
+    - tar xf libwebrtc.tar.gz
+    - mkdir build && cd build
+    - cmake -G "Ninja" -DCMAKE_CXX_COMPILER="/usr/local/clang-5.0.0/bin/clang++" -DWEBRTC_INCLUDE_DIRS="$TRAVIS_BUILD_DIR/include"
+      -DWEBRTC_LIBRARIES="$TRAVIS_BUILD_DIR/lib/libwebrtc.a" -DCMAKE_BUILD_TYPE=Release
+      ..
+    - ninja faf-ice-adapter
+script:
+- echo "Nothing."
+before_deploy:
+- export RELEASE_PKG_FILE=./build/faf-ice-adapter
+deploy:
+  provider: releases
+  api_key:
+    secure: kvzwAY9Wsc9j0OvantE+nahfSadGQX+y2L8WHfk8T9uCpUZbR4pvunO4a2AXNBPxgRwMonTuZ8DZ6JyK+0x5TQekSJfQXgqlccFjJRfmpI3hd1wk/RbCko4wzSmU9hlbOFbetTU6Pz0LtYWSahZpgy1wMB1PfuSDP1qPFG5iJJqu1T3kexTJgenxkWqmOf02ZB1OMqFouzSnCOHbUUNDxLcHequ1EZcJQPhsMfoSo4rwpmVG01j/kj6T91XVAi0ZsMAgXzIyKfna36fnW0P6273d11TV1su9yr8/B+ZmC8zwRyqNu7G3f57nTxSY+nY6gZupyegM6bTUvOCiKeG8QuyhGsJ7vHKcqqsk2kysOjrupSioCFpegzNd7QmbVSyaJtLnGcuYCjXI/CqB096ziOxa3yGWEvCz0bTteXVR3ZXmkCO+1keu6R5Q3f1esx4eGbb+mmu0z19DLECrhRkHg6jFaJzcJJvtPh7ZW9bh+mjsBG4+koAgcQU40LWdKvzA6MGUxHPbz9fzTn6oXBIsC8HABCYKo5nL4NyFY19Fl7QOm3+RyDP3/EoGv2k4pcfJEbCLC3D9FsDEQMF7kd/vPrkneYLh0BVx5JDLMJN4l6QTY/YGGhEbYRAPegIj3MLth2nmeGeSBFBw/MgszWviubz35buqaH8e/67B7gVggK4=
+  file: "${RELEASE_PKG_FILE}"
+  on:
+    repo: FAForever/ice-adapter

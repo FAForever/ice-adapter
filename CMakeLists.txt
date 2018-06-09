@@ -45,6 +45,7 @@ add_custom_target(docs
   LICENSE
   appveyor.yml
   CHANGELOG.md
+  .travis.yml
   )
 
 add_library(fafice
