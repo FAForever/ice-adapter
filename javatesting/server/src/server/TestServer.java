@@ -34,10 +34,12 @@ public class TestServer {
 		try {
 			ServerSocket serverSocket = new ServerSocket(ICEAdapterTest.TEST_SERVER_PORT);
 
-			while (true) {
+			while (running) {
 				Socket socket = serverSocket.accept();
 
-				new Player(socket);
+				if(running) {
+					new Player(socket);
+				}
 			}
 		} catch (IOException e) {
 			e.printStackTrace();
@@ -83,22 +85,74 @@ public class TestServer {
 		Gson gson = new Gson();
 
 		try {
-			for(Map.Entry<Integer, CollectedInformation> entry : collectedData.entrySet()) {
-				FileWriter writer = new FileWriter(dir.resolve(entry.getKey() + ".userLog").toFile());
-				writer.write("Id: " + entry.getKey() + "\n");
-				writer.write("Name: " + entry.getValue().getUsername() + "\n\n");
-				writer.write(entry.getValue().getLog());
+			{
+				FileWriter writer = new FileWriter(dir.resolve("latency.log").toFile());
+				for (Map.Entry<Integer, CollectedInformation> entry1 : collectedData.entrySet()) {
+					for (Map.Entry<Integer, CollectedInformation> entry2 : collectedData.entrySet()) {
+						try {
+							writer.write(String.format("%d -> %d: ", entry1.getKey(), entry2.getKey()));
+
+							double[] pings = entry1.getValue().getInformationMessages().stream()
+									.filter(im -> im.getForgedAlliancePeers() != null)
+									.flatMap(im -> im.getForgedAlliancePeers().stream())
+									.filter(p -> p.getRemoteId() == entry2.getKey())
+									.flatMap(p -> p.getLatencies().stream())
+									.mapToDouble(Integer::doubleValue).toArray();
+
+							double min = Arrays.stream(pings).min().orElse(99999);
+							double max = Arrays.stream(pings).max().orElse(99999);
+							double avg = Arrays.stream(pings).average().orElse(99999);
+							double avgLimited = Arrays.stream(pings).filter(p -> p < 2000).average().orElse(99999);
+
+							double serverPing = collectedData.get(entry1.getKey()).getInformationMessages().stream().flatMap(im -> im.getLatencies().stream()).mapToDouble(Integer::doubleValue).average().orElse(99999)
+									+ collectedData.get(entry2.getKey()).getInformationMessages().stream().flatMap(im -> im.getLatencies().stream()).mapToDouble(Integer::doubleValue).average().orElse(99999);
+
+							writer.write(String.format("%.0f/%.0f(%.0f)/%.0f", min, avg, avgLimited, max));
+							writer.write(String.format("\t(Server: %.0f)", serverPing));
+//					writer.write("\tConnected: " + );
+							writer.write("\tQuiet for: " + entry1.getValue().getInformationMessages().stream()
+									.filter(im -> im.getForgedAlliancePeers().stream().anyMatch(p -> p.getRemoteId() == entry2.getKey() && im.getCurrentTimeMillis() - p.getLastPacketReceived() > 5000))
+									.count()
+							);
+							writer.write("\n");
+						} catch(Exception e) {
+							Logger.error("Error while writing log.", e);
+						}
+						if (entry1.getKey() == entry2.getKey()) {
+							continue;
+						}
+					}
+				}
+
 				writer.flush();
 				writer.close();
 			}
 
 			for(Map.Entry<Integer, CollectedInformation> entry : collectedData.entrySet()) {
-				FileWriter writer = new FileWriter(dir.resolve(entry.getKey() + ".iceStatusLog").toFile());
-				writer.write("Id: " + entry.getKey() + "\n");
-				writer.write("Name: " + entry.getValue().getUsername() + "\n\n");
-				writer.write(entry.getValue().getInformationMessages().stream().map(ClientInformationMessage::getIceStatus).map(gson::toJson).reduce("", (l, r) -> l + "\n" + r));
-				writer.flush();
-				writer.close();
+				try {
+					FileWriter writer = new FileWriter(dir.resolve(entry.getKey() + ".userLog").toFile());
+					writer.write("Id: " + entry.getKey() + "\n");
+					writer.write("Name: " + entry.getValue().getUsername() + "\n\n");
+					writer.write(entry.getValue().getLog());
+					writer.flush();
+					writer.close();
+				} catch(Exception e) {
+					Logger.error("Error while writing log.", e);
+				}
+			}
+
+			for(Map.Entry<Integer, CollectedInformation> entry : collectedData.entrySet()) {
+				try {
+					FileWriter writer = new FileWriter(dir.resolve(entry.getKey() + ".iceStatusLog").toFile());
+					writer.write("Id: " + entry.getKey() + "\n");
+					writer.write("Name: " + entry.getValue().getUsername() + "\n\n");
+					writer.write(entry.getValue().getInformationMessages().stream().map(ClientInformationMessage::getIceStatus).map(gson::toJson).reduce("", (l, r) -> l + "\n" + r));
+					writer.flush();
+					writer.close();
+				} catch(Exception e) {
+					Logger.error("Error while writing log.", e);
+				}
+
 			}
 
 			for(Map.Entry<Integer, CollectedInformation> entry1 : collectedData.entrySet()) {
@@ -106,57 +160,25 @@ public class TestServer {
 					if(entry1.getKey() == entry2.getKey() || entry1.getKey() > entry2.getKey()) {
 						continue;
 					}
-					FileWriter writer = new FileWriter(dir.resolve(String.format("%d-%d.iceMsgLog", entry1.getKey(), entry2.getKey())).toFile());
-					writer.write(String.format("Ids: %d <-> %d\n", entry1.getKey(), entry2.getKey()));
-					writer.write(String.format("Names: %d <-> %d\n\n", entry1.getValue().getId(), entry2.getValue().getId()));
 
-					Arrays.asList(entry1, entry2).stream()
-							.flatMap(e -> e.getValue().getIceMessages().entrySet().stream())
-							.sorted(Comparator.comparingLong(Map.Entry::getKey))
-							.map(Map.Entry::getValue)
-							.forEach(im -> noCatch(() -> writer.write(String.format("%d -> %d:\t%s\n", im.getSrcPlayerId(), im.getDestPlayerId(), gson.toJson(im.getMsg())))));
+					try {
+						FileWriter writer = new FileWriter(dir.resolve(String.format("%d-%d.iceMsgLog", entry1.getKey(), entry2.getKey())).toFile());
+						writer.write(String.format("Ids: %d <-> %d\n", entry1.getKey(), entry2.getKey()));
+						writer.write(String.format("Names: %d <-> %d\n\n", entry1.getValue().getId(), entry2.getValue().getId()));
 
-					writer.flush();
-					writer.close();
-				}
-			}
+						Arrays.asList(entry1, entry2).stream()
+								.flatMap(e -> e.getValue().getIceMessages().entrySet().stream())
+								.sorted(Comparator.comparingLong(Map.Entry::getKey))
+								.map(Map.Entry::getValue)
+								.forEach(im -> noCatch(() -> writer.write(String.format("%d -> %d:\t%s\n", im.getSrcPlayerId(), im.getDestPlayerId(), gson.toJson(im.getMsg())))));
 
-			FileWriter writer = new FileWriter(dir.resolve("latency.log").toFile());
-			for(Map.Entry<Integer, CollectedInformation> entry1 : collectedData.entrySet()) {
-				for(Map.Entry<Integer, CollectedInformation> entry2 : collectedData.entrySet()) {
-					if(entry1.getKey() == entry2.getKey()) {
-						continue;
+						writer.flush();
+						writer.close();
+					} catch(Exception e) {
+						Logger.error("Error while writing log.", e);
 					}
-					writer.write(String.format("%d -> %d: ", entry1.getKey(), entry2.getKey()));
-
-					double[] pings = entry1.getValue().getInformationMessages().stream()
-							.filter(im -> im.getForgedAlliancePeers() != null)
-							.flatMap(im -> im.getForgedAlliancePeers().stream())
-							.filter(p -> p.getRemoteId() == entry2.getKey())
-							.flatMap(p -> p.getLatencies().stream())
-							.mapToDouble(Integer::doubleValue).toArray();
-
-					double min = Arrays.stream(pings).min().orElse(99999);
-					double max = Arrays.stream(pings).max().orElse(99999);
-					double avg = Arrays.stream(pings).average().orElse(99999);
-					double avgLimited = Arrays.stream(pings).filter(p -> p < 2000).average().orElse(99999);
-
-					double serverPing = collectedData.get(entry1.getKey()).getInformationMessages().stream().flatMap(im -> im.getLatencies().stream()).mapToDouble(Integer::doubleValue).average().orElse(99999)
-										+ collectedData.get(entry2.getKey()).getInformationMessages().stream().flatMap(im -> im.getLatencies().stream()).mapToDouble(Integer::doubleValue).average().orElse(99999);
-
-					writer.write(String.format("%.0f/%.0f(%.0f)/%.0f", min, avg, avgLimited, max));
-					writer.write(String.format("\t(Server: %.0f)", serverPing));
-//					writer.write("\tConnected: " + );
-					writer.write("\tQuiet for: " + entry1.getValue().getInformationMessages().stream()
-							.filter(im -> im.getForgedAlliancePeers().stream().anyMatch(p -> p.getRemoteId() == entry2.getKey() && im.getCurrentTimeMillis() - p.getLastPacketReceived() > 5000))
-							.count()
-							);
-					writer.write("\n");
 				}
 			}
-
-			writer.flush();
-			writer.close();
 
 			Logger.info("Wrote logs to " + dir.toAbsolutePath().toString());
 		} catch(IOException e) {

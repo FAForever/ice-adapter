@@ -64,12 +64,12 @@ public class Player {
 
 			out.writeBoolean(true);
 
+			this.id = PLAYER_ID_FACTORY++;
+			out.writeInt(id);
+
 			synchronized (players) {
 				players.add(this);
 			}
-
-			this.id = PLAYER_ID_FACTORY++;
-			out.writeInt(id);
 
 			TestServer.collectedData.put(this.id, new CollectedInformation(id, username));
 			connected = true;
