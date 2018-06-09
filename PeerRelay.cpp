@@ -225,12 +225,15 @@ void PeerRelay::_setConnected(bool connected)
       _missedPings = 0;
       _lastSentPingTime.reset();
       _lastReceivedPongTime.reset();
-      _peerConnection->GetStats(_rtcStatsCollectorCallback.get());
     }
     else
     {
       RELAY_LOG_INFO << "disconnected";
     }
+  }
+  if (connected)
+  {
+    _peerConnection->GetStats(_rtcStatsCollectorCallback.get());
   }
 }
 

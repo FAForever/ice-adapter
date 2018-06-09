@@ -205,6 +205,7 @@ void RTCStatsCollectorCallback::OnStatsDelivered(const rtc::scoped_refptr<const 
   OBSERVER_LOG_DEBUG << "RTCStatsCollectorCallback::OnStatsDelivered";
   if (!report)
   {
+    OBSERVER_LOG_ERROR << "!report";
     return;
   }
   std::string localCandId;
@@ -218,9 +219,11 @@ void RTCStatsCollectorCallback::OnStatsDelivered(const rtc::scoped_refptr<const 
       remoteCandId = *pair->remote_candidate_id;
       break;
     }
+    //OBSERVER_LOG_DEBUG << "*pair->state ==" << *pair->state << "nominated ==" << *pair->nominated;
   }
   if (localCandId.empty())
   {
+    OBSERVER_LOG_WARN << "localCandId.empty()";
     return;
   }
   auto lCand = static_cast<webrtc::RTCLocalIceCandidateStats const*>(report->Get(localCandId));
