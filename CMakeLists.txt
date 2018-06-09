@@ -16,6 +16,9 @@ if(NOT EXISTS "${WEBRTC_LIBRARIES}")
   message(FATAL_ERROR "please specify WEBRTC_LIBRARIES to point at the lib file of the libwebrtc package from https://github.com/FAForever/libwebrtc/releases")
 endif()
 
+if (NOT "${CMAKE_CXX_COMPILER_ID}" STREQUAL "Clang" AND NOT WIN32)
+  message(FATAL_ERROR "the ice-adapter must be built using clang on linux")
+endif()
 
 if(NOT FAF_VERSION_STRING)
   find_package(Git)
@@ -66,7 +69,7 @@ target_link_libraries(fafice
 
 if(NOT WIN32)
   target_compile_definitions(fafice PUBLIC WEBRTC_LINUX WEBRTC_POSIX)
-  set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -pthread")
+  set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -stdlib=libc++ -pthread -fno-rtti")
   target_link_libraries(fafice
     dl
     SM
