@@ -12,9 +12,12 @@ std::string GPGNetMessage::toBinary() const
   std::string result;
   int32_t headerLength = this->header.size();
   int32_t chunkCount = this->chunks.size();
-  result.append(reinterpret_cast<char*>(&headerLength), sizeof(headerLength));
-  result.append(this->header.c_str(), this->header.size());
-  result.append(reinterpret_cast<char*>(&chunkCount), sizeof(chunkCount));
+  char buf[sizeof(int32_t)];
+  std::memcpy(buf, &headerLength, sizeof(headerLength));
+  result.append(buf, sizeof(headerLength));
+  result.append(this->header);
+  std::memcpy(buf, &chunkCount, sizeof(chunkCount));
+  result.append(buf, sizeof(chunkCount));
 
   for(const auto chunk : this->chunks)
   {
@@ -26,19 +29,23 @@ std::string GPGNetMessage::toBinary() const
       case Json::booleanValue:
       {
         typeCode = 0;
-        result.append(reinterpret_cast<char*>(&typeCode), sizeof(typeCode));
+        std::memcpy(buf, &typeCode, sizeof(typeCode));
+        result.append(buf, sizeof(typeCode));
         int32_t value = chunk.asInt();
-        result.append(reinterpret_cast<char*>(&value), sizeof(value));
+        std::memcpy(buf, &value, sizeof(value));
+        result.append(buf, sizeof(value));
       }
         break;
       case Json::stringValue:
       {
         typeCode = 1;
-        result.append(reinterpret_cast<char*>(&typeCode), sizeof(typeCode));
+        std::memcpy(buf, &typeCode, sizeof(typeCode));
+        result.append(buf, sizeof(typeCode));
         auto string = chunk.asString();
         int32_t stringLength = string.size();
-        result.append(reinterpret_cast<char*>(&stringLength), sizeof(stringLength));
-        result.append(string.c_str(), string.size());
+        std::memcpy(buf, &stringLength, sizeof(stringLength));
+        result.append(buf, sizeof(stringLength));
+        result.append(string);
       }
         break;
       default:
@@ -74,7 +81,7 @@ void GPGNetMessage::parse(std::string& msgBuffer, std::function<void (GPGNetMess
     {
       return;
     }
-    headerLength = *reinterpret_cast<int32_t*>(&*it);
+    std::memcpy(&headerLength, &*it, sizeof (headerLength));
     it += sizeof(int32_t);
     if ((msgBuffer.end() - it) < headerLength)
     {
@@ -90,7 +97,7 @@ void GPGNetMessage::parse(std::string& msgBuffer, std::function<void (GPGNetMess
     {
       return;
     }
-    chunkCount = *reinterpret_cast<int32_t*>(&*it);
+    std::memcpy(&chunkCount, &*it, sizeof (chunkCount));
     it += sizeof (int32_t);
     message.chunks.resize(chunkCount);
 
@@ -101,14 +108,14 @@ void GPGNetMessage::parse(std::string& msgBuffer, std::function<void (GPGNetMess
       {
         return;
       }
-      type = *reinterpret_cast<int8_t*>(&*it);
+      std::memcpy(&type, &*it, sizeof (int8_t));
       it += sizeof(int8_t);
       int32_t length;
       if ((msgBuffer.end() - it) < sizeof(int32_t))
       {
         return;
       }
-      length = *reinterpret_cast<int32_t*>(&*it);
+      std::memcpy(&length, &*it, sizeof (int32_t));
       it += sizeof(int32_t);
 
       // Special-case for int (which uses the length field to hold the payload).
