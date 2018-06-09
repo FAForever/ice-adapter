@@ -1,3 +1,19 @@
+v6.2.4
+======
+
+- build against current libwebrtc
+
+v6.2.3
+======
+
+- adjust for webrtc 66
+- improve GPGNetMessage parsing
+
+v6.2.2
+======
+
+- use a custom ping 
+
 v6.2.1
 ======
 
