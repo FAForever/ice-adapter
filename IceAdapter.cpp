@@ -27,7 +27,6 @@ IceAdapter::IceAdapter(IceAdapterOptions const& options):
                                                           nullptr,
                                                           nullptr,
                                                           nullptr,
-                                                          nullptr,
                                                           nullptr);
   if (!_pcfactory)
   {
