@@ -1,6 +1,7 @@
 #include "GPGNetMessage.h"
 
 #include <cstdint>
+#include <cstring>
 
 #include "logging.h"
 

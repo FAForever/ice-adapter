@@ -17,12 +17,9 @@ namespace faf {
 void CreateOfferObserver::OnSuccess(webrtc::SessionDescriptionInterface *sdp)
 {
   OBSERVER_LOG_TRACE << "CreateOfferObserver::OnSuccess";
-  if (_relay->_peerConnection)
-  {
-    sdp->ToString(&_relay->_localSdp);
-    _relay->_peerConnection->SetLocalDescription(_relay->_setLocalDescriptionObserver,
-                                                 sdp);
-  }
+  sdp->ToString(&_relay->_localSdp);
+  _relay->_peerConnection->SetLocalDescription(_relay->_setLocalDescriptionObserver,
+                                               sdp);
 }
 
 void CreateOfferObserver::OnFailure(const std::string &msg)
@@ -33,12 +30,9 @@ void CreateOfferObserver::OnFailure(const std::string &msg)
 void CreateAnswerObserver::OnSuccess(webrtc::SessionDescriptionInterface *sdp)
 {
   OBSERVER_LOG_TRACE << "CreateAnswerObserver::OnSuccess";
-  if (_relay->_peerConnection)
-  {
-    sdp->ToString(&_relay->_localSdp);
-    _relay->_peerConnection->SetLocalDescription(_relay->_setLocalDescriptionObserver,
-                                                 sdp);
-  }
+  sdp->ToString(&_relay->_localSdp);
+  _relay->_peerConnection->SetLocalDescription(_relay->_setLocalDescriptionObserver,
+                                               sdp);
 }
 
 void CreateAnswerObserver::OnFailure(const std::string &msg)
@@ -67,11 +61,10 @@ void SetLocalDescriptionObserver::OnFailure(const std::string &msg)
 void SetRemoteDescriptionObserver::OnSuccess()
 {
   OBSERVER_LOG_DEBUG << "SetRemoteDescriptionObserver::OnSuccess";
-  if (_relay->_peerConnection &&
-      !_relay->_isOfferer)
+  if (!_relay->_isOfferer)
   {
     _relay->_peerConnection->CreateAnswer(_relay->_createAnswerObserver,
-                                      nullptr);
+                                          nullptr);
   }
 }
 

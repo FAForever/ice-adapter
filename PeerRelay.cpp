@@ -54,6 +54,7 @@ PeerRelay::PeerRelay(Options options,
   if (!_peerConnection)
   {
     FAF_LOG_ERROR << "_pcfactory->CreatePeerConnection() failed!";
+    std::exit(1);
   }
 
   if (_isOfferer)
@@ -68,13 +69,10 @@ PeerRelay::~PeerRelay()
   if (_dataChannel)
   {
     _dataChannel->UnregisterObserver();
-    _dataChannel.release();
+    _dataChannel->Close();
+    _dataChannel = nullptr;
   }
-  if (_peerConnection)
-  {
-    _peerConnection->Close();
-    _peerConnection.release();
-  }
+  _peerConnection->Close();
 }
 
 int PeerRelay::localUdpSocketPort() const
@@ -115,11 +113,6 @@ void PeerRelay::setIceServers(webrtc::PeerConnectionInterface::IceServers const&
 void PeerRelay::addIceMessage(Json::Value const& iceMsg)
 {
   FAF_LOG_DEBUG << "addIceMessage: " << Json::FastWriter().write(iceMsg);
-  if (!_peerConnection)
-  {
-    FAF_LOG_ERROR << "!_peerConnection";
-    return;
-  }
   if (iceMsg["type"].asString() == "offer" ||
       iceMsg["type"].asString() == "answer")
   {
@@ -198,12 +191,6 @@ void PeerRelay::_setIceState(std::string const& state)
     _setConnected(false);
   }
 
-  if (!_closing &&
-      _peerConnection)
-  {
-    _peerConnection->GetStats(_rtcStatsCollectorCallback.get());
-  }
-
   if (_callbacks.stateCallback)
   {
     _callbacks.stateCallback(_iceState);
@@ -238,6 +225,7 @@ void PeerRelay::_setConnected(bool connected)
       _missedPings = 0;
       _lastSentPingTime.reset();
       _lastReceivedPongTime.reset();
+      _peerConnection->GetStats(_rtcStatsCollectorCallback.get());
     }
     else
     {
