@@ -1,3 +1,8 @@
+v6.2.5
+======
+
+- enable travis CI build for linux binary
+
 v6.2.4
 ======
 
@@ -12,7 +17,7 @@ v6.2.3
 v6.2.2
 ======
 
-- use a custom ping 
+- use a custom ping
 
 v6.2.1
 ======
