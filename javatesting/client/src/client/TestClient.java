@@ -1,5 +1,6 @@
 package client;
 
+import client.experimental.VoiceChat;
 import client.forgedalliance.ForgedAlliance;
 import client.ice.ICEAdapter;
 import javafx.beans.property.BooleanProperty;
@@ -42,14 +43,21 @@ public class TestClient {
 				Logger.error("Log too long. Cannot send to server");
 			}
 
-			ClientInformationMessage message = new ClientInformationMessage(username, playerID, System.currentTimeMillis(), TestServerAccessor.latencies, ICEAdapter.status(), Logger.collectedLog, isGameRunning.get() ? forgedAlliance.getPeers() : null);
-			TestServerAccessor.latencies = new LinkedList<>();
+			ClientInformationMessage message;
+			synchronized (TestServerAccessor.latencies) {
+				message = new ClientInformationMessage(username, playerID, System.currentTimeMillis(), TestServerAccessor.latencies, ICEAdapter.status(), Logger.collectedLog, isGameRunning.get() ? forgedAlliance.getPeers() : null);
+				TestServerAccessor.latencies = new LinkedList<>();
+			}
 			Logger.collectedLog = "";
 
 			TestServerAccessor.send(message);
 
 			if(forgedAlliance != null) {
-				forgedAlliance.getPeers().forEach(p -> p.setLatencies(new LinkedList<>()));
+				forgedAlliance.getPeers().forEach(p -> {
+					synchronized (p) {
+						p.setLatencies(new LinkedList<>());
+					}
+				});
 			}
 
 //			Logger.debug("Sent: %s", new Gson().toJson(message));
@@ -80,10 +88,13 @@ public class TestClient {
 
 		GUI.instance.showStage();
 
+		VoiceChat.init();
+
 		new Thread(TestClient::informationThread).start();
 	}
 
 	public static void close() {
+		VoiceChat.close();
 
 		TestServerAccessor.disconnect();
 		ICEAdapter.close();

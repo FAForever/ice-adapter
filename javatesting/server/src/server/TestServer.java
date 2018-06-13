@@ -29,16 +29,27 @@ public class TestServer {
 		Logger.setLogLevel(Logger.INFO);
 		Logger.init("ICE adapter testserver");
 
+		IceTestServerConfig.init();
+
 		new Thread(TestServer::stopListener).start();
+
+		Webserver.init();
 
 		try {
 			ServerSocket serverSocket = new ServerSocket(ICEAdapterTest.TEST_SERVER_PORT);
 
 			while (running) {
-				Socket socket = serverSocket.accept();
+				try {
+					Socket socket = serverSocket.accept();
 
-				if(running) {
-					new Player(socket);
+					if(players.size() >= IceTestServerConfig.INSTANCE.getMax_users()) {
+						socket.close();
+					} else if(running) {
+						new Player(socket);
+					}
+
+				} catch(IOException e) {
+					Logger.warning("Error while accepting user.");
 				}
 			}
 		} catch (IOException e) {
@@ -69,12 +80,13 @@ public class TestServer {
 //		}
 
 		writeCollectedData();
+		Webserver.close();
 		Logger.close();
 		System.exit(0);
 	}
 
 
-	private static void writeCollectedData() {
+	public static void writeCollectedData() {
 		Logger.info("Writing logs...");
 		Path dir = Paths.get(String.valueOf(System.currentTimeMillis()));
 		File dirFile = dir.toFile();
@@ -87,42 +99,8 @@ public class TestServer {
 		try {
 			{
 				FileWriter writer = new FileWriter(dir.resolve("latency.log").toFile());
-				for (Map.Entry<Integer, CollectedInformation> entry1 : collectedData.entrySet()) {
-					for (Map.Entry<Integer, CollectedInformation> entry2 : collectedData.entrySet()) {
-						try {
-							writer.write(String.format("%d -> %d: ", entry1.getKey(), entry2.getKey()));
 
-							double[] pings = entry1.getValue().getInformationMessages().stream()
-									.filter(im -> im.getForgedAlliancePeers() != null)
-									.flatMap(im -> im.getForgedAlliancePeers().stream())
-									.filter(p -> p.getRemoteId() == entry2.getKey())
-									.flatMap(p -> p.getLatencies().stream())
-									.mapToDouble(Integer::doubleValue).toArray();
-
-							double min = Arrays.stream(pings).min().orElse(99999);
-							double max = Arrays.stream(pings).max().orElse(99999);
-							double avg = Arrays.stream(pings).average().orElse(99999);
-							double avgLimited = Arrays.stream(pings).filter(p -> p < 2000).average().orElse(99999);
-
-							double serverPing = collectedData.get(entry1.getKey()).getInformationMessages().stream().flatMap(im -> im.getLatencies().stream()).mapToDouble(Integer::doubleValue).average().orElse(99999)
-									+ collectedData.get(entry2.getKey()).getInformationMessages().stream().flatMap(im -> im.getLatencies().stream()).mapToDouble(Integer::doubleValue).average().orElse(99999);
-
-							writer.write(String.format("%.0f/%.0f(%.0f)/%.0f", min, avg, avgLimited, max));
-							writer.write(String.format("\t(Server: %.0f)", serverPing));
-//					writer.write("\tConnected: " + );
-							writer.write("\tQuiet for: " + entry1.getValue().getInformationMessages().stream()
-									.filter(im -> im.getForgedAlliancePeers().stream().anyMatch(p -> p.getRemoteId() == entry2.getKey() && im.getCurrentTimeMillis() - p.getLastPacketReceived() > 5000))
-									.count()
-							);
-							writer.write("\n");
-						} catch(Exception e) {
-							Logger.error("Error while writing log.", e);
-						}
-						if (entry1.getKey() == entry2.getKey()) {
-							continue;
-						}
-					}
-				}
+				writer.write(getLatencyLog());
 
 				writer.flush();
 				writer.close();
@@ -184,6 +162,53 @@ public class TestServer {
 		} catch(IOException e) {
 			Logger.error("Could not write data logs.", e);
 		}
+	}
+
+
+	public static String getLatencyLog() {
+		StringBuilder sb = new StringBuilder();
+		for (Map.Entry<Integer, CollectedInformation> entry1 : collectedData.entrySet()) {
+			for (Map.Entry<Integer, CollectedInformation> entry2 : collectedData.entrySet()) {
+				try {
+					if(entry1 == entry2) {
+						continue;
+					}
+
+					sb.append(String.format("%d -> %d: ", entry1.getKey(), entry2.getKey()));
+
+					double[] pings = entry1.getValue().getInformationMessages().stream()
+							.filter(im -> im.getForgedAlliancePeers() != null)
+							.flatMap(im -> im.getForgedAlliancePeers().stream())
+							.filter(p -> p.getRemoteId() == entry2.getKey())
+							.flatMap(p -> p.getLatencies().stream())
+							.mapToDouble(Integer::doubleValue).toArray();
+
+					double min = Arrays.stream(pings).min().orElse(99999);
+					double max = Arrays.stream(pings).max().orElse(99999);
+					double avg = Arrays.stream(pings).average().orElse(99999);
+					double avgLimited = Arrays.stream(pings).filter(p -> p < 2000).average().orElse(99999);
+
+					double serverPing = collectedData.get(entry1.getKey()).getInformationMessages().stream().flatMap(im -> im.getLatencies().stream()).mapToDouble(Integer::doubleValue).average().orElse(99999)
+							+ collectedData.get(entry2.getKey()).getInformationMessages().stream().flatMap(im -> im.getLatencies().stream()).mapToDouble(Integer::doubleValue).average().orElse(99999);
+
+					sb.append(String.format("%.0f/%.0f(%.0f)/%.0f", min, avg, avgLimited, max));
+					sb.append(String.format("\t(Server: %.0f)", serverPing));
+//					writer.write("\tConnected: " + );
+					sb.append("\tQuiet for: " + entry1.getValue().getInformationMessages().stream()
+							.filter(im -> im.getForgedAlliancePeers().stream().anyMatch(p -> p.getRemoteId() == entry2.getKey() && im.getCurrentTimeMillis() - p.getLastPacketReceived() > 5000))
+							.count()
+					);
+					sb.append("\n");
+				} catch(Exception e) {
+					Logger.error("Error while writing log.", e);
+				}
+				if (entry1.getKey() == entry2.getKey()) {
+					continue;
+				}
+			}
+		}
+
+		return sb.toString();
 	}
 
 }

@@ -1,6 +1,7 @@
 package server;
 
 import com.google.gson.Gson;
+import com.google.gson.JsonSyntaxException;
 import common.ICEAdapterTest;
 import logging.Logger;
 import lombok.Getter;
@@ -76,6 +77,14 @@ public class Player {
 
 		} catch(IOException e) {
 			Logger.error("Error while logging in player. ", e);
+
+			synchronized (players) {
+				if(players.contains(this)) {
+					players.remove(this);
+					TestServer.collectedData.remove(this.id);
+				}
+			}
+
 			disconnect();
 			return;
 		}
@@ -108,7 +117,8 @@ public class Player {
 					send(new EchoResponse(((EchoRequest)message).getTimestamp()));
 				}
 			}
-		} catch(IOException | ClassNotFoundException e) {
+		} catch(IOException | ClassNotFoundException | JsonSyntaxException e) {
+			Logger.warning("Disconnecting client due to error while reading data from socket. %s", e.getClass().getName());
 			disconnect();
 		}
 	}

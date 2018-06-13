@@ -7,7 +7,6 @@
     </content>
     <orderEntry type="inheritedJdk" />
     <orderEntry type="sourceFolder" forTests="false" />
-    <orderEntry type="module" module-name="javatesting_main" />
     <orderEntry type="library" name="Gradle: com.github.micheljung:JJsonRpc:01a7fba5f4" level="project" />
     <orderEntry type="module" module-name="javatesting" />
     <orderEntry type="library" name="Gradle: org.projectlombok:lombok:1.16.22" level="project" />

@@ -83,7 +83,7 @@ public class TestServerAccessor {
 
 				if(message instanceof EchoResponse) {
 					latencies.add((int) (System.currentTimeMillis() - ((EchoResponse) message).getTimestamp()));
-					if(latencies.size() > 10) {
+					if(latencies.size() > 50) {
 						latencies.remove();
 					}
 				}

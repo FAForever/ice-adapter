@@ -19,7 +19,8 @@ import static util.Util.assertThat;
 @Getter
 public class ForgedAlliance {
 
-	private static final int ECHO_INTERVAL = 1000;
+	private static final int ECHO_INTERVAL = 100;
+	private static final int CONNECTION_REQ_INTERVAL = 1000;
 
 	private static final String CONNECTION_ACK = "conAck";
 	private static final String CONNECTION_REQ = "conReq";
@@ -62,7 +63,7 @@ public class ForgedAlliance {
 			}
 
 		} catch(IOException e) {
-			Logger.error("Could not start lobby server.", e);
+			Logger.error("Could not start lobby server. (GPGnet or lobbySocket failed)", e);
 		}
 	}
 
@@ -97,20 +98,24 @@ public class ForgedAlliance {
 						.filter(p -> !p.isConnected())
 						.forEach(peer -> {
 							try {
-								if(peer.offerer == ForgedAlliancePeer.Offerer.LOCAL) {
-									ByteArrayOutputStream data = new ByteArrayOutputStream();
-									DataOutputStream packetOut = new DataOutputStream(data);
+								if (peer.offerer == ForgedAlliancePeer.Offerer.LOCAL) {
+									if ((System.currentTimeMillis() - peer.lastConnectionRequestSent) >= CONNECTION_REQ_INTERVAL) {
+										peer.lastConnectionRequestSent = System.currentTimeMillis();
 
-									packetOut.writeUTF(CONNECTION_REQ);
-									packetOut.writeInt(TestClient.playerID);
-									packetOut.writeUTF(TestClient.username);
+										ByteArrayOutputStream data = new ByteArrayOutputStream();
+										DataOutputStream packetOut = new DataOutputStream(data);
 
-									sendLobby(peer.remoteAddress, peer.remotePort, data);
+										packetOut.writeUTF(CONNECTION_REQ);
+										packetOut.writeInt(TestClient.playerID);
+										packetOut.writeUTF(TestClient.username);
 
-									Logger.debug("<FA> Sent CONNECTION_REQ to %s(%d) at %s:%d", peer.remoteUsername, peer.remoteId, peer.remoteAddress, peer.remotePort);
+										sendLobby(peer.remoteAddress, peer.remotePort, data);
+
+										Logger.debug("<FA> Sent CONNECTION_REQ to %s(%d) at %s:%d", peer.remoteUsername, peer.remoteId, peer.remoteAddress, peer.remotePort);
+									}
 								} else {
-									Logger.error("<FA> Awaiting CONNECTION_REQ, THIS WASN'T REACH IN MY TESTS");
-									throw new RuntimeException("asdasd");
+//									Logger.error("<FA> Awaiting CONNECTION_REQ");
+										//TODO: log this case?
 								}
 							} catch(IOException e) {
 								Logger.warning("Error while sending to peer: %d", peer.remoteId);

@@ -19,23 +19,31 @@ public class ForgedAlliancePeer {
 	public long lastPacketReceived = System.currentTimeMillis();
 	public Queue<Integer> latencies = new LinkedList<>();
 
+	public long lastConnectionRequestSent = 0;
+
 	public int addLatency(int lat) {
 		lastPacketReceived = System.currentTimeMillis();
 
-		latencies.add(lat);
-//		if(latencies.size() > 10) {
-//			latencies.remove();
-//		}
+		synchronized (latencies) {
+			latencies.add(lat);
+			if(latencies.size() > 25) {
+				latencies.remove();
+			}
+		}
 		return getLatency();
 	}
 
 	public int getLatency() {
-		return (int)latencies.stream().mapToInt(Integer::intValue).average().orElse(0);
+		synchronized (latencies) {
+			return (int)latencies.stream().mapToInt(Integer::intValue).average().orElse(0);
+		}
 	}
 
 	public int getJitter() {
 		int lat = getLatency();
-		return Math.max(latencies.stream().mapToInt(Integer::intValue).max().orElse(0) - lat, lat - latencies.stream().mapToInt(Integer::intValue).min().orElse(0));
+		synchronized (latencies) {
+			return Math.max(latencies.stream().mapToInt(Integer::intValue).max().orElse(0) - lat, lat - latencies.stream().mapToInt(Integer::intValue).min().orElse(0));
+		}
 	}
 
 	public boolean isQuiet() {

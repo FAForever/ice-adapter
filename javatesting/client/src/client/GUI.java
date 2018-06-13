@@ -5,6 +5,11 @@ import common.ICEAdapterTest;
 import data.ForgedAlliancePeer;
 import javafx.application.Application;
 import javafx.application.Platform;
+import javafx.beans.property.ReadOnlyStringWrapper;
+import javafx.beans.value.ObservableValue;
+import javafx.collections.FXCollections;
+import javafx.collections.ObservableList;
+import javafx.geometry.Insets;
 import javafx.geometry.Orientation;
 import javafx.scene.Scene;
 import javafx.scene.control.*;
@@ -12,9 +17,11 @@ import javafx.scene.layout.HBox;
 import javafx.scene.layout.Region;
 import javafx.scene.layout.VBox;
 import javafx.stage.Stage;
+import javafx.util.Callback;
 import logging.Logger;
 
 import java.util.Optional;
+import java.util.OptionalDouble;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.CountDownLatch;
 
@@ -24,6 +31,11 @@ public class GUI extends Application {
 	public static GUI instance;
 
 	public Stage stage;
+
+	public TableView table;
+	private TableColumn[] tableColumns = { new TableColumn<>("ID"), new TableColumn<>("name"), new TableColumn<>("latency"), new TableColumn<>("last packet received") };
+
+	private ObservableList<ForgedAlliancePeer> peers = FXCollections.observableArrayList();
 
 	public static void showUsernameDialog() {
 		runAndWait(() -> {
@@ -117,13 +129,15 @@ public class GUI extends Application {
 		instance = this;
 		this.stage = stage;
 		stage.setTitle("ICE adapter testclient");
-		stage.setWidth(400);
-		stage.setHeight(200);
+		stage.setWidth(700);
+		stage.setHeight(800);
 
 		stage.show();
 		stage.hide();
 
 		VBox root = new VBox();
+		root.setSpacing(10);
+		root.setPadding(new Insets(10, 10, 10, 10));
 		HBox connectionStatus = new HBox();
 
 		Label serverConnectionStatus = new Label("Connected: false");
@@ -169,11 +183,54 @@ public class GUI extends Application {
 
 
 
-		separator = new Separator(Orientation.VERTICAL);
+		separator = new Separator(Orientation.HORIZONTAL);
 		root.getChildren().add(separator);
 		root.getChildren().add(new Label("ICE Test is running. Please keep this window open."));
 
+		separator = new Separator(Orientation.HORIZONTAL);
+		root.getChildren().add(separator);
 
+
+		table = new TableView();
+		tableColumns[0].setMinWidth(50);
+		tableColumns[1].setMinWidth(150);
+		tableColumns[2].setMinWidth(50);
+		tableColumns[3].setMinWidth(200);
+		//TODO: use lambdas
+		tableColumns[0].setCellValueFactory(new Callback<TableColumn.CellDataFeatures<ForgedAlliancePeer, String>, ObservableValue<String>>() {
+			@Override
+			public ObservableValue<String> call(TableColumn.CellDataFeatures<ForgedAlliancePeer, String> cellData) {
+				return new ReadOnlyStringWrapper(String.valueOf(cellData.getValue().getRemoteId()));
+			}
+		});
+		tableColumns[1].setCellValueFactory(new Callback<TableColumn.CellDataFeatures<ForgedAlliancePeer, String>, ObservableValue<String>>() {
+			@Override
+			public ObservableValue<String> call(TableColumn.CellDataFeatures<ForgedAlliancePeer, String> cellData) {
+				return new ReadOnlyStringWrapper(cellData.getValue().getRemoteUsername());
+			}
+		});
+		tableColumns[2].setCellValueFactory(new Callback<TableColumn.CellDataFeatures<ForgedAlliancePeer, String>, ObservableValue<String>>() {
+			@Override
+			public ObservableValue<String> call(TableColumn.CellDataFeatures<ForgedAlliancePeer, String> cellData) {
+				synchronized (cellData.getValue().getLatencies()) {
+					OptionalDouble lat = cellData.getValue().getLatencies().stream().mapToInt(Integer::intValue).average();
+					if(lat.isPresent()) {
+						return new ReadOnlyStringWrapper(String.format("%.0f ms", lat.getAsDouble()));
+					} else {
+						return new ReadOnlyStringWrapper("");
+					}
+				}
+			}
+		});
+		tableColumns[3].setCellValueFactory(new Callback<TableColumn.CellDataFeatures<ForgedAlliancePeer, String>, ObservableValue<String>>() {
+			@Override
+			public ObservableValue<String> call(TableColumn.CellDataFeatures<ForgedAlliancePeer, String> cellData) {
+				return new ReadOnlyStringWrapper(String.valueOf(System.currentTimeMillis() - cellData.getValue().getLastPacketReceived()) + " ms");
+			}
+		});
+		table.setItems(peers);
+		table.getColumns().addAll(tableColumns);
+		root.getChildren().add(table);
 
 		stage.setScene(new Scene(root, stage.getWidth(), stage.getHeight()));
 
@@ -199,11 +256,14 @@ public class GUI extends Application {
 						peerCount.setText("Peers: " + TestClient.forgedAlliance.peers.size());
 						connectedCount.setText("Connected: " + TestClient.forgedAlliance.peers.stream().filter(ForgedAlliancePeer::isConnected).count());
 						quietCount.setText("Quiet: " + TestClient.forgedAlliance.peers.stream().filter(ForgedAlliancePeer::isQuiet).count());
+
+						this.peers.clear();
+						this.peers.addAll(TestClient.forgedAlliance.peers);
 					}
 				}
 			});
 
-			try { Thread.sleep(1000); } catch(InterruptedException e) {}
+			try { Thread.sleep(100); } catch(InterruptedException e) {}
 		}
 	}
 
