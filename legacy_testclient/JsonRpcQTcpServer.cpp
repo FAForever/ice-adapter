@@ -57,7 +57,7 @@ bool JsonRpcQTcpServer::sendJson(Socket* socket, std::string const& message)
       sock->socket()->write(message.c_str(), message.size());
     }
   }
-
+  return true;
 }
 
 } // namespace faf
