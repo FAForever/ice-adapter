@@ -40,8 +40,9 @@ public:
 
   /** \brief Sets the IceAdapter in join mode and connects to the hosted lobby
    *         The IceAdapter will implicitly create a Relay for the remote player.
-   *         The IceAdapter will ask the client for an SDP record of the remote peer via "rpcNeedSdp" JSONRPC notification.
-   *         The IceAdapter will send the client the SDP record via "rpcGatheredSdp" JSONRPC notification.
+   *         The IceAdapter will ask the client to transmit ICE signalling messages to the remote peer
+   *           using the "onIceMsg" notification. "joinGame" makes this P2P side implicitly answerer, so
+   *           "connectToPeer" on the host side must be called with createOffer: true.
        \param remotePlayerLogin: Login name of the player hosting the Lobby
        \param remotePlayerId:    ID of the player hosting the Lobby
       */
@@ -50,11 +51,13 @@ public:
 
   /** \brief Tell the game to connect to a remote player once it reached Lobby state
    *         The same internal procedures as in @joinGame happen:
-   *         The IceAdapter will implicitly create a Relay for the remote player.
-   *         The IceAdapter will ask the client for an SDP record of the remote peer via "rpcNeedSdp" JSONRPC notification.
-   *         The IceAdapter will send the client the SDP record via "rpcGatheredSdp" JSONRPC notification.
+   *         The IceAdapter will implicitly create a Relay for the remote player
+   *         The IceAdapter will ask the client to transmit ICE signalling messages to the remote peer
+   *           using the "onIceMsg" notification. If createOffer is true, this P2P side will create the initial
+   *           SDP offering. Otherwise it waits for a SDP offer before creating the answer and more candidates.
        \param remotePlayerLogin: Login name of the player to connect to
        \param remotePlayerId:    ID of the player to connect to
+       \param createOffer:       Is this P2P side the offerer or answerer?
       */
   void connectToPeer(std::string const& remotePlayerLogin,
                      int remotePlayerId,
