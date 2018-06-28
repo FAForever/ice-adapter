@@ -10,6 +10,7 @@
 
 #include <webrtc/third_party/jsoncpp/source/include/json/json.h>
 
+#include "Timer.h"
 #include "PeerConnectivityChecker.h"
 
 namespace faf {
@@ -105,6 +106,7 @@ protected:
   std::chrono::steady_clock::time_point _connectStartTime;
   std::chrono::steady_clock::duration _connectDuration;
   std::unique_ptr<PeerConnectivityChecker> _connectionChecker;
+  Timer _createNewOfferTimer;
 
   /* access declarations for observers */
   friend CreateOfferObserver;

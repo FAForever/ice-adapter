@@ -7,10 +7,16 @@
 
 namespace faf {
 
-PeerConnectivityChecker::PeerConnectivityChecker(rtc::scoped_refptr<webrtc::DataChannelInterface> dc):
-  _dataChannel(dc)
+PeerConnectivityChecker::PeerConnectivityChecker(rtc::scoped_refptr<webrtc::DataChannelInterface> dc,
+                                                 ConnectivityLostCallback cb):
+  _dataChannel(dc),
+  _cb(cb)
 {
   rtc::Thread::Current()->PostDelayed(RTC_FROM_HERE, _connectionCheckIntervalMs, this);
+}
+PeerConnectivityChecker::~PeerConnectivityChecker()
+{
+  rtc::Thread::Current()->Clear(this);
 }
 
 bool PeerConnectivityChecker::handleMessageFromPeer(const uint8_t* data, std::size_t size)
@@ -36,7 +42,7 @@ void PeerConnectivityChecker::OnMessage(rtc::Message* msg)
     if (_missedPings >= 2)
     {
       FAF_LOG_INFO << "PeerConnectivityChecker:" << _missedPings << " missed pings, connectivity lost";
-      SignalConnectivityLost.emit();
+      _cb();
       return;
     }
   }

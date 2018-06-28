@@ -148,6 +148,7 @@ void PeerRelay::_createOffer()
 {
   if (_isOfferer)
   {
+    RELAY_LOG_DEBUG << "creating offer";
     _setConnected(false);
     bool reconnect = true;
     if (!_dataChannel)
@@ -167,9 +168,15 @@ void PeerRelay::_createOffer()
     _peerConnection->CreateOffer(_createOfferObserver,
                                  options);
 
-    _connectionChecker = std::make_unique<PeerConnectivityChecker>(_dataChannel);
-    _connectionChecker->SignalConnectivityLost.connect(this, &PeerRelay::_createOffer);
-
+    /* this is a terrible hack to not call the PeerConnectivityChecker destructor in its own callback */
+    _connectionChecker = std::make_unique<PeerConnectivityChecker>(_dataChannel,
+                                                                   [this]()
+    {
+      _createNewOfferTimer.singleShot(1, [this]()
+      {
+        _createOffer();
+      });
+    });
   }
 }
 

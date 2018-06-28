@@ -32,8 +32,16 @@ void Timer::start(int intervalMs, std::function<void()> callback)
   stop();
   _interval = intervalMs;
   _callback = callback;
-  rtc::Thread::Current()->Clear(this);
+  _singleShot = false;
   rtc::Thread::Current()->PostDelayed(RTC_FROM_HERE, _interval, this);
+}
+
+void Timer::singleShot(int delay, std::function<void()> callback)
+{
+  stop();
+  _callback = callback;
+  _singleShot = true;
+  rtc::Thread::Current()->PostDelayed(RTC_FROM_HERE, delay, this);
 }
 
 bool Timer::started() const
@@ -52,7 +60,10 @@ void Timer::OnMessage(rtc::Message* msg)
   if (_callback)
   {
     _callback();
-    rtc::Thread::Current()->PostDelayed(RTC_FROM_HERE, _interval, this);
+    if (!_singleShot)
+    {
+      rtc::Thread::Current()->PostDelayed(RTC_FROM_HERE, _interval, this);
+    }
   }
 }
 
