@@ -2,7 +2,6 @@
 
 #include <functional>
 
-#include <webrtc/rtc_base/sigslot.h>
 #include <webrtc/rtc_base/messagehandler.h>
 
 namespace faf {

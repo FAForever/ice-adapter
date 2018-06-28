@@ -13,9 +13,6 @@ namespace faf {
 #define RELAY_LOG_DEBUG FAF_LOG_DEBUG << "PeerRelay for " << _remotePlayerLogin << " (" << _remotePlayerId << "): "
 #define RELAY_LOG_TRACE FAF_LOG_TRACE << "PeerRelay for " << _remotePlayerLogin << " (" << _remotePlayerId << "): "
 
-static constexpr uint8_t PingMessage[] = "ICEADAPTERPING";
-static constexpr uint8_t PongMessage[] = "ICEADAPTERPONG";
-
 PeerRelay::PeerRelay(Options options,
                      Callbacks callbacks,
                      rtc::scoped_refptr<webrtc::PeerConnectionFactoryInterface> const& pcfactory):
@@ -47,6 +44,7 @@ PeerRelay::PeerRelay(Options options,
 
   webrtc::PeerConnectionInterface::RTCConfiguration configuration;
   configuration.servers = _iceServerList;
+  configuration.ice_check_min_interval = 5000;
   _peerConnection = _pcfactory->CreatePeerConnection(configuration,
                                                      nullptr,
                                                      nullptr,
@@ -150,6 +148,7 @@ void PeerRelay::_createOffer()
 {
   if (_isOfferer)
   {
+    _setConnected(false);
     bool reconnect = true;
     if (!_dataChannel)
     {
@@ -167,8 +166,10 @@ void PeerRelay::_createOffer()
     options.ice_restart = reconnect;
     _peerConnection->CreateOffer(_createOfferObserver,
                                  options);
-    /* restart the timer to ensure we have the full check interval to be connected */
-    _offererConnectionCheckTimer.start(_connectionCheckIntervalMs, std::bind(&PeerRelay::_checkConnection, this));
+
+    _connectionChecker = std::make_unique<PeerConnectivityChecker>(_dataChannel);
+    _connectionChecker->SignalConnectivityLost.connect(this, &PeerRelay::_createOffer);
+
   }
 }
 
@@ -222,9 +223,6 @@ void PeerRelay::_setConnected(bool connected)
     {
       _connectDuration = std::chrono::steady_clock::now() - _connectStartTime;
       RELAY_LOG_INFO << "connected after " <<  std::chrono::duration_cast<std::chrono::milliseconds>(_connectDuration).count() / 1000.;
-      _missedPings = 0;
-      _lastSentPingTime.reset();
-      _lastReceivedPongTime.reset();
     }
     else
     {
@@ -257,73 +255,25 @@ void PeerRelay::_onPeerdataFromGame(rtc::AsyncSocket* socket)
 
 void PeerRelay::_onRemoteMessage(const uint8_t* data, std::size_t size)
 {
-  if (_isOfferer &&
-      size == sizeof(PongMessage) &&
-      std::equal(data,
-                 data + sizeof(PongMessage),
-                 PongMessage))
+  if (_connectionChecker &&
+      _connectionChecker->handleMessageFromPeer(data, size))
   {
-    _lastReceivedPongTime = std::chrono::steady_clock::now();
     return;
   }
   if (!_isOfferer &&
-      size == sizeof(PingMessage) &&
+      size == sizeof(PeerConnectivityChecker::PingMessage) &&
       std::equal(data,
-                 data + sizeof(PingMessage),
-                 PingMessage) &&
+                 data + sizeof(PeerConnectivityChecker::PingMessage),
+                 PeerConnectivityChecker::PingMessage) &&
       _dataChannel)
   {
-    _dataChannel->Send(webrtc::DataBuffer(rtc::CopyOnWriteBuffer(PongMessage, sizeof(PongMessage)), true));
+    _dataChannel->Send(webrtc::DataBuffer(rtc::CopyOnWriteBuffer(PeerConnectivityChecker::PongMessage, sizeof(PeerConnectivityChecker::PongMessage)), true));
     return;
   }
-  if (_localUdpSocket)
-  {
-    _localUdpSocket->SendTo(data,
-                            size,
-                            _gameUdpAddress);
-  }
+  _localUdpSocket->SendTo(data,
+                          size,
+                          _gameUdpAddress);
 }
 
-void PeerRelay::_checkConnection()
-{
-  if (_isOfferer)
-  {
-    if (!isConnected())
-    {
-      RELAY_LOG_INFO << "_checkConnection: not connected, sending offer";
-      _createOffer();
-    }
-    else
-    {
-      if (_lastSentPingTime &&
-          !_lastReceivedPongTime)
-      {
-        ++_missedPings;
-        if (_missedPings == 2)
-        {
-          RELAY_LOG_INFO << "_checkConnection: 2 missed pings, sending offer";
-          _createOffer();
-        }
-      }
-      if (_lastSentPingTime &&
-          _lastReceivedPongTime &&
-          _lastSentPingTime > _lastReceivedPongTime) /* no pong received within _connectionCheckIntervalMs for our last sent ping */
-      {
-        auto pingDurationSeconds = std::chrono::duration_cast<std::chrono::seconds>(*_lastSentPingTime - *_lastReceivedPongTime);
-        if (pingDurationSeconds.count() >= 15)
-        {
-          RELAY_LOG_INFO << "_checkConnection: no pong received for 15 seconds, sending offer";
-          _createOffer();
-        }
-      }
-      if (_dataChannel)
-      {
-        _dataChannel->Send(webrtc::DataBuffer(rtc::CopyOnWriteBuffer(PingMessage, sizeof(PingMessage)), true));
-        _lastSentPingTime = std::chrono::steady_clock::now();
-        _lastReceivedPongTime.reset();
-      }
-    }
-  }
-}
 
 } // namespace faf
