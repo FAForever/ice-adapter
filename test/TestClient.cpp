@@ -40,6 +40,8 @@ TestClient::TestClient(std::string const& login):
 
   auto sendIceEventToClient = [&](std::string const& eventName, Json::Value const& paramsArray, Json::Value &, Json::Value &, rtc::AsyncSocket*)
   {
+
+    FAF_LOG_DEBUG << "sendIceEventToClient" << eventName << paramsArray.toStyledString();
     if (_controlConnection.isConnected())
     {
       Json::Value params(Json::arrayValue);
@@ -101,6 +103,7 @@ void TestClient::_reinit()
     delete serverSocket;
   }
   _peerIdPingtrackers.clear();
+  FAF_LOG_INFO << "reinit finished";
 }
 
 void TestClient::_onConnected(rtc::AsyncSocket* socket)
