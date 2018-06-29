@@ -120,5 +120,5 @@ class TestClient:
 
   def onIceOnIceMsg(self, args):
     localId, remoteId, msg = args
-    #self.log("onIceonIceMsg: {} {} {}".format(localId, remoteId, msg))
+    self.log("onIceonIceMsg: {} {} {}".format(localId, remoteId, msg))
     self.dispatcher.remotes[remoteId].call("sendToIceAdapter", ["iceMsg", [localId, msg]])

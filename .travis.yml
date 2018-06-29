@@ -19,14 +19,16 @@ matrix:
       -DWEBRTC_LIBRARIES="$TRAVIS_BUILD_DIR/lib/libwebrtc.a" -DCMAKE_BUILD_TYPE=Release
       ..
     - ninja faf-ice-adapter
+    - tar cfJ faf-ice-adapter-linux64.xz faf-ice-adapter
 script:
 - echo "Nothing."
-before_deploy:
-- export RELEASE_PKG_FILE=./build/faf-ice-adapter
 deploy:
   provider: releases
   api_key:
-    secure: kvzwAY9Wsc9j0OvantE+nahfSadGQX+y2L8WHfk8T9uCpUZbR4pvunO4a2AXNBPxgRwMonTuZ8DZ6JyK+0x5TQekSJfQXgqlccFjJRfmpI3hd1wk/RbCko4wzSmU9hlbOFbetTU6Pz0LtYWSahZpgy1wMB1PfuSDP1qPFG5iJJqu1T3kexTJgenxkWqmOf02ZB1OMqFouzSnCOHbUUNDxLcHequ1EZcJQPhsMfoSo4rwpmVG01j/kj6T91XVAi0ZsMAgXzIyKfna36fnW0P6273d11TV1su9yr8/B+ZmC8zwRyqNu7G3f57nTxSY+nY6gZupyegM6bTUvOCiKeG8QuyhGsJ7vHKcqqsk2kysOjrupSioCFpegzNd7QmbVSyaJtLnGcuYCjXI/CqB096ziOxa3yGWEvCz0bTteXVR3ZXmkCO+1keu6R5Q3f1esx4eGbb+mmu0z19DLECrhRkHg6jFaJzcJJvtPh7ZW9bh+mjsBG4+koAgcQU40LWdKvzA6MGUxHPbz9fzTn6oXBIsC8HABCYKo5nL4NyFY19Fl7QOm3+RyDP3/EoGv2k4pcfJEbCLC3D9FsDEQMF7kd/vPrkneYLh0BVx5JDLMJN4l6QTY/YGGhEbYRAPegIj3MLth2nmeGeSBFBw/MgszWviubz35buqaH8e/67B7gVggK4=
-  file: "${RELEASE_PKG_FILE}"
+    secure: UKcH+VCoVZ+qI/uT2UK8EKe47+ppZTpEj1Gdn4sDJmuHMZjMWAHH9LyNBV/sWyOOcs1ECGuqs0LBpi45mbGIdsCGDd6d8azqO9pEq+s4tX4RQgqFu6MRAkLtt5985TxTRw615arGliRKWUbEbYGtOxkTz0BA4L6TsPHQlUKn4BJjCjPRCWbTPBp0TX3XDx8zwePghwBLX9p1QmMhq7u6LHsWZe61Z6th7fuvY2aZF9qp7OjItNkhzhp/5NaT6icL+v69TKQpOyRgqIjoA4iv24xkiNbtHbI6Q3Y8AnV9TjF3aWreFNTjver1VZVdm3czEcqgI/Ih+KsuCdaUj1KieBG8NjQZygqitHxdwunAk1G/8ZSX9tvTGxlsqbSh8UDj65qgxYMSuDqR8HDBhKBdPe+LjzMu7lvgaciT89cYfg7suiNfXZwP0KBefIZX00YhkGfCHqMJ2sacsikzNL4YC0FsOUrpQ5D4GwswaZljM4VjuvfKfo4zkRhI2FblO/37KsVYEWGhZdWHyy7pk20WjVcX7r9Kyc9/UrZYMA3Sv65JohNsxJs4zYulpe8747/uhYGnPKj4vI+acOiQyIqLdLp6k1o0M2cfhcuhQbPdT0tv4s9ctZcGbezzBAhFbaNdCI5kNcVwopVV3kseIpRN5HA3LEKfV2LTq8ha4wFAg7U=
+  file: ./build/faf-ice-adapter-linux64.xz
+  skip_cleanup: true
   on:
-    repo: FAForever/ice-adapter
+    repo: muellni/ice-adapter
+    tags: true
+  prerelease: true

@@ -16,12 +16,22 @@ gpgnets = {}
 host_id = 0
 host_login = "?"
 
-def hosterReady(id):
-  pass
+peers_in_lobby = []
+p2p_connections = {}
 
-def joinerReady(id):
-  pass
-
+def peerReady(id):
+  for p in peers_in_lobby:
+    p2p_connections[(id, p)] = P2PConnection(clients[id],
+                                             id,
+                                             p,
+                                             clients[p].login,
+                                             host_id)
+    p2p_connections[(p, id)] = P2PConnection(clients[p],
+                                             p,
+                                             id,
+                                             clients[id].login,
+                                             host_id)
+  peers_in_lobby.append(id)
 
 def initIceAdapterForPlayer(clientState):
   playerId = clientState['id']
@@ -33,8 +43,8 @@ def initIceAdapterForPlayer(clientState):
 
   ice_adapter._machine.on_enter_ice_adapter_ready(gpg_net.trigger)
   ice_adapter._machine.on_enter_no_ice_servers(gpg_net.callStatus)
-  gpg_net._machine.on_enter_hosting(lambda id=playerId: hosterReady(id))
-  gpg_net._machine.on_enter_joining(lambda id=playerId: joinerReady(id))
+  gpg_net._machine.on_enter_hosting(lambda id=playerId: peerReady(id))
+  gpg_net._machine.on_enter_joining(lambda id=playerId: peerReady(id))
 
 
 def onMasterEvent(event, playerId, args):
@@ -47,7 +57,9 @@ def onMasterEvent(event, playerId, args):
   elif event == 'onIceOnGpgNetMessageReceived':
     print("onIceOnGpgNetMessageReceived {}: {}".format(playerId, args))
   elif event == 'onIceOnIceMsg':
-    print("onIceOnIceMsg {}: {}".format(playerId, args))
+    srcId, destId, message = args[0]
+    if (destId, srcId) in p2p_connections:
+      p2p_connections[(destId, srcId)].onIceMessage(message)
   else:
     print("unhandled master event: {}".format((event, playerId, args)))
 

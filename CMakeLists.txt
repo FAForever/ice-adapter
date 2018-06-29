@@ -56,6 +56,7 @@ add_library(fafice
   JsonRpc.cpp
   JsonRpcServer.cpp
   logging.cpp
+  PeerConnectivityChecker.cpp
   PeerRelay.cpp
   PeerRelayObservers.cpp
   Timer.cpp

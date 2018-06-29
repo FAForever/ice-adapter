@@ -3,7 +3,6 @@
 #include <memory>
 #include <functional>
 #include <chrono>
-#include <optional>
 #include <array>
 
 #include <webrtc/api/peerconnectioninterface.h>
@@ -12,6 +11,7 @@
 #include <webrtc/third_party/jsoncpp/source/include/json/json.h>
 
 #include "Timer.h"
+#include "PeerConnectivityChecker.h"
 
 namespace faf {
 
@@ -63,7 +63,6 @@ protected:
   void _setConnected(bool connected);
   void _onPeerdataFromGame(rtc::AsyncSocket* socket);
   void _onRemoteMessage(const uint8_t* data, std::size_t size);
-  void _checkConnection();
 
   /* runtime objects for WebRTC */
   rtc::scoped_refptr<webrtc::PeerConnectionFactoryInterface> _pcfactory;
@@ -104,15 +103,10 @@ protected:
   std::string _localSdp;
   std::string _iceGatheringState{"none"};
   std::string _dataChannelState{"none"};
-
-  /* connectivity check data */
-  Timer _offererConnectionCheckTimer;
   std::chrono::steady_clock::time_point _connectStartTime;
-  std::optional<std::chrono::steady_clock::time_point> _lastSentPingTime;
-  std::optional<std::chrono::steady_clock::time_point> _lastReceivedPongTime;
-  unsigned int _missedPings{0};
-  unsigned int _connectionCheckIntervalMs{7000};
   std::chrono::steady_clock::duration _connectDuration;
+  std::unique_ptr<PeerConnectivityChecker> _connectionChecker;
+  Timer _createNewOfferTimer;
 
   /* access declarations for observers */
   friend CreateOfferObserver;

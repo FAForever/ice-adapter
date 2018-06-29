@@ -20,9 +20,10 @@ IceAdapterOptions IceAdapterOptions::init(int argc, char *argv[])
 {
   IceAdapterOptions result;
 
-  cxxopts::Options options("faf-ice-adapter", "A P2P connection proxy for Supreme Commander: Forged Alliance using ICE");
+  cxxopts::Options options("faf-ice-adapter", "❆ faf-ice-adapter ❆ version " FAF_VERSION_STRING ": A P2P connection proxy for Supreme Commander: Forged Alliance using ICE");
   options.add_options()
     ("help", "Show this help message")
+    ("version", "Print the version string")
     ("id", "set the ID of the local player", cxxopts::value<int>(result.localPlayerId))
     ("login", "set the login of the local player, e.g. \"Rhiza\"", cxxopts::value<std::string>(result.localPlayerLogin))
     ("rpc-port", "set the port of internal JSON-RPC server", cxxopts::value<int>(result.rpcPort))
@@ -37,6 +38,11 @@ IceAdapterOptions IceAdapterOptions::init(int argc, char *argv[])
   if (options.count("help"))
   {
     std::cout << options.help() << std::endl;
+    std::exit(0);
+  }
+  if (options.count("version"))
+  {
+    std::cout << FAF_VERSION_STRING << std::endl;
     std::exit(0);
   }
   if (options.count("id") == 0)
