@@ -2,6 +2,7 @@ package client.ice;
 
 import client.GUI;
 import client.TestClient;
+import client.nativeAccess.NativeAccess;
 import com.github.nocatch.NoCatch;
 import com.google.gson.GsonBuilder;
 import com.nbarraille.jjsonrpc.CallbackMethod;
@@ -19,6 +20,7 @@ import javax.crypto.Mac;
 import javax.crypto.spec.SecretKeySpec;
 import java.io.File;
 import java.io.IOException;
+import java.lang.reflect.Field;
 import java.net.ConnectException;
 import java.nio.charset.Charset;
 import java.security.InvalidKeyException;
@@ -45,6 +47,8 @@ public class ICEAdapter {
 	private static JJsonPeer peer;
 
 	public static BooleanProperty connected = new SimpleBooleanProperty(false);
+	public static int processID = 0;
+	public static long processHandle = 0;
 
 	private static IceAdapterCallbacks iceAdapterCallbacks = new IceAdapterCallbacks();
 
@@ -218,7 +222,76 @@ public class ICEAdapter {
 			System.exit(11);
 		}
 
-		Logger.info("Launched ICE adapter");
+		//Read pid
+		if (process.getClass().getName().equals("java.lang.Win32Process") || process.getClass().getName().equals("java.lang.ProcessImpl")) {
+			try {
+				Field f = process.getClass().getDeclaredField("handle");
+				f.setAccessible(true);
+				processHandle = f.getLong(process);
+			} catch (Throwable e) {
+				e.printStackTrace();
+			}
+		} else if(process.getClass().getName().equals("java.lang.UNIXProcess")) {
+			/* get the PID on unix/linux systems */
+			try {
+				Field f = process.getClass().getDeclaredField("pid");
+				f.setAccessible(true);
+				processID = f.getInt(process);
+				Logger.debug("ICEAdapter PID: %d", processID);
+			} catch (Throwable e) {
+				e.printStackTrace();
+			}
+		}
+
+//		com.faforever.iceadapter.IceAdapter.main(Arrays.copyOfRange(command, 1, command.length));
+
+		Logger.info("Launched ICE adapter.");
+	}
+
+
+	public static void sigStop() {
+		if(processID != 0) {
+
+//			try {
+//				Runtime.getRuntime().exec("kill -SIGSTOP " + processID);
+			NativeAccess.sendSignal(processID, NativeAccess.SIGSTOP);
+			Logger.warning("Sent SIGSTOP to %d", processID);
+//			} catch (IOException e) {
+//				Logger.error("Could not sigstop process %d", processID);
+//			}
+		}
+
+		if(processHandle != 0) {
+			NativeAccess.suspendWin32(processHandle);
+		}
+	}
+
+	public static void sigCont() {
+		if(processID != 0) {
+//			try {
+//				Runtime.getRuntime().exec("kill -SIGCONT " + processID);
+			NativeAccess.sendSignal(processID, NativeAccess.SIGCONT);
+			Logger.warning("Sent SIGCONT to %d", processID);
+//			} catch (IOException e) {
+//				Logger.error("Could not sigcont process %d", processID);
+//			}
+		}
+
+		if(processHandle != 0) {
+			NativeAccess.resumeWin32(processHandle);
+		}
+	}
+
+	public static void sigKill() {
+		if(processID != 0) {
+//			try {
+//				Runtime.getRuntime().exec("kill -9" + processID);
+			NativeAccess.sendSignal(processID, NativeAccess.SIGKILL);
+			Logger.warning("Sent SIGKILL to %d", processID);
+//			} catch (IOException e) {
+//				Logger.error("Could not sigkill process %d", processID);
+//			}
+		}
 	}
 
 	public static void close() {

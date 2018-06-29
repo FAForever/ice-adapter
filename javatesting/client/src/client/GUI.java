@@ -232,6 +232,39 @@ public class GUI extends Application {
 		table.getColumns().addAll(tableColumns);
 		root.getChildren().add(table);
 
+
+		separator = new Separator(Orientation.HORIZONTAL);
+		root.getChildren().add(separator);
+
+
+		HBox iceAdapterControls = new HBox();
+		Button stopButton = new Button("SIGSTOP");
+		stopButton.setOnAction(e -> {
+			ICEAdapter.sigStop();
+		});
+		iceAdapterControls.getChildren().add(stopButton);
+		Button contButton = new Button("SIGCONT");
+		contButton.setOnAction(e -> {
+			ICEAdapter.sigCont();
+		});
+		iceAdapterControls.getChildren().add(contButton);
+		Button killButton = new Button("SIGKILL");
+		killButton.setOnAction(e -> {
+			ICEAdapter.sigKill();
+		});
+		iceAdapterControls.getChildren().add(killButton);
+
+		if(System.getProperty("os.name").contains("Windows")) {
+			stopButton.setDisable(true);
+			killButton.setDisable(true);
+		}
+
+
+		root.getChildren().add(iceAdapterControls);
+
+
+
+
 		stage.setScene(new Scene(root, stage.getWidth(), stage.getHeight()));
 
 

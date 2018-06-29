@@ -42,5 +42,8 @@ dependencies {
     compile "com.sparkjava:spark-core:2.7.2"
     testCompile group: 'org.slf4j', name: 'slf4j-simple', version: '1.7.6'
 
+    compile("net.java.dev.jna:jna:4.5.1")
+    compile("net.java.dev.jna:jna-platform:4.5.1")
+
     apt "org.projectlombok:lombok:1.16.22"
 }
