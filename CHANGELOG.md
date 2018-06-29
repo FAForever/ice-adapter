@@ -2,7 +2,7 @@ v6.2.6
 ======
 
 - fix stats not always collected
-- refactor connectivirychecker
+- refactor connectivitychecker
 - print version on commandline
 
 v6.2.5

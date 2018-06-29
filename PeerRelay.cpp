@@ -149,7 +149,6 @@ void PeerRelay::_createOffer()
   if (_isOfferer)
   {
     RELAY_LOG_DEBUG << "creating offer";
-    _setConnected(false);
     bool reconnect = true;
     if (!_dataChannel)
     {
