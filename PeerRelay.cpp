@@ -159,6 +159,16 @@ void PeerRelay::_reinitPeerconnection()
   {
     _createOffer();
   }
+
+  /* this is a terrible hack to not call the PeerConnectivityChecker destructor in its own callback */
+  _connectionChecker = std::make_unique<PeerConnectivityChecker>(_dataChannel,
+                                                                 [this]()
+  {
+    _createNewOfferTimer.singleShot(1, [this]()
+    {
+      _reinitPeerconnection();
+    });
+  });
 }
 
 void PeerRelay::_createOffer()
@@ -179,16 +189,6 @@ void PeerRelay::_createOffer()
     options.offer_to_receive_video = 0;
     _peerConnection->CreateOffer(_createOfferObserver,
                                  options);
-
-    /* this is a terrible hack to not call the PeerConnectivityChecker destructor in its own callback */
-    _connectionChecker = std::make_unique<PeerConnectivityChecker>(_dataChannel,
-                                                                   [this]()
-    {
-      _createNewOfferTimer.singleShot(1, [this]()
-      {
-        _reinitPeerconnection();
-      });
-    });
   }
 }
 
