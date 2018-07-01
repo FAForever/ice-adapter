@@ -158,38 +158,43 @@ void PeerRelay::_reinitPeerconnection()
   if (_isOfferer)
   {
     _createOffer();
-  }
 
-  /* this is a terrible hack to not call the PeerConnectivityChecker destructor in its own callback */
-  _connectionChecker = std::make_unique<PeerConnectivityChecker>(_dataChannel,
-                                                                 [this]()
-  {
-    _createNewOfferTimer.singleShot(1, [this]()
+    /* offerers periodically check the connection and may reinitialise it.
+     * We're not doing it at both ends, since we're not coordinating the reacreation of the peerconnection
+     * Using the _reinitTimer is a hack to not call the PeerConnectivityChecker destructor in its own callback */
+    _connectionChecker = std::make_unique<PeerConnectivityChecker>(_dataChannel,
+                                                                   [this]()
     {
-      _reinitPeerconnection();
+      _reinitTimer.singleShot(1, [this]()
+      {
+        _reinitPeerconnection();
+      });
     });
-  });
+  }
 }
 
 void PeerRelay::_createOffer()
 {
-  if (_isOfferer)
+  if (!_isOfferer)
   {
-    RELAY_LOG_DEBUG << "creating offer";
-
-    webrtc::DataChannelInit dataChannelInit;
-    dataChannelInit.ordered = false;
-    dataChannelInit.maxRetransmits = 0;
-    _dataChannel = _peerConnection->CreateDataChannel("faf",
-                                                      &dataChannelInit);
-    _dataChannel->RegisterObserver(_dataChannelObserver.get());
-
-    webrtc::PeerConnectionInterface::RTCOfferAnswerOptions options;
-    options.offer_to_receive_audio = 0;
-    options.offer_to_receive_video = 0;
-    _peerConnection->CreateOffer(_createOfferObserver,
-                                 options);
+    RELAY_LOG_ERROR << "_createOffer() may onlye called if we're the offerer";
+    return;
   }
+
+  RELAY_LOG_DEBUG << "creating offer";
+
+  webrtc::DataChannelInit dataChannelInit;
+  dataChannelInit.ordered = false;
+  dataChannelInit.maxRetransmits = 0;
+  _dataChannel = _peerConnection->CreateDataChannel("faf",
+                                                    &dataChannelInit);
+  _dataChannel->RegisterObserver(_dataChannelObserver.get());
+
+  webrtc::PeerConnectionInterface::RTCOfferAnswerOptions options;
+  options.offer_to_receive_audio = 0;
+  options.offer_to_receive_video = 0;
+  _peerConnection->CreateOffer(_createOfferObserver,
+                               options);
 }
 
 void PeerRelay::_setIceState(std::string const& state)

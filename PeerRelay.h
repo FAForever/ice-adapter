@@ -108,7 +108,7 @@ protected:
   std::chrono::steady_clock::time_point _connectStartTime;
   std::chrono::steady_clock::duration _connectDuration;
   std::unique_ptr<PeerConnectivityChecker> _connectionChecker;
-  Timer _createNewOfferTimer;
+  Timer _reinitTimer;
 
   /* access declarations for observers */
   friend CreateOfferObserver;
