@@ -42,35 +42,12 @@ PeerRelay::PeerRelay(Options options,
 
   _connectStartTime = std::chrono::steady_clock::now();
 
-  webrtc::PeerConnectionInterface::RTCConfiguration configuration;
-  configuration.servers = _iceServerList;
-  configuration.ice_check_min_interval = 5000;
-  _peerConnection = _pcfactory->CreatePeerConnection(configuration,
-                                                     nullptr,
-                                                     nullptr,
-                                                     _peerConnectionObserver.get());
-  if (!_peerConnection)
-  {
-    FAF_LOG_ERROR << "_pcfactory->CreatePeerConnection() failed!";
-    std::exit(1);
-  }
-
-  if (_isOfferer)
-  {
-    _createOffer();
-  }
+  _reinitPeerconnection();
 }
 
 PeerRelay::~PeerRelay()
 {
-  _closing = true;
-  if (_dataChannel)
-  {
-    _dataChannel->UnregisterObserver();
-    _dataChannel->Close();
-    _dataChannel = nullptr;
-  }
-  _peerConnection->Close();
+  _close();
 }
 
 int PeerRelay::localUdpSocketPort() const
@@ -144,26 +121,62 @@ void PeerRelay::addIceMessage(Json::Value const& iceMsg)
   }
 }
 
+void PeerRelay::_close()
+{
+  _closing = true;
+  if (_dataChannel)
+  {
+    _dataChannel->UnregisterObserver();
+    _dataChannel->Close();
+    _dataChannel = nullptr;
+  }
+  if (_peerConnection)
+  {
+    _peerConnection->Close();
+    _peerConnection = nullptr;
+  }
+  _closing = false;
+}
+
+void PeerRelay::_reinitPeerconnection()
+{
+  _close();
+
+  webrtc::PeerConnectionInterface::RTCConfiguration configuration;
+  configuration.servers = _iceServerList;
+  configuration.ice_check_min_interval = 5000;
+  _peerConnection = _pcfactory->CreatePeerConnection(configuration,
+                                                     nullptr,
+                                                     nullptr,
+                                                     _peerConnectionObserver.get());
+  if (!_peerConnection)
+  {
+    FAF_LOG_ERROR << "_pcfactory->CreatePeerConnection() failed!";
+    std::exit(1);
+  }
+
+  if (_isOfferer)
+  {
+    _createOffer();
+  }
+}
+
 void PeerRelay::_createOffer()
 {
   if (_isOfferer)
   {
     RELAY_LOG_DEBUG << "creating offer";
-    bool reconnect = true;
-    if (!_dataChannel)
-    {
-      reconnect = false;
-      webrtc::DataChannelInit dataChannelInit;
-      dataChannelInit.ordered = false;
-      dataChannelInit.maxRetransmits = 0;
-      _dataChannel = _peerConnection->CreateDataChannel("faf",
-                                                        &dataChannelInit);
-      _dataChannel->RegisterObserver(_dataChannelObserver.get());
-    }
+
+    webrtc::DataChannelInit dataChannelInit;
+    dataChannelInit.ordered = false;
+    dataChannelInit.maxRetransmits = 0;
+    _dataChannel = _peerConnection->CreateDataChannel("faf",
+                                                      &dataChannelInit);
+    _dataChannel->RegisterObserver(_dataChannelObserver.get());
+
     webrtc::PeerConnectionInterface::RTCOfferAnswerOptions options;
     options.offer_to_receive_audio = 0;
     options.offer_to_receive_video = 0;
-    options.ice_restart = reconnect;
     _peerConnection->CreateOffer(_createOfferObserver,
                                  options);
 
@@ -173,7 +186,7 @@ void PeerRelay::_createOffer()
     {
       _createNewOfferTimer.singleShot(1, [this]()
       {
-        _createOffer();
+        _reinitPeerconnection();
       });
     });
   }
@@ -211,7 +224,7 @@ void PeerRelay::_setIceState(std::string const& state)
 
     {
       RELAY_LOG_WARN << "Connection lost, forcing reconnect immediately.";
-      _createOffer();
+      _reinitPeerconnection();
     }
   }
 }
