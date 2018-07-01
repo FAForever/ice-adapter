@@ -1,12 +1,12 @@
-from ServerConnection import ServerConnection
-from TestClient import TestClient
-from IceAdapter import IceAdapter
-from GPGNet import GPGNet
-from P2PConnection import P2PConnection
-
 import sys
 
 from PyQt5 import QtCore
+
+from ServerConnection import ServerConnection
+from TestClient import TestClient
+from base.GPGNet import GPGNet
+from base.IceAdapter import IceAdapter
+from base.P2PConnection import P2PConnection
 
 app = QtCore.QCoreApplication(sys.argv)
 
@@ -51,8 +51,11 @@ def onMasterEvent(event, playerId, args):
   if event == 'onGpgNetMsgFromIceAdapter':
     gpgnets[playerId].processMessage(args[0], args[1])
   elif event == 'onIceAdapterOutput':
-    print("onIceAdapterOutput {}: {}".format(playerId, args))
+    pass
+    #print("onIceAdapterOutput {}: {}".format(playerId, args))
   elif event == 'onIceOnConnected':
+    srcId, destId, connected = args[0]
+    p2p_connections[(destId, srcId)].onConnected(connected)
     print("onIceOnConnected {}: {}".format(playerId, args))
   elif event == 'onIceOnGpgNetMessageReceived':
     print("onIceOnGpgNetMessageReceived {}: {}".format(playerId, args))

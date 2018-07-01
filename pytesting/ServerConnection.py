@@ -1,4 +1,4 @@
-from JsonRpcTcpClient import JsonRpcTcpClient
+from base.JsonRpcTcpClient import JsonRpcTcpClient
 
 class ServerConnection:
   def __init__(self, masterEventCallback):

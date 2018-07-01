@@ -3,7 +3,7 @@ import sys
 
 from PyQt5 import QtCore
 
-from JsonRpcTcpClient import JsonRpcTcpClient
+from base.JsonRpcTcpClient import JsonRpcTcpClient
 
 app = QtCore.QCoreApplication(sys.argv)
 

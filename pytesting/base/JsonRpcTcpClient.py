@@ -1,10 +1,10 @@
-from PyQt5.QtNetwork import QTcpSocket, QAbstractSocket
-from PyQt5 import QtCore
-from PyQt5.QtCore import QObject
-
 import json
 
-from decorators import with_logger
+from PyQt5 import QtCore
+from PyQt5.QtCore import QObject
+from PyQt5.QtNetwork import QTcpSocket, QAbstractSocket
+
+from base.decorators import with_logger
 
 @with_logger
 class JsonRpcTcpClient(QObject):
@@ -120,7 +120,7 @@ class JsonRpcTcpClient(QObject):
                         except ValueError:
                             self._logger.error("json.loads failed for {}".format(complete_json_buf))
                             return b''
-                        print("JsonRpcTcpClient received: {}".format(request))
+                        #print("JsonRpcTcpClient received: {}".format(request))
                         # is this a request?
                         if "method" in request:
                             self.parseRequest(request)

@@ -1,13 +1,14 @@
 
+import base64
+import hmac
 import sys
 import time
-import hmac
-import base64
 from hashlib import sha1
 
 from PyQt5 import QtCore
 
-from JsonRpcTcpClient import JsonRpcTcpClient
+from base.JsonRpcTcpClient import JsonRpcTcpClient
+
 
 class RemoteClient:
   def __init__(self, dispatcher, id, login, should_host):

@@ -19,6 +19,7 @@ class P2PConnection(object):
     self._hostId = hostId
     self._machine = Machine(model=self, states=P2PConnection.states, initial='initial')
     self._machine.add_transition(trigger='connect_sent', source='initial', dest='connecting', after='showstate')
+    self.connected = False
 
     if peerId == hostId:
       client.call("sendToIceAdapter", ["connectToPeer", [remotePeerLogin, remotePeerId, True]])
@@ -30,4 +31,8 @@ class P2PConnection(object):
 
   def onIceMessage(self, message):
     self._client.call("sendToIceAdapter", ["iceMsg", [self._remotePeerId, message]])
+
+  def onConnected(self, isConnected):
+    #todo: start pinging
+    self.connected = isConnected
 
