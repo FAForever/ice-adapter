@@ -284,6 +284,7 @@ void PeerRelay::_onRemoteMessage(const uint8_t* data, std::size_t size)
   {
     return;
   }
+  /* the answerer doesnt have a _connectionChecker, so it handles Ping messages here */
   if (!_isOfferer &&
       size == sizeof(PeerConnectivityChecker::PingMessage) &&
       std::equal(data,

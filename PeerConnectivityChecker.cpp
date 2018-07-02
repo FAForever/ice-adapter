@@ -12,11 +12,8 @@ PeerConnectivityChecker::PeerConnectivityChecker(rtc::scoped_refptr<webrtc::Data
   _dataChannel(dc),
   _cb(cb)
 {
-  rtc::Thread::Current()->PostDelayed(RTC_FROM_HERE, _connectionCheckIntervalMs, this);
-}
-PeerConnectivityChecker::~PeerConnectivityChecker()
-{
-  rtc::Thread::Current()->Clear(this);
+  _pingTimer.start(_connectionCheckIntervalMs,
+                   std::bind(&PeerConnectivityChecker::_sendPing, this));
 }
 
 bool PeerConnectivityChecker::handleMessageFromPeer(const uint8_t* data, std::size_t size)
@@ -33,23 +30,18 @@ bool PeerConnectivityChecker::handleMessageFromPeer(const uint8_t* data, std::si
 }
 
 
-void PeerConnectivityChecker::OnMessage(rtc::Message* msg)
+void PeerConnectivityChecker::_sendPing()
 {
   if (_lastSentPingTime &&
       !_lastReceivedPongTime)
   {
-    ++_missedPings;
-    if (_missedPings >= 2)
-    {
-      FAF_LOG_INFO << "PeerConnectivityChecker:" << _missedPings << " missed pings, connectivity lost";
-      _cb();
-      return;
-    }
+    FAF_LOG_INFO << "PeerConnectivityChecker: missed ping, connectivity lost";
+    _cb();
+    return;
   }
   _dataChannel->Send(webrtc::DataBuffer(rtc::CopyOnWriteBuffer(PingMessage, sizeof(PingMessage)), true));
   _lastSentPingTime = std::chrono::steady_clock::now();
   _lastReceivedPongTime.reset();
-  rtc::Thread::Current()->PostDelayed(RTC_FROM_HERE, _connectionCheckIntervalMs, this);
 }
 
 } // namespace faf
