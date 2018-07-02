@@ -141,7 +141,7 @@ public class GUI extends Application {
 		HBox connectionStatus = new HBox();
 
 		Label serverConnectionStatus = new Label("Connected: false");
-		TestServerAccessor.connected.addListener(((observable, oldValue, newValue) -> runAndWait(() -> serverConnectionStatus.setText("TestServer: " + newValue))));
+		TestServerAccessor.connected.addListener(((observable, oldValue, newValue) -> runAndWait(() -> serverConnectionStatus.setText("TestServer: " + newValue + "(" + TestClient.playerID + ")"))));
 		connectionStatus.getChildren().add(serverConnectionStatus);
 
 

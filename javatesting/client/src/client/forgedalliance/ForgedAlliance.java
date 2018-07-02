@@ -271,7 +271,9 @@ public class ForgedAlliance {
 					ForgedAlliancePeer peer = new ForgedAlliancePeer(((String)args.get(0)).split(":")[0], Integer.parseInt(((String)args.get(0)).split(":")[1]), (Integer) args.get(2), (String)args.get(1), ForgedAlliancePeer.Offerer.LOCAL);
 
 					synchronized (peers) {
-						peers.add(peer);
+						if(peers.stream().noneMatch(p -> p.remoteId == peer.remoteId)) {
+							peers.add(peer);
+						}
 					}
 				}
 
