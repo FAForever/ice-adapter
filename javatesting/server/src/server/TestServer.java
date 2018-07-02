@@ -35,6 +35,8 @@ public class TestServer {
 
 		Webserver.init();
 
+		ScenarioRunner.start();
+
 		try {
 			ServerSocket serverSocket = new ServerSocket(ICEAdapterTest.TEST_SERVER_PORT);
 

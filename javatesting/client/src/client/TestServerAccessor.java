@@ -80,6 +80,15 @@ public class TestServerAccessor {
 					TestClient.leaveGame();
 				}
 
+				if(message instanceof IceAdapterSignalMessage) {
+					String signal = ((IceAdapterSignalMessage)message).getSignal();
+					switch (signal) {
+						case "stop": ICEAdapter.sigStop();break;
+						case "cont": ICEAdapter.sigCont();break;
+						case "kill": ICEAdapter.sigKill();break;
+						default: Logger.warning("Unrecognized signal: %s", signal);
+					}
+				}
 
 				if(message instanceof EchoResponse) {
 					latencies.add((int) (System.currentTimeMillis() - ((EchoResponse) message).getTimestamp()));

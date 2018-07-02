@@ -5,10 +5,7 @@ import com.google.gson.JsonSyntaxException;
 import common.ICEAdapterTest;
 import logging.Logger;
 import lombok.Getter;
-import net.ClientInformationMessage;
-import net.EchoRequest;
-import net.EchoResponse;
-import net.IceMessage;
+import net.*;
 
 import java.io.DataInputStream;
 import java.io.DataOutputStream;
@@ -39,12 +36,7 @@ public class Player {
 			new Thread(this::listener).start();
 		}
 
-		//Todo:
-		if(TestServer.games.isEmpty()) {
-			TestServer.games.add(new Game(this));
-		} else {
-			TestServer.games.get(0).join(this);
-		}
+		ScenarioRunner.scenario.onPlayerConnect(this);
 	}
 
 	private void login() {
@@ -160,5 +152,17 @@ public class Player {
 		} catch(IOException e) {Logger.error("Error during disconnect.", e);}
 
 		Logger.info("Disconnected player: %d, %s", id, username);
+	}
+
+	public void sigStop() {
+		this.send(new IceAdapterSignalMessage("stop"));
+	}
+
+	public void sigCont() {
+		this.send(new IceAdapterSignalMessage("cont"));
+	}
+
+	public void sigKill() {
+		this.send(new IceAdapterSignalMessage("kill"));
 	}
 }

@@ -43,7 +43,6 @@ public class NativeAccess {
 
     public static void sendSignal(int pid, int sig) {
         c.syscall(SYS_KILL, pid, sig);
-//        c.syscall()
     }
 
     public static void suspendWin32(long handle) {
