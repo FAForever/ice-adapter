@@ -60,7 +60,6 @@ public:
 protected:
   void _close();
   void _reinitPeerconnection();
-  void _createOffer();
   void _setIceState(std::string const& state);
   void _setConnected(bool connected);
   void _onPeerdataFromGame(rtc::AsyncSocket* socket);
