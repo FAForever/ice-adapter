@@ -35,8 +35,8 @@ public class ICEAdapter {
 
 	private static final int CONNECTION_ATTEMPTS = 20;
 
-	private static final String COTURN_HOST = "vmrbg145.informatik.tu-muenchen.de";
-	private static final String COTURN_KEY = "banana";
+	private static final String COTURN_HOST = "geosearchef.de";
+	private static final String COTURN_KEY = "8T2o1yfSu29vf9cJ3WjHS9Ak6zJCB6qECL2Uxlza";
 
 	public static int ADAPTER_PORT;//RPC Client <=> ICE
 	public static int GPG_PORT;//ICE <=> Lobby

@@ -11,7 +11,6 @@
     <orderEntry type="library" name="Gradle: org.projectlombok:lombok:1.16.22" level="project" />
     <orderEntry type="library" name="Gradle: com.google.code.gson:gson:2.7" level="project" />
     <orderEntry type="library" name="Gradle: com.google.guava:guava:18.0" level="project" />
-    <orderEntry type="module" module-name="java-ice-adapter" />
     <orderEntry type="library" name="Gradle: com.github.geosearchef:JJsonRpc:3d25866885" level="project" />
     <orderEntry type="library" name="Gradle: net.java.dev.jna:jna:4.5.1" level="project" />
     <orderEntry type="library" name="Gradle: net.java.dev.jna:jna-platform:4.5.1" level="project" />

@@ -108,7 +108,7 @@ public class TestServerAccessor {
 			try {
 				System.out.println(gson.toJson(message));
 				out.writeUTF(message.getClass().getName());
-				out.writeUTF(gson.toJson(message));
+				out.writeUTF(gson.toJson(message));//TODO: catch more concurrent modification exceptions
 			} catch(IOException e) {
 				Logger.error("Error while sending to server", e);
 				System.exit(123);

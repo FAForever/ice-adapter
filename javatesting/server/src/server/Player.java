@@ -92,7 +92,14 @@ public class Player {
 
 				if(message instanceof IceMessage) {
 					Logger.debug("IceMessage: %s", gson.toJson(message));
+
+					if(filterIceMessage((IceMessage)message)) {
+						Logger.info("Filtered IceMessage");
+						continue;
+					}
+
 					TestServer.collectedData.get(this.id).getIceMessages().put(System.currentTimeMillis(), (IceMessage) message);
+
 					synchronized (players) {
 						players.stream()
 								.filter(p -> p.getId() == ((IceMessage)message).getDestPlayerId())
@@ -113,6 +120,25 @@ public class Player {
 			Logger.warning("Disconnecting client due to error while reading data from socket. %s", e.getClass().getName());
 			disconnect();
 		}
+	}
+
+	public boolean filterIceMessage(IceMessage iceMessage) {
+		if(! IceTestServerConfig.INSTANCE.isHost() &&
+				((iceMessage.getMsg().toString()).contains("typ host"))) {
+			return true;
+		}
+
+		if(! IceTestServerConfig.INSTANCE.isStun() &&
+				(iceMessage.getMsg().toString().contains("typ srflx") || iceMessage.getMsg().toString().contains("typ prflx"))) {
+			return true;
+		}
+
+		if(! IceTestServerConfig.INSTANCE.isTurn() &&
+				(iceMessage.getMsg().toString().contains("typ relay"))) {
+			return true;
+		}
+
+		return false;
 	}
 
 	public void send(Object message) {
