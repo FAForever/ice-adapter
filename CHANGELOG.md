@@ -1,3 +1,9 @@
+v6.3.0
+======
+
+- reconnect is now back to recreating the whole PeerConnection instead
+  of using ICE restart to fix memory leak issues
+
 v6.2.6
 ======
 
