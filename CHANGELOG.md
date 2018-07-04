@@ -1,3 +1,8 @@
+v6.3.1
+======
+
+- fix messed up TURN connections
+
 v6.3.0
 ======
 
