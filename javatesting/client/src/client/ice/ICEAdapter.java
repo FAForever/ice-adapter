@@ -37,6 +37,8 @@ public class ICEAdapter {
 
 	private static final String COTURN_HOST = "geosearchef.de";
 	private static final String COTURN_KEY = "8T2o1yfSu29vf9cJ3WjHS9Ak6zJCB6qECL2Uxlza";
+//	private static final String COTURN_HOST = "vmrbg145.informatik.tu-muenchen.de";
+//	private static final String COTURN_KEY = "banana";
 
 	public static int ADAPTER_PORT;//RPC Client <=> ICE
 	public static int GPG_PORT;//ICE <=> Lobby
@@ -113,8 +115,11 @@ public class ICEAdapter {
 			e.printStackTrace();
 		}
 //		Logger.debug("Took %d ms.", System.currentTimeMillis() - time);
+		latestIceStatus = iceStatus;
+
 		return iceStatus;
 	}
+	public static IceStatus latestIceStatus = null;
 
 	private static StatusCallback STATUS_CALLBACK_INSTANCE = new StatusCallback();
 	public static class StatusCallback {

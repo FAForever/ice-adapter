@@ -1,0 +1,11 @@
+<component name="libraryTable">
+  <library name="Gradle: org.jitsi:jain-sip-ri-ossonly:1.2.98c7f8c-jitsi-oss1">
+    <CLASSES>
+      <root url="jar://$USER_HOME$/.gradle/caches/modules-2/files-2.1/org.jitsi/jain-sip-ri-ossonly/1.2.98c7f8c-jitsi-oss1/d98df3509a744537adbf3c016ea36f7ec3ec2f55/jain-sip-ri-ossonly-1.2.98c7f8c-jitsi-oss1.jar!/" />
+    </CLASSES>
+    <JAVADOC />
+    <SOURCES>
+      <root url="jar://$USER_HOME$/.gradle/caches/modules-2/files-2.1/org.jitsi/jain-sip-ri-ossonly/1.2.98c7f8c-jitsi-oss1/bf0ac1632b3100678bebe29de5103c1501fde14/jain-sip-ri-ossonly-1.2.98c7f8c-jitsi-oss1-sources.jar!/" />
+    </SOURCES>
+  </library>
+</component>

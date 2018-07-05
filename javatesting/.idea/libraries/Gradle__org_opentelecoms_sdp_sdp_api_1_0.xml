@@ -1,0 +1,11 @@
+<component name="libraryTable">
+  <library name="Gradle: org.opentelecoms.sdp:sdp-api:1.0">
+    <CLASSES>
+      <root url="jar://$USER_HOME$/.gradle/caches/modules-2/files-2.1/org.opentelecoms.sdp/sdp-api/1.0/de20fa5fb752327aabf69da060f3841053a62bcb/sdp-api-1.0.jar!/" />
+    </CLASSES>
+    <JAVADOC />
+    <SOURCES>
+      <root url="jar://$USER_HOME$/.gradle/caches/modules-2/files-2.1/org.opentelecoms.sdp/sdp-api/1.0/59a4b2b85bc20956e7d6e57b891ececa7e50126f/sdp-api-1.0-sources.jar!/" />
+    </SOURCES>
+  </library>
+</component>

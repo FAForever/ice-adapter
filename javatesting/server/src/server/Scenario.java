@@ -29,4 +29,6 @@ public abstract class Scenario {
             time = newTime;
         }
     }
+
+    public abstract String getDescription();
 }

@@ -6,6 +6,8 @@ import data.ForgedAlliancePeer;
 import javafx.application.Application;
 import javafx.application.Platform;
 import javafx.beans.property.ReadOnlyStringWrapper;
+import javafx.beans.property.SimpleStringProperty;
+import javafx.beans.property.StringProperty;
 import javafx.beans.value.ObservableValue;
 import javafx.collections.FXCollections;
 import javafx.collections.ObservableList;
@@ -20,6 +22,7 @@ import javafx.stage.Stage;
 import javafx.util.Callback;
 import logging.Logger;
 
+import java.util.Arrays;
 import java.util.Optional;
 import java.util.OptionalDouble;
 import java.util.concurrent.CompletableFuture;
@@ -33,7 +36,8 @@ public class GUI extends Application {
 	public Stage stage;
 
 	public TableView table;
-	private TableColumn[] tableColumns = { new TableColumn<>("ID"), new TableColumn<>("name"), new TableColumn<>("latency"), new TableColumn<>("last packet received") };
+	private TableColumn[] tableColumns = { new TableColumn<>("ID"), new TableColumn<>("name"), new TableColumn<>("latency"), new TableColumn<>("last packet received"), new TableColumn<>("loc_cand_type"), new TableColumn<>("rem_cand_type") };
+	public StringProperty scenario = new SimpleStringProperty("none");
 
 	private ObservableList<ForgedAlliancePeer> peers = FXCollections.observableArrayList();
 
@@ -164,7 +168,6 @@ public class GUI extends Application {
 
 		root.getChildren().add(connectionStatus);
 
-
 		HBox FAstatus = new HBox();
 		FAstatus.visibleProperty().bind(TestClient.isGameRunning);
 		FAstatus.managedProperty().bind(TestClient.isGameRunning);
@@ -187,6 +190,10 @@ public class GUI extends Application {
 		root.getChildren().add(separator);
 		root.getChildren().add(new Label("ICE Test is running. Please keep this window open."));
 
+		Label scenarioLabel = new Label();
+		scenario.addListener((observableValue, oldValue, newValue) -> scenarioLabel.setText("Scenario: " + newValue));
+		root.getChildren().add(scenarioLabel);
+
 		separator = new Separator(Orientation.HORIZONTAL);
 		root.getChildren().add(separator);
 
@@ -196,6 +203,8 @@ public class GUI extends Application {
 		tableColumns[1].setMinWidth(150);
 		tableColumns[2].setMinWidth(50);
 		tableColumns[3].setMinWidth(200);
+		tableColumns[4].setMinWidth(150);
+		tableColumns[5].setMinWidth(150);
 		//TODO: use lambdas
 		tableColumns[0].setCellValueFactory(new Callback<TableColumn.CellDataFeatures<ForgedAlliancePeer, String>, ObservableValue<String>>() {
 			@Override
@@ -226,6 +235,34 @@ public class GUI extends Application {
 			@Override
 			public ObservableValue<String> call(TableColumn.CellDataFeatures<ForgedAlliancePeer, String> cellData) {
 				return new ReadOnlyStringWrapper(String.valueOf(System.currentTimeMillis() - cellData.getValue().getLastPacketReceived()) + " ms");
+			}
+		});
+		tableColumns[4].setCellValueFactory(new Callback<TableColumn.CellDataFeatures<ForgedAlliancePeer, String>, ObservableValue<String>>() {
+			@Override
+			public ObservableValue<String> call(TableColumn.CellDataFeatures<ForgedAlliancePeer, String> cellData) {
+				if(ICEAdapter.latestIceStatus != null && ICEAdapter.latestIceStatus.getRelays() != null) {
+					return new ReadOnlyStringWrapper(Arrays.stream(ICEAdapter.latestIceStatus.getRelays())
+							.filter(r -> r.getRemote_player_id() == cellData.getValue().remoteId)
+							.filter(r -> r.getIce() != null)
+							.findFirst()
+							.map(r -> r.getIce().getLoc_cand_type())
+							.orElse("none"));
+				}
+				return new ReadOnlyStringWrapper("");
+			}
+		});
+		tableColumns[5].setCellValueFactory(new Callback<TableColumn.CellDataFeatures<ForgedAlliancePeer, String>, ObservableValue<String>>() {
+			@Override
+			public ObservableValue<String> call(TableColumn.CellDataFeatures<ForgedAlliancePeer, String> cellData) {
+				if(ICEAdapter.latestIceStatus != null && ICEAdapter.latestIceStatus.getRelays() != null) {
+					return new ReadOnlyStringWrapper(Arrays.stream(ICEAdapter.latestIceStatus.getRelays())
+							.filter(r -> r.getRemote_player_id() == cellData.getValue().remoteId)
+							.filter(r -> r.getIce() != null)
+							.findFirst()
+							.map(r -> r.getIce().getRem_cand_type())
+							.orElse("none"));
+				}
+				return new ReadOnlyStringWrapper("");
 			}
 		});
 		table.setItems(peers);

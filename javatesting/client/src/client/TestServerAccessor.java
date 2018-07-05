@@ -148,6 +148,7 @@ public class TestServerAccessor {
 			}
 
 			TestClient.playerID = in.readInt();
+			GUI.instance.scenario.set(in.readUTF());
 
 			Logger.info("Got username: %s(%d)", TestClient.username, TestClient.playerID);
 

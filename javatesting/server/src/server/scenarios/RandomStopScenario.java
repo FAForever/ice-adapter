@@ -55,4 +55,9 @@ public class RandomStopScenario extends Scenario {
         }
     }
 
+    @Override
+    public String getDescription() {
+        return "random stop/cont of ice adapters";
+    }
+
 }

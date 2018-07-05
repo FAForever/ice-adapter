@@ -44,4 +44,9 @@ public class DefaultScenario extends Scenario {
             }
         }
     }
+
+    @Override
+    public String getDescription() {
+        return "default - single game";
+    }
 }

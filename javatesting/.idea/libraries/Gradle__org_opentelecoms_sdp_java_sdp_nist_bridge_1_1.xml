@@ -1,0 +1,11 @@
+<component name="libraryTable">
+  <library name="Gradle: org.opentelecoms.sdp:java-sdp-nist-bridge:1.1">
+    <CLASSES>
+      <root url="jar://$USER_HOME$/.gradle/caches/modules-2/files-2.1/org.opentelecoms.sdp/java-sdp-nist-bridge/1.1/c6721d2f83bcc8d77adef6a65a50d54037139ff9/java-sdp-nist-bridge-1.1.jar!/" />
+    </CLASSES>
+    <JAVADOC />
+    <SOURCES>
+      <root url="jar://$USER_HOME$/.gradle/caches/modules-2/files-2.1/org.opentelecoms.sdp/java-sdp-nist-bridge/1.1/ea4567ef722e726713c6165579378211df850589/java-sdp-nist-bridge-1.1-sources.jar!/" />
+    </SOURCES>
+  </library>
+</component>

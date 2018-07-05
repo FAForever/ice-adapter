@@ -48,6 +48,10 @@ public class Player {
 
 			this.username = in.readUTF();
 
+			if(username.toLowerCase().contains("hitler")) {//@moonbearonmeth: nope
+				return;
+			}
+
 			if(players.stream().map(Player::getUsername).anyMatch(this.username::equals)) {
 				out.writeBoolean(false);
 				out.flush();
@@ -59,6 +63,7 @@ public class Player {
 
 			this.id = PLAYER_ID_FACTORY++;
 			out.writeInt(id);
+			out.writeUTF(ScenarioRunner.scenario.getDescription());
 
 			synchronized (players) {
 				players.add(this);
