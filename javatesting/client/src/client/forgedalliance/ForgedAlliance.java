@@ -82,7 +82,7 @@ public class ForgedAlliance {
 								packetOut.writeInt(peer.remoteId);//target
 								packetOut.writeInt(peer.echoRequestsSent++);
 								packetOut.writeLong(System.currentTimeMillis());
-								int randomBytes = 250 + random.nextInt(500);
+								int randomBytes = 25 + random.nextInt(50);
 								byte[] randomData = new byte[randomBytes];
 								random.nextBytes(randomData);
 								packetOut.writeInt(randomBytes);

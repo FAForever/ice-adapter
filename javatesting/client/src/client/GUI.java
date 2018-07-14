@@ -1,5 +1,6 @@
 package client;
 
+import client.experimental.HolePunching;
 import client.ice.ICEAdapter;
 import common.ICEAdapterTest;
 import data.ForgedAlliancePeer;
@@ -36,7 +37,7 @@ public class GUI extends Application {
 	public Stage stage;
 
 	public TableView table;
-	private TableColumn[] tableColumns = { new TableColumn<>("ID"), new TableColumn<>("name"), new TableColumn<>("latency"), new TableColumn<>("last packet received"), new TableColumn<>("loc_cand_type"), new TableColumn<>("rem_cand_type") };
+	private TableColumn[] tableColumns = { new TableColumn<>("id"), new TableColumn<>("name"), new TableColumn<>("latency"), new TableColumn<>("last_rec"), new TableColumn<>("loc_cand"), new TableColumn<>("rem_cand"), new TableColumn("exp_pnch") };
 	public StringProperty scenario = new SimpleStringProperty("none");
 
 	private ObservableList<ForgedAlliancePeer> peers = FXCollections.observableArrayList();
@@ -202,9 +203,10 @@ public class GUI extends Application {
 		tableColumns[0].setMinWidth(50);
 		tableColumns[1].setMinWidth(150);
 		tableColumns[2].setMinWidth(50);
-		tableColumns[3].setMinWidth(200);
-		tableColumns[4].setMinWidth(150);
-		tableColumns[5].setMinWidth(150);
+		tableColumns[3].setMinWidth(50);
+		tableColumns[4].setMinWidth(80);
+		tableColumns[5].setMinWidth(80);
+		tableColumns[6].setMinWidth(50);
 		//TODO: use lambdas
 		tableColumns[0].setCellValueFactory(new Callback<TableColumn.CellDataFeatures<ForgedAlliancePeer, String>, ObservableValue<String>>() {
 			@Override
@@ -263,6 +265,12 @@ public class GUI extends Application {
 							.orElse("none"));
 				}
 				return new ReadOnlyStringWrapper("");
+			}
+		});
+		tableColumns[6].setCellValueFactory(new Callback<TableColumn.CellDataFeatures<ForgedAlliancePeer, String>, ObservableValue<String>>() {
+			@Override
+			public ObservableValue<String> call(TableColumn.CellDataFeatures<ForgedAlliancePeer, String> cellData) {
+				return new ReadOnlyStringWrapper(HolePunching.latencies.containsKey(cellData.getValue().remoteId) ? String.valueOf(HolePunching.latencies.get(cellData.getValue().remoteId)) + " ms" : "");
 			}
 		});
 		table.setItems(peers);

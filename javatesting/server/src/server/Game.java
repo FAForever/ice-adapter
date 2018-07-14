@@ -30,6 +30,10 @@ public class Game {
 					player.send(new ConnectToPeerMessage(p.getUsername(), p.getId(), false));
 				});
 
+		players.forEach(p -> {
+			HolePunchingServer.connect(p, player);
+		});
+
 		players.add(player);
 	}
 

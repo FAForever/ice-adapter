@@ -58,7 +58,7 @@ public class Webserver {
 						TestServer.players.size(),
 						iceStatusLinks,
 						playerLogLinks,
-						"<font face=\"monospace\">" + TestServer.getLatencyLog().replace("\n", "<br>") + "</font>",
+						"<font face=\"monospace\">" + TestServer.getLatencyLog(true).replace("\n", "<br>") + "</font>",
 						"<font face=\"monospace\">" + Logger.collectedLog.replace("\n", "<br>") + "</font>"
 				);
 			});

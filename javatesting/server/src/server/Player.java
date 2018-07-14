@@ -65,6 +65,9 @@ public class Player {
 			out.writeInt(id);
 			out.writeUTF(ScenarioRunner.scenario.getDescription());
 
+			//send hole punching port
+			out.writeInt(HolePunchingServer.onPlayerConnected(this));
+
 			synchronized (players) {
 				players.add(this);
 			}

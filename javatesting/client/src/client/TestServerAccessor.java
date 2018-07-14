@@ -1,5 +1,6 @@
 package client;
 
+import client.experimental.HolePunching;
 import client.ice.ICEAdapter;
 import com.google.gson.Gson;
 import common.ICEAdapterTest;
@@ -12,6 +13,7 @@ import net.*;
 import java.io.DataInputStream;
 import java.io.DataOutputStream;
 import java.io.IOException;
+import java.net.InetAddress;
 import java.net.Socket;
 import java.util.LinkedList;
 import java.util.Queue;
@@ -97,6 +99,11 @@ public class TestServerAccessor {
 					}
 				}
 
+				if(message instanceof HolePunchingMessage) {
+					HolePunchingMessage msg = (HolePunchingMessage) message;
+					HolePunching.addPeer(msg.getId(), InetAddress.getByName(msg.getAddress()), msg.getPort());
+				}
+
 			}
 		} catch(IOException | ClassNotFoundException e) {
 			TestClient.close();
@@ -149,6 +156,7 @@ public class TestServerAccessor {
 
 			TestClient.playerID = in.readInt();
 			GUI.instance.scenario.set(in.readUTF());
+			HolePunching.init(in.readInt());
 
 			Logger.info("Got username: %s(%d)", TestClient.username, TestClient.playerID);
 

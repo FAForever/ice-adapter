@@ -102,7 +102,7 @@ public class TestServer {
 			{
 				FileWriter writer = new FileWriter(dir.resolve("latency.log").toFile());
 
-				writer.write(getLatencyLog());
+				writer.write(getLatencyLog(false));
 
 				writer.flush();
 				writer.close();
@@ -167,7 +167,7 @@ public class TestServer {
 	}
 
 
-	public static String getLatencyLog() {
+	public static String getLatencyLog(boolean filterNonConnected) {
 		StringBuilder sb = new StringBuilder();
 		for (Map.Entry<Integer, CollectedInformation> entry1 : collectedData.entrySet()) {
 			for (Map.Entry<Integer, CollectedInformation> entry2 : collectedData.entrySet()) {
@@ -175,6 +175,10 @@ public class TestServer {
 					if(entry1 == entry2) {
 						continue;
 					}
+
+//					if(filterNonConnected && (players.stream().noneMatch(p -> p.getId() == entry1.getKey()) || players.stream().noneMatch(p -> p.getId() == entry2.getKey()))) {
+//						continue;
+//					}
 
 					sb.append(String.format("%d -> %d: ", entry1.getKey(), entry2.getKey()));
 
