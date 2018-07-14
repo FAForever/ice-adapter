@@ -34,9 +34,11 @@ public class Player {
 		login();
 		if(connected == true) {
 			new Thread(this::listener).start();
+
+			ScenarioRunner.scenario.onPlayerConnect(this);
 		}
 
-		ScenarioRunner.scenario.onPlayerConnect(this);
+		//do not do anything here, player may not be logged in/connected anymore
 	}
 
 	private void login() {
