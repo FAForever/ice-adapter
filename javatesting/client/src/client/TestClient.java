@@ -9,6 +9,7 @@ import logging.Logger;
 import net.ClientInformationMessage;
 
 import java.util.LinkedList;
+import java.util.regex.Pattern;
 
 public class TestClient {
 
@@ -70,9 +71,17 @@ public class TestClient {
 
 
 	public static void main(String args[]) {
-		if(args.length >= 1 && args[0].equals("debug")) {
-			DEBUG_MODE = true;
-		} else {
+		if (args.length >= 1)
+			if (args[0].equals("debug")) {
+				DEBUG_MODE = true;
+			} else {
+				Logger.enableLogging();
+			}
+
+			if(Pattern.compile("\\d*").matcher(args[0]).matches()) {
+				ICEAdapter.EXTERNAL_ADAPTER_PORT = Integer.parseInt(args[0]);
+			}
+		else {
 			Logger.enableLogging();
 		}
 		Logger.init("ICE adapter testclient");
