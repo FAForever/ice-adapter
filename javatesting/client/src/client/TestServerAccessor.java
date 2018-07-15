@@ -104,6 +104,10 @@ public class TestServerAccessor {
 					HolePunching.addPeer(msg.getId(), InetAddress.getByName(msg.getAddress()), msg.getPort());
 				}
 
+				if(message instanceof ScenarioOptionsMessage) {
+					TestClient.scenarioOptions = (ScenarioOptionsMessage) message;
+				}
+
 			}
 		} catch(IOException | ClassNotFoundException e) {
 			TestClient.close();

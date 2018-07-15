@@ -1,9 +1,9 @@
 package server;
 
-import server.scenarios.DefaultScenario;
+import server.scenarios.NoLogScenario;
 
 public class ScenarioRunner {
-    public static final Scenario scenario = new DefaultScenario();
+    public static final Scenario scenario = new NoLogScenario();
 
     public static void start() {
         scenario.init();

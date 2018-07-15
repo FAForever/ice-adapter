@@ -3,10 +3,12 @@ package client;
 import client.experimental.VoiceChat;
 import client.forgedalliance.ForgedAlliance;
 import client.ice.ICEAdapter;
+import data.IceStatus;
 import javafx.beans.property.BooleanProperty;
 import javafx.beans.property.SimpleBooleanProperty;
 import logging.Logger;
 import net.ClientInformationMessage;
+import net.ScenarioOptionsMessage;
 
 import java.util.LinkedList;
 import java.util.regex.Pattern;
@@ -21,6 +23,8 @@ public class TestClient {
 
 	public static ForgedAlliance forgedAlliance;
 	public static BooleanProperty isGameRunning = new SimpleBooleanProperty(false);
+
+	public static ScenarioOptionsMessage scenarioOptions = new ScenarioOptionsMessage();
 
 	public static void joinGame(int gpgpnetPort, int lobbyPort) {
 		Logger.info("Starting ForgedAlliance.");
@@ -46,10 +50,12 @@ public class TestClient {
 
 			ClientInformationMessage message;
 			synchronized (TestServerAccessor.latencies) {
-				message = new ClientInformationMessage(username, playerID, System.currentTimeMillis(), TestServerAccessor.latencies, ICEAdapter.status(), Logger.collectedLog, isGameRunning.get() ? forgedAlliance.getPeers() : null);
+				IceStatus iceStatus = ICEAdapter.status();
+				message = new ClientInformationMessage(username, playerID, System.currentTimeMillis(), TestServerAccessor.latencies, scenarioOptions.isUploadIceStatus() ? iceStatus : new IceStatus(), scenarioOptions.isUploadLog() ? Logger.collectedLog : "", isGameRunning.get() ? forgedAlliance.getPeers() : null);
 				TestServerAccessor.latencies = new LinkedList<>();
 			}
 			Logger.collectedLog = "";
+
 
 			TestServerAccessor.send(message);
 
