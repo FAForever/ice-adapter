@@ -6,3 +6,7 @@ testenv/
 *.pyc
 
 *.orig
+.cproject
+.settings
+build
+.project
