@@ -35,8 +35,6 @@ protected:
   std::optional<std::chrono::steady_clock::time_point> _lastReceivedPongTime;
   std::optional<std::chrono::steady_clock::time_point> _lastReceivedData;
 
-  // after initialization of the connectivity checker no data may be
-  // received for some time, therefore some checks may fail
   int _connectionTimeoutMs{10000};
   int _connectionCheckIntervalMs{1000};
   int _connectionPingIntervalMs{500};
