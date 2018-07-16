@@ -155,7 +155,6 @@ void PeerRelay::_reinitPeerconnection()
 
   webrtc::PeerConnectionInterface::RTCConfiguration configuration;
   configuration.servers = _iceServerList;
-  configuration.ice_check_min_interval = 5000;
   _peerConnection = _pcfactory->CreatePeerConnection(configuration,
                                                      nullptr,
                                                      nullptr,
