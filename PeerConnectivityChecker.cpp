@@ -36,31 +36,45 @@ void PeerConnectivityChecker::_sendPing() {
   _lastSentPingTime = std::chrono::steady_clock::now();
 }
 
-/*
- * todo: remove redundancy in code
- */
 void PeerConnectivityChecker::_checkConnectivity() {
   auto connectionLostAssumptionTime = std::chrono::steady_clock::now()
       - std::chrono::milliseconds(_connectionTimeoutMs);
 
+  bool assumeConnectionLost = true;
+
   /*
-   * check for uninitialized times right after the connection is estalished
-   * call callback, when after _connectionTimeoutMs milliseconds, if the
-   * timers where not yet set.
+   * check for uninitialized time values right after the connectivityChecker
+   * is started.
+   * call the callback, when after connectionLostAssumptionTime milliseconds,
+   * if the timer values where not set yet.
    */
-  if (!_lastReceivedData || !_lastReceivedPongTime) {
-    if (_timerStartTime < connectionLostAssumptionTime) {
-      FAF_LOG_INFO << "PeerConnectivityChecker: connectivity probably lost";
-      _cb();
-    }
-    return;
+  if (!_lastReceivedData && !_lastReceivedPongTime) {
+    assumeConnectionLost = _timerStartTime <= connectionLostAssumptionTime;
   }
 
-  if (_lastReceivedData < connectionLostAssumptionTime
-      || _lastReceivedPongTime < connectionLostAssumptionTime) {
+  /*
+   * check the time of the last received data:
+   * if data was received after connectionLostAssumptionTime,
+   * no connection loss is assumed.
+   */
+  if (_lastReceivedData &&
+      _lastReceivedData > connectionLostAssumptionTime) {
+    assumeConnectionLost = false;
+  }
+
+  /*
+   * ... the same applies for explicit ping pong messages.
+   */
+  if (_lastReceivedPongTime &&
+      _lastReceivedPongTime > connectionLostAssumptionTime) {
+    assumeConnectionLost = false;
+  }
+
+  if (assumeConnectionLost) {
     FAF_LOG_INFO << "PeerConnectivityChecker: connectivity probably lost";
     _cb();
   }
+
 }
 
 } // namespace faf
