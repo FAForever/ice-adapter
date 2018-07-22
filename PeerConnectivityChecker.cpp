@@ -7,40 +7,38 @@
 
 namespace faf {
 
-PeerConnectivityChecker::PeerConnectivityChecker(
-    rtc::scoped_refptr<webrtc::DataChannelInterface> dc,
-    ConnectivityLostCallback cb) :
-    _dataChannel(dc), _cb(cb) {
-  _pingTimer.start(_connectionPingIntervalMs,
-      std::bind(&PeerConnectivityChecker::_sendPing, this));
+PeerConnectivityChecker::PeerConnectivityChecker(rtc::scoped_refptr<webrtc::DataChannelInterface> dc, ConnectivityLostCallback cb) :
+    _dataChannel(dc), _cb(cb)
+{
+  _pingTimer.start(_connectionPingIntervalMs, std::bind(&PeerConnectivityChecker::_sendPing, this));
   _timerStartTime = std::chrono::steady_clock::now();
-  _connectivityCheckTimer.start(_connectionCheckIntervalMs,
-      std::bind(&PeerConnectivityChecker::_checkConnectivity, this));
+  _connectivityCheckTimer.start(_connectionCheckIntervalMs, std::bind(&PeerConnectivityChecker::_checkConnectivity, this));
 }
 
-bool PeerConnectivityChecker::handleMessageFromPeer(const uint8_t* data,
-    std::size_t size) {
+bool PeerConnectivityChecker::handleMessageFromPeer(const uint8_t* data, std::size_t size)
+{
   if (size == sizeof(PongMessage)
-      && std::equal(data, data + sizeof(PongMessage), PongMessage)) {
+      && std::equal(data, data + sizeof(PongMessage), PongMessage))
+  {
     _lastReceivedPongTime = std::chrono::steady_clock::now();
     return true;
   }
-  _lastReceivedData = std::chrono::steady_clock::now();
+  _lastReceivedDataTime = std::chrono::steady_clock::now();
   return false;
 }
 
-void PeerConnectivityChecker::_sendPing() {
-  _dataChannel->Send(
-      webrtc::DataBuffer(
-          rtc::CopyOnWriteBuffer(PingMessage, sizeof(PingMessage)), true));
+void PeerConnectivityChecker::_sendPing()
+{
+  _dataChannel->Send(webrtc::DataBuffer(rtc::CopyOnWriteBuffer(PingMessage, sizeof(PingMessage)), true));
   _lastSentPingTime = std::chrono::steady_clock::now();
 }
 
-void PeerConnectivityChecker::_checkConnectivity() {
+void PeerConnectivityChecker::_checkConnectivity()
+{
   auto connectionLostAssumptionTime = std::chrono::steady_clock::now()
       - std::chrono::milliseconds(_connectionTimeoutMs);
 
-  bool assumeConnectionLost = true;
+  bool assumeConnectivityLost = true;
 
   /*
    * check for uninitialized time values right after the connectivityChecker
@@ -48,8 +46,11 @@ void PeerConnectivityChecker::_checkConnectivity() {
    * call the callback, when after connectionLostAssumptionTime milliseconds,
    * if the timer values where not set yet.
    */
-  if (!_lastReceivedData && !_lastReceivedPongTime) {
-    assumeConnectionLost = _timerStartTime <= connectionLostAssumptionTime;
+  if (!_lastReceivedDataTime &&
+      !_lastReceivedPongTime &&
+      _timerStartTime > connectionLostAssumptionTime)
+  {
+    assumeConnectivityLost = false;
   }
 
   /*
@@ -57,20 +58,23 @@ void PeerConnectivityChecker::_checkConnectivity() {
    * if data was received after connectionLostAssumptionTime,
    * no connection loss is assumed.
    */
-  if (_lastReceivedData &&
-      _lastReceivedData > connectionLostAssumptionTime) {
-    assumeConnectionLost = false;
+  if (_lastReceivedDataTime &&
+      _lastReceivedDataTime > connectionLostAssumptionTime)
+  {
+    assumeConnectivityLost = false;
   }
 
   /*
    * ... the same applies for explicit ping pong messages.
    */
   if (_lastReceivedPongTime &&
-      _lastReceivedPongTime > connectionLostAssumptionTime) {
-    assumeConnectionLost = false;
+      _lastReceivedPongTime > connectionLostAssumptionTime)
+  {
+    assumeConnectivityLost = false;
   }
 
-  if (assumeConnectionLost) {
+  if (assumeConnectivityLost)
+  {
     FAF_LOG_INFO << "PeerConnectivityChecker: connectivity probably lost";
     _cb();
   }
