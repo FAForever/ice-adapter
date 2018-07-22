@@ -14,8 +14,7 @@ class PeerConnectivityChecker
 {
 public:
   typedef std::function<void()> ConnectivityLostCallback;
-  PeerConnectivityChecker(rtc::scoped_refptr<webrtc::DataChannelInterface> dc,
-                          ConnectivityLostCallback cb);
+  PeerConnectivityChecker(rtc::scoped_refptr<webrtc::DataChannelInterface> dc, ConnectivityLostCallback cb);
 
   bool handleMessageFromPeer(const uint8_t* data, std::size_t size);
 
@@ -33,7 +32,7 @@ protected:
   std::optional<std::chrono::steady_clock::time_point> _timerStartTime;
   std::optional<std::chrono::steady_clock::time_point> _lastSentPingTime;
   std::optional<std::chrono::steady_clock::time_point> _lastReceivedPongTime;
-  std::optional<std::chrono::steady_clock::time_point> _lastReceivedData;
+  std::optional<std::chrono::steady_clock::time_point> _lastReceivedDataTime;
 
   int _connectionTimeoutMs{10000};
   int _connectionCheckIntervalMs{1000};
