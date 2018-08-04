@@ -117,7 +117,7 @@ public class TestServer {
 					writer.flush();
 					writer.close();
 				} catch(Exception e) {
-					Logger.error("Error while writing log.", e);
+					System.err.println("Error while writing log.");
 				}
 			}
 
@@ -130,7 +130,7 @@ public class TestServer {
 					writer.flush();
 					writer.close();
 				} catch(Exception e) {
-					Logger.error("Error while writing log.", e);
+					System.err.println("Error while writing log.");
 				}
 
 			}
@@ -148,6 +148,8 @@ public class TestServer {
 
 						Arrays.asList(entry1, entry2).stream()
 								.flatMap(e -> e.getValue().getIceMessages().entrySet().stream())
+								.filter(e -> e.getKey() == entry1.getKey() || e.getKey() == entry2.getKey())
+								.flatMap(e -> e.getValue().entrySet().stream())
 								.sorted(Comparator.comparingLong(Map.Entry::getKey))
 								.map(Map.Entry::getValue)
 								.forEach(im -> noCatch(() -> writer.write(String.format("%d -> %d:\t%s\n", im.getSrcPlayerId(), im.getDestPlayerId(), gson.toJson(im.getMsg())))));
@@ -155,7 +157,7 @@ public class TestServer {
 						writer.flush();
 						writer.close();
 					} catch(Exception e) {
-						Logger.error("Error while writing log.", e);
+						System.err.println("Error while writing log.");
 					}
 				}
 			}

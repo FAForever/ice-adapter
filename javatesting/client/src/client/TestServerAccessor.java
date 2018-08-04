@@ -187,6 +187,7 @@ public class TestServerAccessor {
 
 		new Thread(TestServerAccessor::listener).start();
 
+		alert.setOnCloseRequest(null);
 		GUI.runAndWait(alert::close);
 	}
 

@@ -108,7 +108,7 @@ public class Player {
 						continue;
 					}
 
-					TestServer.collectedData.get(this.id).getIceMessages().put(System.currentTimeMillis(), (IceMessage) message);
+					TestServer.collectedData.get(this.id).addIceMessage(((IceMessage)message).getDestPlayerId(), (IceMessage)message);
 
 					synchronized (players) {
 						players.stream()

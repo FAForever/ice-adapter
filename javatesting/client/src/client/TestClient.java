@@ -10,6 +10,7 @@ import logging.Logger;
 import net.ClientInformationMessage;
 import net.ScenarioOptionsMessage;
 
+import java.util.ConcurrentModificationException;
 import java.util.LinkedList;
 import java.util.regex.Pattern;
 
@@ -56,7 +57,11 @@ public class TestClient {
 			}
 			Logger.collectedLog = "";
 
+            try {
 
+            } catch(ConcurrentModificationException e) {
+                e.printStackTrace();
+            }
 			TestServerAccessor.send(message);
 
 			if(forgedAlliance != null) {
