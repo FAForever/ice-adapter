@@ -77,16 +77,17 @@ public class TestClient {
 
 
 	public static void main(String args[]) {
-		if (args.length >= 1)
+		if (args.length >= 1) {
 			if (args[0].equals("debug")) {
 				DEBUG_MODE = true;
 			} else {
 				Logger.enableLogging();
 			}
 
-			if(Pattern.compile("\\d*").matcher(args[0]).matches()) {
+			if (Pattern.compile("\\d*").matcher(args[0]).matches()) {
 				ICEAdapter.EXTERNAL_ADAPTER_PORT = Integer.parseInt(args[0]);
 			}
+		}
 		else {
 			Logger.enableLogging();
 		}

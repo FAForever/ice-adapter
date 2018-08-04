@@ -136,6 +136,7 @@ public class TestServerAccessor {
 
 	private static void connect() {
 		Alert alert = noCatch(() -> GUI.showDialog("Connecting...").get());
+		alert.setOnCloseRequest(event -> System.exit(0));
 		Logger.info("Connecting to %s:%d...", ICEAdapterTest.TEST_SERVER_ADDRESS, ICEAdapterTest.TEST_SERVER_PORT);
 
 		try {
@@ -165,12 +166,19 @@ public class TestServerAccessor {
 			Logger.info("Got username: %s(%d)", TestClient.username, TestClient.playerID);
 
 		} catch (IOException e) {
-			Logger.error("Could not connect to test server", e);
-			noCatch(() -> GUI.showDialog("Could not connect to test server.").get()).setOnCloseRequest(ev -> {
+			Logger.error("Could not connect to test server");
+			alert.setOnCloseRequest(null);
+			GUI.runAndWait(alert::close);
+			alert = noCatch(() -> GUI.showDialog("Could not reach test server.\nPlease wait till the test starts.\nWill retry in 10 seconds.").get());
+			alert.setOnCloseRequest(ev -> {
 				System.exit(-1);
 			});
-			try { Thread.sleep(3000); } catch (InterruptedException e1) {}
-			System.exit(-1);
+			try { Thread.sleep(10000); } catch (InterruptedException e1) {}
+			alert.setOnCloseRequest(null);
+			GUI.runAndWait(alert::close);
+
+			connect();
+			return;
 		}
 
 
