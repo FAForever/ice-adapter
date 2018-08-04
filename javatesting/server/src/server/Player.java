@@ -11,12 +11,15 @@ import java.io.DataInputStream;
 import java.io.DataOutputStream;
 import java.io.IOException;
 import java.net.Socket;
+import java.util.regex.Pattern;
 
 import static server.TestServer.games;
 import static server.TestServer.players;
 
 @Getter
 public class Player {
+	public static final Pattern usernamePattern = Pattern.compile("[a-zA-Z0-9]+");
+
 	private static volatile int PLAYER_ID_FACTORY = 0;
 
 	private Gson gson = new Gson();
@@ -50,7 +53,12 @@ public class Player {
 
 			this.username = in.readUTF();
 
-			if(username.toLowerCase().contains("hitler")) {//@moonbearonmeth: nope
+			if(username.toLowerCase().contains("hitler") //@moonbearonmeth: nope
+					|| ! usernamePattern.matcher(username).matches()
+					|| username.length() > 49) {
+				out.writeBoolean(false);
+				out.flush();
+				disconnect();
 				return;
 			}
 

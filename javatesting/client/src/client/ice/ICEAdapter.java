@@ -178,7 +178,7 @@ public class ICEAdapter {
 			System.exit(45);
 		}
 
-		Logger.debug("Connected to ICE client via JsonRPC.");
+		Logger.debug("Connected to ICE adapter via JsonRPC.");
 
 		//Read ports
 		IceStatus iceStatus = status();

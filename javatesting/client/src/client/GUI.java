@@ -47,7 +47,7 @@ public class GUI extends Application {
 			TextInputDialog nameDialog = new TextInputDialog("iceTester" + (int)(Math.random() * 10000));
 			nameDialog.setTitle("ICE adapter test");
 			nameDialog.setHeaderText("Welcome to the ICE adapter test client");
-			nameDialog.setContentText("Please enter a username:");
+			nameDialog.setContentText("Please enter an (alphanumerical) username:");
 
 			if(! TestClient.DEBUG_MODE) {
 				nameDialog.showAndWait().ifPresent(name -> {
