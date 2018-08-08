@@ -20,6 +20,7 @@
     <orderEntry type="library" scope="PROVIDED" name="Gradle: com.sparkjava:spark-core:2.7.2" level="project" />
     <orderEntry type="library" scope="PROVIDED" name="Gradle: net.java.dev.jna:jna-platform:4.5.1" level="project" />
     <orderEntry type="library" scope="PROVIDED" name="Gradle: net.java.dev.jna:jna:4.5.1" level="project" />
+    <orderEntry type="library" scope="PROVIDED" name="Gradle: commons-io:commons-io:2.4" level="project" />
     <orderEntry type="library" scope="PROVIDED" name="Gradle: org.projectlombok:lombok:1.16.22" level="project" />
     <orderEntry type="library" scope="PROVIDED" name="Gradle: com.thetransactioncompany:jsonrpc2-base:1.38" level="project" />
     <orderEntry type="library" scope="PROVIDED" name="Gradle: org.slf4j:slf4j-api:1.7.13" level="project" />
@@ -52,6 +53,7 @@
     <orderEntry type="library" scope="RUNTIME" name="Gradle: com.sparkjava:spark-core:2.7.2" level="project" />
     <orderEntry type="library" scope="RUNTIME" name="Gradle: net.java.dev.jna:jna-platform:4.5.1" level="project" />
     <orderEntry type="library" scope="RUNTIME" name="Gradle: net.java.dev.jna:jna:4.5.1" level="project" />
+    <orderEntry type="library" scope="RUNTIME" name="Gradle: commons-io:commons-io:2.4" level="project" />
     <orderEntry type="library" scope="RUNTIME" name="Gradle: com.thetransactioncompany:jsonrpc2-base:1.38" level="project" />
     <orderEntry type="library" scope="RUNTIME" name="Gradle: org.slf4j:slf4j-api:1.7.13" level="project" />
     <orderEntry type="library" scope="RUNTIME" name="Gradle: org.eclipse.jetty:jetty-webapp:9.4.8.v20171121" level="project" />
@@ -83,6 +85,7 @@
     <orderEntry type="library" scope="TEST" name="Gradle: com.sparkjava:spark-core:2.7.2" level="project" />
     <orderEntry type="library" scope="TEST" name="Gradle: net.java.dev.jna:jna-platform:4.5.1" level="project" />
     <orderEntry type="library" scope="TEST" name="Gradle: net.java.dev.jna:jna:4.5.1" level="project" />
+    <orderEntry type="library" scope="TEST" name="Gradle: commons-io:commons-io:2.4" level="project" />
     <orderEntry type="library" scope="TEST" name="Gradle: org.slf4j:slf4j-simple:1.7.6" level="project" />
     <orderEntry type="library" scope="TEST" name="Gradle: com.thetransactioncompany:jsonrpc2-base:1.38" level="project" />
     <orderEntry type="library" scope="TEST" name="Gradle: org.slf4j:slf4j-api:1.7.13" level="project" />

@@ -3,7 +3,6 @@ package client.ice;
 import client.GUI;
 import client.TestClient;
 import client.nativeAccess.NativeAccess;
-import com.github.nocatch.NoCatch;
 import com.google.gson.GsonBuilder;
 import com.nbarraille.jjsonrpc.CallbackMethod;
 import com.nbarraille.jjsonrpc.InvalidMethodException;
@@ -14,11 +13,14 @@ import javafx.beans.property.BooleanProperty;
 import javafx.beans.property.SimpleBooleanProperty;
 import javafx.scene.control.Alert;
 import logging.Logger;
+import util.OsUtil;
 import util.Util;
 
 import javax.crypto.Mac;
 import javax.crypto.spec.SecretKeySpec;
+import java.io.BufferedWriter;
 import java.io.File;
+import java.io.FileWriter;
 import java.io.IOException;
 import java.lang.reflect.Field;
 import java.net.ConnectException;
@@ -29,9 +31,11 @@ import java.util.*;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ExecutionException;
 
+import static com.github.nocatch.NoCatch.noCatch;
+
 public class ICEAdapter {
 
-	private static final String LOG_LEVEL = "error";
+	private static final String LOG_LEVEL = "verbose";
 
 	private static final int CONNECTION_ATTEMPTS = 20;
 
@@ -57,7 +61,7 @@ public class ICEAdapter {
 	private static IceAdapterCallbacks iceAdapterCallbacks = new IceAdapterCallbacks();
 
 	public static void init() {
-		Alert alert = NoCatch.noCatch(() -> GUI.showDialog("Starting ICE adapter...").get());
+		Alert alert = noCatch(() -> GUI.showDialog("Starting ICE adapter...").get());
 		startICEAdapter();
 
 		try { Thread.sleep(500); } catch(InterruptedException e) {}
@@ -218,16 +222,33 @@ public class ICEAdapter {
 			};
 
 			ProcessBuilder processBuilder = new ProcessBuilder(command);
-			processBuilder.inheritIO();
-			processBuilder.redirectOutput(new File("faf-ice-adapter.log"));
+//			processBuilder.inheritIO();
 
-			Logger.debug("Command: %s", Arrays.stream(command).reduce("", (l, r) -> l + " " + r));
+
+            Logger.debug("Command: %s", Arrays.stream(command).reduce("", (l, r) -> l + " " + r));
 			try {
 				process = processBuilder.start();
 			} catch (IOException e) {
 				Logger.error("Could not start ICE adapter", e);
 				System.exit(10);
 			}
+
+            try {
+                BufferedWriter iceAdapterLogWriter = new BufferedWriter(new FileWriter(new File(String.format("faf-ice-adapter_%s.log", TestClient.username))));
+                OsUtil.gobbleLines(process.getInputStream(), s -> noCatch(() -> iceAdapterLogWriter.write(s + "\n")));
+                OsUtil.gobbleLines(process.getErrorStream(), s -> noCatch(() -> iceAdapterLogWriter.write(s + "\n")));
+
+                Thread t = new Thread(() -> {
+                    while(true) {
+                        noCatch(() -> Thread.sleep(5000));
+                        noCatch(() -> iceAdapterLogWriter.flush());
+                    }
+                });
+                t.setDaemon(true);
+                t.start();
+            } catch (IOException e) {
+                Logger.warning("Could not open output writer for ice adapter log.");
+            }
 
 			if (!process.isAlive()) {
 				Logger.error("ICE Adapter not running");

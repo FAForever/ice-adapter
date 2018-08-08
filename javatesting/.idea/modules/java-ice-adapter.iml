@@ -5,6 +5,7 @@
     <content url="file://$MODULE_DIR$/../../../java-ice-adapter">
       <excludeFolder url="file://$MODULE_DIR$/../../../java-ice-adapter/.gradle" />
       <excludeFolder url="file://$MODULE_DIR$/../../../java-ice-adapter/build" />
+      <excludeFolder url="file://$MODULE_DIR$/../../../java-ice-adapter/out" />
     </content>
     <orderEntry type="inheritedJdk" />
     <orderEntry type="sourceFolder" forTests="false" />

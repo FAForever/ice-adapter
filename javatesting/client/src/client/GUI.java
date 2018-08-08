@@ -42,9 +42,9 @@ public class GUI extends Application {
 
 	private ObservableList<ForgedAlliancePeer> peers = FXCollections.observableArrayList();
 
-	public static void showUsernameDialog() {
+	public static void showUsernameDialog(String preGeneratedUsername) {
 		runAndWait(() -> {
-			TextInputDialog nameDialog = new TextInputDialog("iceTester" + (int)(Math.random() * 10000));
+			TextInputDialog nameDialog = new TextInputDialog(preGeneratedUsername);
 			nameDialog.setTitle("ICE adapter test");
 			nameDialog.setHeaderText("Welcome to the ICE adapter test client");
 			nameDialog.setContentText("Please enter an (alphanumerical) username:");

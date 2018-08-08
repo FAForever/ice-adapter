@@ -202,8 +202,10 @@ public class TestServer {
 					sb.append(String.format("%.0f/%.0f(%.0f)/%.0f", min, avg, avgLimited, max));
 					sb.append(String.format("\t(Server: %.0f)", serverPing));
 //					writer.write("\tConnected: " + );
+
 					sb.append("\tQuiet for: " + entry1.getValue().getInformationMessages().stream()
-							.filter(im -> im.getForgedAlliancePeers().stream().anyMatch(p -> p.getRemoteId() == entry2.getKey() && im.getCurrentTimeMillis() - p.getLastPacketReceived() > 5000))
+							.filter(Objects::nonNull)
+							.filter(im -> im.getForgedAlliancePeers().stream().filter(Objects::nonNull).anyMatch(p -> p.getRemoteId() == entry2.getKey() && im.getCurrentTimeMillis() - p.getLastPacketReceived() > 5000))
 							.count()
 					);
 					sb.append("\n");

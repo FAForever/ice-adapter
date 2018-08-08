@@ -14,5 +14,6 @@
     <orderEntry type="library" name="Gradle: com.github.geosearchef:JJsonRpc:3d25866885" level="project" />
     <orderEntry type="library" name="Gradle: net.java.dev.jna:jna:4.5.1" level="project" />
     <orderEntry type="library" name="Gradle: net.java.dev.jna:jna-platform:4.5.1" level="project" />
+    <orderEntry type="library" name="Gradle: commons-io:commons-io:2.4" level="project" />
   </component>
 </module>

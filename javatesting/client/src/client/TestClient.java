@@ -9,10 +9,15 @@ import javafx.beans.property.SimpleBooleanProperty;
 import logging.Logger;
 import net.ClientInformationMessage;
 import net.ScenarioOptionsMessage;
+import org.apache.commons.io.FileUtils;
 
+import java.io.File;
+import java.io.IOException;
 import java.util.ConcurrentModificationException;
 import java.util.LinkedList;
 import java.util.regex.Pattern;
+
+import static com.github.nocatch.NoCatch.noCatch;
 
 public class TestClient {
 
@@ -101,7 +106,7 @@ public class TestClient {
 		GUI.init(args);
 
 		GUI.showGDPRDialog();
-		GUI.showUsernameDialog();
+		getUsername();
 
 		TestServerAccessor.init();
 
@@ -112,6 +117,22 @@ public class TestClient {
 		VoiceChat.init();
 
 		new Thread(TestClient::informationThread).start();
+	}
+
+	public static void getUsername() {
+		String preGeneratedUsername = "iceTester" + (int)(Math.random() * 10000);
+
+		if(! TestClient.DEBUG_MODE && new File("iceTestUsername").exists()) {
+			try {
+				preGeneratedUsername = FileUtils.readFileToString(new File("iceTestUsername"));
+			} catch (IOException e) {
+				Logger.error("Error while reading old username from file.", e);
+			}
+		}
+
+		GUI.showUsernameDialog(preGeneratedUsername);
+
+		noCatch(() -> FileUtils.writeStringToFile(new File("iceTestUsername"), TestClient.username));
 	}
 
 	public static void close() {
