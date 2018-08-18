@@ -1,0 +1,32 @@
+plugins {
+    id 'net.ltgt.apt' version '0.10'
+}
+
+apply plugin: 'idea'
+apply plugin: 'java'
+
+sourceSets {
+    main {
+        java {
+            srcDirs = ['src']
+        }
+    }
+}
+
+
+repositories {
+    mavenCentral()
+    maven { url "https://jitpack.io" }
+}
+
+dependencies {
+    compile group: 'org.jitsi', name: 'ice4j', version: '1.0'
+
+    compileOnly 'org.projectlombok:lombok:1.16.22'
+    compile("com.github.geosearchef:JJsonRpc:0e2ef8d670")
+    compile("com.github.nocatch:nocatch:1.1")
+    compile group: 'com.google.code.gson', name: 'gson', version: '2.7'
+    compile("com.google.guava:guava:18.0")
+
+    apt "org.projectlombok:lombok:1.16.22"
+}
