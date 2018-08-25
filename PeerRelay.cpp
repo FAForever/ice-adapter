@@ -138,6 +138,7 @@ void PeerRelay::_close()
   if (_dataChannel)
   {
     _dataChannel->UnregisterObserver();
+    _dataChannel->Close();
     _dataChannel = nullptr;
   }
   if (_peerConnection)
