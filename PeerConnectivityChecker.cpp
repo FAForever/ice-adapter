@@ -10,9 +10,9 @@ namespace faf {
 PeerConnectivityChecker::PeerConnectivityChecker(rtc::scoped_refptr<webrtc::DataChannelInterface> dc, ConnectivityLostCallback cb) :
     _dataChannel(dc), _cb(cb)
 {
-  _pingTimer.start(_connectionPingIntervalMs, std::bind(&PeerConnectivityChecker::_sendPing, this));
   _timerStartTime = std::chrono::steady_clock::now();
   _connectivityCheckTimer.start(_connectionCheckIntervalMs, std::bind(&PeerConnectivityChecker::_checkConnectivity, this));
+  _pingStartDelayTimer.singleShot(_connectionPingStartDelayTimeMs, std::bind(&PeerConnectivityChecker::_startPing, this));
 }
 
 bool PeerConnectivityChecker::handleMessageFromPeer(const uint8_t* data, std::size_t size)
@@ -25,6 +25,12 @@ bool PeerConnectivityChecker::handleMessageFromPeer(const uint8_t* data, std::si
   }
   _lastReceivedDataTime = std::chrono::steady_clock::now();
   return false;
+}
+
+void PeerConnectivityChecker::_startPing()
+{
+  FAF_LOG_INFO << "PeerConnectivityChecker: pingTimer start";
+  _pingTimer.start(_connectionPingIntervalMs, std::bind(&PeerConnectivityChecker::_sendPing, this));
 }
 
 void PeerConnectivityChecker::_sendPing()

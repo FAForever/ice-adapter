@@ -22,11 +22,13 @@ public:
   static constexpr uint8_t PongMessage[] = "ICEADAPTERPONG";
 
 protected:
+  void _startPing();
   void _sendPing();
   void _checkConnectivity();
 
   rtc::scoped_refptr<webrtc::DataChannelInterface> _dataChannel;
   ConnectivityLostCallback _cb;
+  Timer _pingStartDelayTimer;
   Timer _pingTimer;
   Timer _connectivityCheckTimer;
   std::optional<std::chrono::steady_clock::time_point> _timerStartTime;
@@ -36,6 +38,7 @@ protected:
 
   int _connectionTimeoutMs{10000};
   int _connectionCheckIntervalMs{1000};
+  int _connectionPingStartDelayTimeMs{5000};
   int _connectionPingIntervalMs{500};
 };
 
