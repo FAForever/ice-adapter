@@ -15,7 +15,7 @@ GPGNetConnectionHandler::GPGNetConnectionHandler(rtc::AsyncSocket* socket):
   rtc::SocketAddress accept_addr;
   _socket->SignalReadEvent.connect(this, &GPGNetConnectionHandler::_onRead);
   _socket->SignalCloseEvent.connect(this, &GPGNetConnectionHandler::_onClientDisconnect);
-  FAF_LOG_DEBUG << "GPGNetServer client connected from " << accept_addr;
+  FAF_LOG_DEBUG << "GPGNetServer client connected from " << accept_addr.ToString();
 }
 
 void GPGNetConnectionHandler::send(std::string const& msg)
@@ -52,7 +52,8 @@ void GPGNetConnectionHandler::_onRead(rtc::AsyncSocket* socket)
 }
 
 GPGNetServer::GPGNetServer():
-  _server(rtc::Thread::Current()->socketserver()->CreateAsyncSocket(SOCK_STREAM))
+    // todo: AF_INET the correct family?
+  _server(rtc::Thread::Current()->socketserver()->CreateAsyncSocket(AF_INET, SOCK_STREAM))
 {
 }
 

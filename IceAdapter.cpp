@@ -37,7 +37,7 @@ IceAdapter::IceAdapter(IceAdapterOptions const& options):
   /* ICE adapter should determine lobby port. This may fail due to race conditions, but we can't pass a socket to the game */
   if (_lobbyPort == 0)
   {
-    auto serverSocket = rtc::Thread::Current()->socketserver()->CreateAsyncSocket(SOCK_DGRAM);
+    auto serverSocket = rtc::Thread::Current()->socketserver()->CreateAsyncSocket(AF_INET, SOCK_DGRAM);
     if (serverSocket->Bind(rtc::SocketAddress("127.0.0.1", 0)) != 0)
     {
       FAF_LOG_ERROR << "unable to bind udp server";
