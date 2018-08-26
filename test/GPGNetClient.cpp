@@ -12,7 +12,7 @@ GPGNetClient::GPGNetClient()
 
 void GPGNetClient::connect(std::string const& host, int port)
 {
-  _socket.reset(rtc::Thread::Current()->socketserver()->CreateAsyncSocket(SOCK_STREAM));
+  _socket.reset(rtc::Thread::Current()->socketserver()->CreateAsyncSocket(AF_INET, SOCK_STREAM));
   _socket->SignalConnectEvent.connect(this, &GPGNetClient::_onConnected);
   _socket->SignalReadEvent.connect(this, &GPGNetClient::_onRead);
   _socket->SignalCloseEvent.connect(this, &GPGNetClient::_onDisconnected);

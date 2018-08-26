@@ -92,7 +92,7 @@ void TestClient::_reinit()
   _gpgNetClient.disconnect();
   /* detect unused tcp server port for the ice-adapter */
   {
-    auto serverSocket = rtc::Thread::Current()->socketserver()->CreateAsyncSocket(SOCK_STREAM);
+    auto serverSocket = rtc::Thread::Current()->socketserver()->CreateAsyncSocket(AF_INET, SOCK_STREAM);
     if (serverSocket->Bind(rtc::SocketAddress("127.0.0.1", 0)) != 0)
     {
       FAF_LOG_ERROR << "unable to bind tcp server";

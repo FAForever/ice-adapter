@@ -364,7 +364,7 @@ void Test::restart()
     /* detect unused tcp server ports for the ice-adapter */
     int rpcPort;
     {
-      auto serverSocket = rtc::Thread::Current()->socketserver()->CreateAsyncSocket(SOCK_STREAM);
+      auto serverSocket = rtc::Thread::Current()->socketserver()->CreateAsyncSocket(AF_INET, SOCK_STREAM);
       if (serverSocket->Bind(rtc::SocketAddress("127.0.0.1", 0)) != 0)
       {
         FAF_LOG_ERROR << "unable to bind tcp server";
@@ -376,7 +376,7 @@ void Test::restart()
     }
     int gpgnetPort;
     {
-      auto serverSocket = rtc::Thread::Current()->socketserver()->CreateAsyncSocket(SOCK_STREAM);
+      auto serverSocket = rtc::Thread::Current()->socketserver()->CreateAsyncSocket(AF_INET, SOCK_STREAM);
       if (serverSocket->Bind(rtc::SocketAddress("127.0.0.1", 0)) != 0)
       {
         FAF_LOG_ERROR << "unable to bind tcp server";
