@@ -9,9 +9,9 @@ matrix:
         - ninja-build
         - cmake
     env:
-    - LIBWEBRTC_VERSION=1.0.0-faf5
+    - LIBWEBRTC_VERSION=68-faf-1
     install:
-    - wget https://github.com/FAForever/libwebrtc/releases/download/v$LIBWEBRTC_VERSION/libwebrtc-$LIBWEBRTC_VERSION-linux-x64.tar.gz
+    - wget https://github.com/FAForever/libwebrtc/releases/download/$LIBWEBRTC_VERSION/libwebrtc-$LIBWEBRTC_VERSION-linux-x64.tar.gz
       -O libwebrtc.tar.gz
     - tar xf libwebrtc.tar.gz
     - mkdir build && cd build
