@@ -1,3 +1,9 @@
+v6.3.2
+======
+
+- update to webrtc 68
+- connectivitychecker ping now has some startup time
+
 v6.3.1
 ======
 
