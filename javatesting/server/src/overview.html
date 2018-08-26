@@ -1,0 +1,45 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>FAF Ice Test Server</title>
+</head>
+
+
+<body>
+    <h1>FAF ICE Test Server</h1>
+    %s <br>
+    Users: %d<br>
+    <br>
+    <form action="/data/writeLogs" method="get" id="writeLogs"></form>
+    <button type="submit" form="writeLogs">Write logs</button>
+    <form action="/data/stop" method="get" id="stop"></form>
+    <button type="submit" form="stop">Stop</button><br>
+
+    <br><br>
+    <h2>iceStatus</h2>
+    <!--<form action="/iceStatus" method="get" id="iceStatus">-->
+        <!--<input type="text" name="id" id="id"/><br>-->
+        <!--<button type="submit" form="iceStatus" value="Submit">Query</button>-->
+    <!--</form>-->
+    %s
+
+    <br><br>
+    <h2>Player logs</h2>
+    %s
+
+    <br><br>
+    <h2>Latencies</h2>
+    %s
+
+    <br><br>
+    <h2>Server log</h2>
+    %s
+</body>
+
+
+<script type="text/javascript">
+    var timeout = setTimeout("location.reload(true);",5000);
+</script>
+
+</html>

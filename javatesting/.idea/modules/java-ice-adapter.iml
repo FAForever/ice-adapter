@@ -1,0 +1,70 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<module external.linked.project.id="java-ice-adapter" external.linked.project.path="$MODULE_DIR$/../../../java-ice-adapter" external.root.project.path="$MODULE_DIR$/../../../java-ice-adapter" external.system.id="GRADLE" type="JAVA_MODULE" version="4">
+  <component name="NewModuleRootManager">
+    <output url="file://$MODULE_DIR$/../../../java-ice-adapter/out/production/classes" />
+    <output-test url="file://$MODULE_DIR$/../../../java-ice-adapter/out/test/classes" />
+    <exclude-output />
+    <content url="file://$MODULE_DIR$/../../../java-ice-adapter">
+      <sourceFolder url="file://$MODULE_DIR$/../../../java-ice-adapter/src" isTestSource="false" />
+      <sourceFolder url="file://$MODULE_DIR$/../../../java-ice-adapter/build/generated/source/apt/main" isTestSource="false" generated="true" />
+      <sourceFolder url="file://$MODULE_DIR$/../../../java-ice-adapter/build/generated/source/apt/test" isTestSource="true" generated="true" />
+      <excludeFolder url="file://$MODULE_DIR$/../../../java-ice-adapter/.gradle" />
+      <excludeFolder url="file://$MODULE_DIR$/../../../java-ice-adapter/build" />
+      <excludeFolder url="file://$MODULE_DIR$/../../../java-ice-adapter/out" />
+    </content>
+    <orderEntry type="inheritedJdk" />
+    <orderEntry type="sourceFolder" forTests="false" />
+    <orderEntry type="library" exported="" scope="PROVIDED" name="Gradle: org.jitsi:ice4j:1.0" level="project" />
+    <orderEntry type="library" exported="" scope="PROVIDED" name="Gradle: com.github.geosearchef:JJsonRpc:0e2ef8d670" level="project" />
+    <orderEntry type="library" exported="" scope="PROVIDED" name="Gradle: com.google.code.gson:gson:2.7" level="project" />
+    <orderEntry type="library" exported="" scope="PROVIDED" name="Gradle: com.google.guava:guava:18.0" level="project" />
+    <orderEntry type="library" exported="" scope="PROVIDED" name="Gradle: org.projectlombok:lombok:1.16.22" level="project" />
+    <orderEntry type="library" exported="" scope="PROVIDED" name="Gradle: org.opentelecoms.sdp:java-sdp-nist-bridge:1.1" level="project" />
+    <orderEntry type="library" exported="" scope="PROVIDED" name="Gradle: org.jitsi:jain-sip-ri-ossonly:1.2.98c7f8c-jitsi-oss1" level="project" />
+    <orderEntry type="library" exported="" scope="PROVIDED" name="Gradle: org.bitlet:weupnp:0.1.4" level="project" />
+    <orderEntry type="library" exported="" scope="PROVIDED" name="Gradle: com.thetransactioncompany:jsonrpc2-base:1.38" level="project" />
+    <orderEntry type="library" exported="" scope="PROVIDED" name="Gradle: org.opentelecoms.sdp:sdp-api:1.0" level="project" />
+    <orderEntry type="library" exported="" scope="PROVIDED" name="Gradle: net.minidev:json-smart:1.3.1" level="project" />
+    <orderEntry type="module-library" exported="" scope="PROVIDED">
+      <library name="Gradle: nocatch-1.1:1">
+        <CLASSES />
+        <JAVADOC />
+        <SOURCES />
+      </library>
+    </orderEntry>
+    <orderEntry type="library" exported="" scope="RUNTIME" name="Gradle: org.jitsi:ice4j:1.0" level="project" />
+    <orderEntry type="library" exported="" scope="RUNTIME" name="Gradle: com.github.geosearchef:JJsonRpc:0e2ef8d670" level="project" />
+    <orderEntry type="library" exported="" scope="RUNTIME" name="Gradle: com.google.code.gson:gson:2.7" level="project" />
+    <orderEntry type="library" exported="" scope="RUNTIME" name="Gradle: com.google.guava:guava:18.0" level="project" />
+    <orderEntry type="library" exported="" scope="RUNTIME" name="Gradle: org.opentelecoms.sdp:java-sdp-nist-bridge:1.1" level="project" />
+    <orderEntry type="library" exported="" scope="RUNTIME" name="Gradle: org.jitsi:jain-sip-ri-ossonly:1.2.98c7f8c-jitsi-oss1" level="project" />
+    <orderEntry type="library" exported="" scope="RUNTIME" name="Gradle: org.bitlet:weupnp:0.1.4" level="project" />
+    <orderEntry type="library" exported="" scope="RUNTIME" name="Gradle: com.thetransactioncompany:jsonrpc2-base:1.38" level="project" />
+    <orderEntry type="library" exported="" scope="RUNTIME" name="Gradle: org.opentelecoms.sdp:sdp-api:1.0" level="project" />
+    <orderEntry type="library" exported="" scope="RUNTIME" name="Gradle: net.minidev:json-smart:1.3.1" level="project" />
+    <orderEntry type="module-library" exported="" scope="RUNTIME">
+      <library name="Gradle: nocatch-1.1:1">
+        <CLASSES />
+        <JAVADOC />
+        <SOURCES />
+      </library>
+    </orderEntry>
+    <orderEntry type="library" exported="" scope="TEST" name="Gradle: org.jitsi:ice4j:1.0" level="project" />
+    <orderEntry type="library" exported="" scope="TEST" name="Gradle: com.github.geosearchef:JJsonRpc:0e2ef8d670" level="project" />
+    <orderEntry type="library" exported="" scope="TEST" name="Gradle: com.google.code.gson:gson:2.7" level="project" />
+    <orderEntry type="library" exported="" scope="TEST" name="Gradle: com.google.guava:guava:18.0" level="project" />
+    <orderEntry type="library" exported="" scope="TEST" name="Gradle: org.opentelecoms.sdp:java-sdp-nist-bridge:1.1" level="project" />
+    <orderEntry type="library" exported="" scope="TEST" name="Gradle: org.jitsi:jain-sip-ri-ossonly:1.2.98c7f8c-jitsi-oss1" level="project" />
+    <orderEntry type="library" exported="" scope="TEST" name="Gradle: org.bitlet:weupnp:0.1.4" level="project" />
+    <orderEntry type="library" exported="" scope="TEST" name="Gradle: com.thetransactioncompany:jsonrpc2-base:1.38" level="project" />
+    <orderEntry type="library" exported="" scope="TEST" name="Gradle: org.opentelecoms.sdp:sdp-api:1.0" level="project" />
+    <orderEntry type="library" exported="" scope="TEST" name="Gradle: net.minidev:json-smart:1.3.1" level="project" />
+    <orderEntry type="module-library" exported="" scope="TEST">
+      <library name="Gradle: nocatch-1.1:1">
+        <CLASSES />
+        <JAVADOC />
+        <SOURCES />
+      </library>
+    </orderEntry>
+  </component>
+</module>
