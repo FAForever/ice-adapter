@@ -142,7 +142,7 @@ public class Player {
 
 	public boolean filterIceMessage(IceMessage iceMessage) {
 		if(! IceTestServerConfig.INSTANCE.isHost() &&
-				((iceMessage.getMsg().toString()).contains("typ host"))) {
+                (((iceMessage.getMsg().toString()).contains("typ host")))) {
 			return true;
 		}
 

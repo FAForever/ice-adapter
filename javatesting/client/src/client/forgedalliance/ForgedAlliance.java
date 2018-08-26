@@ -1,7 +1,13 @@
 package client.forgedalliance;
 
+import client.GUI;
 import client.TestClient;
 import data.ForgedAlliancePeer;
+import javafx.geometry.Insets;
+import javafx.scene.layout.Background;
+import javafx.scene.layout.BackgroundFill;
+import javafx.scene.layout.CornerRadii;
+import javafx.scene.paint.Color;
 import logging.Logger;
 import lombok.Getter;
 
@@ -63,7 +69,7 @@ public class ForgedAlliance {
 			}
 
 		} catch(IOException e) {
-			Logger.error("Could not start lobby server. (GPGnet or lobbySocket failed)", e);
+            Logger.error("Could not start lobby server. (GPGNET or lobbySocket failed)", e);
 		}
 	}
 
@@ -143,7 +149,6 @@ public class ForgedAlliance {
 
 				DataInputStream packetIn = new DataInputStream(new ByteArrayInputStream(packet.getData()));
 				String command = packetIn.readUTF();
-
 
 
 				if(command.equals(CONNECTION_REQ)) {
@@ -292,6 +297,7 @@ public class ForgedAlliance {
 		} catch(IOException e) {
 			if(this.running) {
 				Logger.error("Error while listening for gpg messages.", e);
+                GUI.runAndWait(() -> GUI.instance.getRoot().setBackground(new Background(new BackgroundFill(new Color(189.0 / 255.0, 61.0 / 255.0, 58.0 / 255.0, 1.0), CornerRadii.EMPTY, Insets.EMPTY))));
 			}
 		}
 	}

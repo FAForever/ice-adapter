@@ -14,7 +14,7 @@
     </content>
     <orderEntry type="inheritedJdk" />
     <orderEntry type="sourceFolder" forTests="false" />
-    <orderEntry type="library" scope="PROVIDED" name="Gradle: com.github.micheljung:JJsonRpc:01a7fba5f4" level="project" />
+    <orderEntry type="library" scope="PROVIDED" name="Gradle: com.github.geosearchef:JJsonRpc:0e2ef8d670" level="project" />
     <orderEntry type="library" scope="PROVIDED" name="Gradle: com.google.code.gson:gson:2.7" level="project" />
     <orderEntry type="library" scope="PROVIDED" name="Gradle: com.google.guava:guava:18.0" level="project" />
     <orderEntry type="library" scope="PROVIDED" name="Gradle: com.sparkjava:spark-core:2.7.2" level="project" />
@@ -47,7 +47,7 @@
         <SOURCES />
       </library>
     </orderEntry>
-    <orderEntry type="library" scope="RUNTIME" name="Gradle: com.github.micheljung:JJsonRpc:01a7fba5f4" level="project" />
+    <orderEntry type="library" scope="RUNTIME" name="Gradle: com.github.geosearchef:JJsonRpc:0e2ef8d670" level="project" />
     <orderEntry type="library" scope="RUNTIME" name="Gradle: com.google.code.gson:gson:2.7" level="project" />
     <orderEntry type="library" scope="RUNTIME" name="Gradle: com.google.guava:guava:18.0" level="project" />
     <orderEntry type="library" scope="RUNTIME" name="Gradle: com.sparkjava:spark-core:2.7.2" level="project" />
@@ -79,7 +79,7 @@
         <SOURCES />
       </library>
     </orderEntry>
-    <orderEntry type="library" scope="TEST" name="Gradle: com.github.micheljung:JJsonRpc:01a7fba5f4" level="project" />
+    <orderEntry type="library" scope="TEST" name="Gradle: com.github.geosearchef:JJsonRpc:0e2ef8d670" level="project" />
     <orderEntry type="library" scope="TEST" name="Gradle: com.google.code.gson:gson:2.7" level="project" />
     <orderEntry type="library" scope="TEST" name="Gradle: com.google.guava:guava:18.0" level="project" />
     <orderEntry type="library" scope="TEST" name="Gradle: com.sparkjava:spark-core:2.7.2" level="project" />

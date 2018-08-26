@@ -57,6 +57,16 @@ public class Logger {
 //		System.out.println("Logging stopped");
 	}
 
+    public synchronized static void crash(String string) {
+        error(string);
+        crash(new RuntimeException(string));
+    }
+
+    public synchronized static void crash(String string, Exception e) {
+        error(string);
+        crash(e);
+    }
+
 	public synchronized static void crash(Exception e) {
 		if (logLevel >= ERROR) {
 			Date date = new Date();

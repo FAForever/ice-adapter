@@ -83,11 +83,21 @@ public class PeerIceModule {
         Logger.debug("Sending own candidates to %d", peer.getRemoteId());
         setState(AWAITING_CANDIDATES);
         RPCService.onIceMsg(localCandidatesMessage);
+
+        //TODO: is this a good fix for awaiting candidates loop????
+        final int currentacei = ++awaitingCandidatesEventId;
+        Executor.executeDelayed(6000, () -> {
+            if (iceState == AWAITING_CANDIDATES && currentacei == awaitingCandidatesEventId) {
+                onConnectionLost();
+            }
+        });
     }
+
+    private volatile int awaitingCandidatesEventId = 0;
 
     //TODO: stuck on awaiting forever? Can candidates even get lost? What if other side discards them?
 
-    public void onIceMessgageReceived(CandidatesMessage remoteCandidatesMessage) {
+    public synchronized void onIceMessgageReceived(CandidatesMessage remoteCandidatesMessage) {
         new Thread(() -> {
             Logger.debug("Got IceMsg for peer %d", peer.getRemoteId());
 

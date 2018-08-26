@@ -52,8 +52,8 @@ public class Peer {
             faSocket.send(packet);
         } catch (UnknownHostException e) {
         } catch (IOException e) {
-            Logger.error("Error while writing to local FA as peer", e);
-            IceAdapter.onFAShutdown();
+            Logger.error("Error while writing to local FA as peer (probably disconnecting from peer) " + remoteId, e);
+            return;
         }
     }
 
@@ -65,7 +65,7 @@ public class Peer {
                 faSocket.receive(packet);
                 ice.onFaDataReceived(data, packet.getLength());
             } catch (IOException e) {
-                Logger.debug("Error while reading from local FA as peer (probably disconnecting from peer)", e);
+                Logger.debug("Error while reading from local FA as peer (probably disconnecting from peer) " + remoteId, e);
                 return;
             }
         }

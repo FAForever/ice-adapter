@@ -15,6 +15,7 @@ import java.io.DataOutputStream;
 import java.io.IOException;
 import java.net.InetAddress;
 import java.net.Socket;
+import java.util.ConcurrentModificationException;
 import java.util.LinkedList;
 import java.util.Queue;
 import java.util.concurrent.CompletableFuture;
@@ -117,9 +118,17 @@ public class TestServerAccessor {
 	public static void send(Object message) {
 		synchronized (out) {
 			try {
-				System.out.println(gson.toJson(message));
-				out.writeUTF(message.getClass().getName());
-				out.writeUTF(gson.toJson(message));//TODO: catch more concurrent modification exceptions
+                String json = null;
+                try {
+                    json = gson.toJson(message);
+                } catch (ConcurrentModificationException e) {
+                    Logger.warning("ConcurrentModification exception during serialization of status");
+                }
+                if (json != null) {
+//					System.out.println(json);
+                    out.writeUTF(message.getClass().getName());
+                    out.writeUTF(json);//TODO: catch more concurrent modification exceptions
+                }
 			} catch(IOException e) {
 				Logger.error("Error while sending to server", e);
 				System.exit(123);

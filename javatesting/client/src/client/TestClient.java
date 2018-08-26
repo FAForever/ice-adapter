@@ -88,14 +88,14 @@ public class TestClient {
 
 	public static void main(String args[]) {
 		if (args.length >= 1) {
-			if (args[0].equals("debug")) {
-				DEBUG_MODE = true;
-			} else {
-				Logger.enableLogging();
-			}
+            for (String arg : args) {
+                if (arg.equals("debug")) {
+                    DEBUG_MODE = true;
+                }
 
-			if (Pattern.compile("\\d*").matcher(args[0]).matches()) {
-				ICEAdapter.EXTERNAL_ADAPTER_PORT = Integer.parseInt(args[0]);
+                if (Pattern.compile("\\d*").matcher(arg).matches()) {
+                    ICEAdapter.EXTERNAL_ADAPTER_PORT = Integer.parseInt(arg);
+                }
 			}
 		}
 		else {

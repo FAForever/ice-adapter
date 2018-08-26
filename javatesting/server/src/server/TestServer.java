@@ -144,7 +144,7 @@ public class TestServer {
 					try {
 						FileWriter writer = new FileWriter(dir.resolve(String.format("%d-%d.iceMsgLog", entry1.getKey(), entry2.getKey())).toFile());
 						writer.write(String.format("Ids: %d <-> %d\n", entry1.getKey(), entry2.getKey()));
-						writer.write(String.format("Names: %d <-> %d\n\n", entry1.getValue().getId(), entry2.getValue().getId()));
+                        writer.write(String.format("Names: %d <-> %d\n\n", entry1.getValue().getUsername(), entry2.getValue().getUsername()));
 
 						Arrays.asList(entry1, entry2).stream()
 								.flatMap(e -> e.getValue().getIceMessages().entrySet().stream())

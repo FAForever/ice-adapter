@@ -35,14 +35,14 @@ import static com.github.nocatch.NoCatch.noCatch;
 
 public class ICEAdapter {
 
-	private static final String LOG_LEVEL = "verbose";
+	private static final String LOG_LEVEL = "info";
 
 	private static final int CONNECTION_ATTEMPTS = 20;
 
 	private static final String COTURN_HOST = "geosearchef.de";
 	private static final String COTURN_KEY = "8T2o1yfSu29vf9cJ3WjHS9Ak6zJCB6qECL2Uxlza";
 //	private static final String COTURN_HOST = "vmrbg145.informatik.tu-muenchen.de";
-//	private static final String COTURN_KEY = "banana";
+//	private static final Str ing COTURN_KEY = "banana";
 
 	public static int ADAPTER_PORT;//RPC Client <=> ICE
 	public static int GPG_PORT;//ICE <=> Lobby
@@ -218,7 +218,8 @@ public class ICEAdapter {
 					"--rpc-port", String.valueOf(ADAPTER_PORT),
 //				"--gpgnet-port", String.valueOf(GPG_PORT), retrieved afterwards
 //				"--lobby-port", String.valueOf(LOBBY_PORT),
-					"--log-level", LOG_LEVEL
+					"--log-level", LOG_LEVEL,
+//					"--log-directory", "iceAdapterLogs/"
 			};
 
 			ProcessBuilder processBuilder = new ProcessBuilder(command);
@@ -275,9 +276,9 @@ public class ICEAdapter {
 					e.printStackTrace();
 				}
 			}
-		}
 
-//		com.faforever.iceadapter.IceAdapter.main(Arrays.copyOfRange(command, 1, command.length));
+//			com.faforever.iceadapter.IceAdapter.main(Arrays.copyOfRange(command, 1, command.length));
+		}
 
 		Logger.info("Launched ICE adapter.");
 	}
@@ -338,7 +339,7 @@ public class ICEAdapter {
 			}
 		}
 
-		if (process.isAlive()) {
+		if (process != null && process.isAlive()) {
 			Logger.debug("ICE adapter running, killing...");
 			process.destroyForcibly();
 		}
