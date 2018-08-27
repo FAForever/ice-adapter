@@ -1,0 +1,30 @@
+plugins {
+    id 'idea'
+    id 'java'
+    id 'java-library'
+    id 'io.franzbecker.gradle-lombok'
+    id 'com.github.johnrengelman.plugin-shadow'
+}
+
+group 'Geosearchef'
+version '1.0-SNAPSHOT'
+
+sourceCompatibility = 1.8
+
+repositories {
+    mavenCentral()
+    maven { url "https://jitpack.io" }
+}
+
+dependencies {
+    implementation "org.jitsi:ice4j:1.0"
+    implementation 'com.github.Geosearchef:JJsonRpc:master'
+    implementation "com.google.code.gson:gson:2.7"
+    implementation "com.google.guava:guava:18.0"
+}
+
+jar {
+    manifest {
+        attributes 'Main-Class': 'iceadapter.IceAdapter'
+    }
+}

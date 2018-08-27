@@ -1,0 +1,30 @@
+plugins {
+    id 'java'
+    id 'io.franzbecker.gradle-lombok'
+    id 'com.github.johnrengelman.plugin-shadow'
+}
+
+group 'Geosearchef'
+version '1.0-SNAPSHOT'
+
+sourceCompatibility = 1.8
+
+repositories {
+    mavenCentral()
+}
+
+dependencies {
+    implementation project(":shared")
+    implementation "com.sun.jna:jna:3.0.9"
+    implementation "net.java.dev.jna:jna-platform:4.5.2"
+    implementation "commons-io:commons-io:2.6"
+    implementation 'com.github.Geosearchef:JJsonRpc:master'
+    implementation "com.google.code.gson:gson:2.7"
+    implementation "com.google.guava:guava:18.0"
+}
+
+jar {
+    manifest {
+        attributes 'Main-Class': 'client.TestClient'
+    }
+}

@@ -1,0 +1,38 @@
+plugins {
+    id 'com.github.johnrengelman.shadow' version '2.0.4'
+    id 'io.franzbecker.gradle-lombok' version '1.14'
+    id 'java'
+}
+
+lombok {
+    version = '1.18.2'
+    sha256 = ""
+}
+
+group 'Geosearchef'
+version '1.0-SNAPSHOT'
+
+sourceCompatibility = 1.8
+
+repositories {
+    mavenCentral()
+    jcenter()
+    maven { url "https://jitpack.io" }
+}
+
+allprojects {
+    repositories {
+        mavenCentral()
+        jcenter()
+        maven { url "https://jitpack.io" }
+    }
+}
+
+dependencies {
+    testImplementation "junit:junit:4.12"
+    implementation "com.github.micheljung:nocatch:1.1"
+}
+
+task createAllJars (type: GradleBuild) {
+    tasks = [":client:shadowJar",":server:shadowJar",":ice-adapter:shadowJar"]
+}

@@ -1,0 +1,27 @@
+plugins {
+    id 'java'
+    id 'io.franzbecker.gradle-lombok'
+    id 'com.github.johnrengelman.plugin-shadow'
+}
+
+group 'Geosearchef'
+version '1.0-SNAPSHOT'
+
+sourceCompatibility = 1.8
+
+repositories {
+    mavenCentral()
+}
+
+dependencies {
+    implementation project(":ice-adapter")
+    implementation project(":shared")
+    implementation "com.sparkjava:spark-core:2.7.2"
+    implementation "com.google.code.gson:gson:2.7"
+}
+
+jar {
+    manifest {
+        attributes 'Main-Class': 'server.TestServer'
+    }
+}
