@@ -13,7 +13,6 @@ import org.apache.commons.io.FileUtils;
 
 import java.io.File;
 import java.io.IOException;
-import java.util.ConcurrentModificationException;
 import java.util.LinkedList;
 import java.util.regex.Pattern;
 
@@ -62,11 +61,6 @@ public class TestClient {
 			}
 			Logger.collectedLog = "";
 
-            try {
-
-            } catch(ConcurrentModificationException e) {
-                e.printStackTrace();
-            }
 			TestServerAccessor.send(message);
 
 			if(forgedAlliance != null) {
@@ -87,14 +81,32 @@ public class TestClient {
 
 
 	public static void main(String args[]) {
+		boolean skipGDRP = false;
 		if (args.length >= 1) {
             for (String arg : args) {
-                if (arg.equals("debug")) {
+                if (arg.equals("--debug")) {
                     DEBUG_MODE = true;
                 }
 
-                if (Pattern.compile("\\d*").matcher(arg).matches()) {
-                    ICEAdapter.EXTERNAL_ADAPTER_PORT = Integer.parseInt(arg);
+                if(arg.replaceAll("-","").equals("help") || arg.equals("/?")){
+					System.out.println("Possible Arguments:\n" +
+							"--skip             Skips the GDRP check\n" +
+							"--name=yourname    Sets a custom name without asking\n" +
+							"--port=newport     Changes external adapter port\n" +
+							"--debug            Turns on debug mode");
+                	System.exit(0);
+				}
+
+				if(arg.equals("--skip")){
+					skipGDRP=true;
+				}
+
+                if(arg.startsWith("--name=")){
+                	username = arg.replaceFirst("--name=","");
+				}
+
+                if(arg.startsWith("--port=")) {
+                    ICEAdapter.EXTERNAL_ADAPTER_PORT = Integer.parseInt(arg.replaceFirst("--port=",""));
                 }
 			}
 		}
@@ -105,8 +117,12 @@ public class TestClient {
 
 		GUI.init(args);
 
-		GUI.showGDPRDialog();
-		getUsername();
+		if(!skipGDRP) {
+			GUI.showGDPRDialog();
+		}
+		if(username==null) {
+			getUsername();
+		}
 
 		TestServerAccessor.init();
 
@@ -124,7 +140,7 @@ public class TestClient {
 
 		if(! TestClient.DEBUG_MODE && new File("iceTestUsername").exists()) {
 			try {
-				preGeneratedUsername = FileUtils.readFileToString(new File("iceTestUsername"));
+				preGeneratedUsername = FileUtils.readFileToString(new File("iceTestUsername"),"UTF-8");
 			} catch (IOException e) {
 				Logger.error("Error while reading old username from file.", e);
 			}
@@ -132,7 +148,7 @@ public class TestClient {
 
 		GUI.showUsernameDialog(preGeneratedUsername);
 
-		noCatch(() -> FileUtils.writeStringToFile(new File("iceTestUsername"), TestClient.username));
+		noCatch(() -> FileUtils.writeStringToFile(new File("iceTestUsername"), TestClient.username, "UTF-8"));
 	}
 
 	public static void close() {
