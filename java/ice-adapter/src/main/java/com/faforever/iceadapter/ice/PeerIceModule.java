@@ -166,7 +166,8 @@ public class PeerIceModule {
         IceState previousState = getIceState();
 
         if (listenerThread != null) {
-            listenerThread.stop();//TODO what if cancelled during sending TO FA???
+//            listenerThread.stop();//TODO what if cancelled during sending TO FA???
+            listenerThread.interrupt();
             listenerThread = null;
         }
 
@@ -221,12 +222,13 @@ public class PeerIceModule {
      */
     public void listener() {
         Logger.debug("Now forwarding data from ICE to FA for peer %d", peer.getRemoteId());
+        Component localComponent = component;
 
         byte data[] = new byte[65536];//64KiB = UDP MTU, in practice due to ethernet frames being <= 1500 B, this is often not used
         while (IceAdapter.running && IceAdapter.gameSession == peer.getGameSession()) {
             try {
                 DatagramPacket packet = new DatagramPacket(data, data.length);
-                component.getSelectedPair().getIceSocketWrapper().getUDPSocket().receive(packet);
+                localComponent.getSelectedPair().getIceSocketWrapper().getUDPSocket().receive(packet);
 
                 if (packet.getLength() == 0) {
                     continue;
@@ -246,9 +248,12 @@ public class PeerIceModule {
                     Logger.warning("Received invalid packet, first byte: 0x%x", data[0]);
                 }
 
-            } catch (IOException e) {
+            } catch (IOException e) {//TODO: nullpointer from localComponent.xxxx????
                 Logger.warning("Error while reading from ICE adapter, peer: %d", peer.getRemoteId());
-                onConnectionLost();
+                if(component == localComponent) {
+                    onConnectionLost();
+                }
+                return;
             }
         }
 

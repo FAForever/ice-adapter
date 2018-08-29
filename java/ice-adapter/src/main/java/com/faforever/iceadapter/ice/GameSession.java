@@ -48,6 +48,8 @@ public class GameSession {
                 peers.remove(remotePlayerId);
             }
         }
+        //TODO: still testing connectivity and reporting disconnect via rpc, why???
+        //TODO: still attempting to ICE
     }
 
     /**
