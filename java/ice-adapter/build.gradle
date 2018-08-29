@@ -25,6 +25,6 @@ dependencies {
 
 jar {
     manifest {
-        attributes 'Main-Class': 'iceadapter.IceAdapter'
+        attributes 'Main-Class': 'com.faforever.iceadapter.IceAdapter'
     }
 }
