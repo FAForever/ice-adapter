@@ -102,11 +102,12 @@ public class GPGNetServer {
 
 
                 default: {
-                    RPCService.onGpgNetMessageReceived(command, args);
+
                 }
             }
 
             Logger.info("Received GPGNet message: %s %s", command, args.stream().map(o -> (String) o).collect(Collectors.joining(" ")));
+            RPCService.onGpgNetMessageReceived(command, args);
         }
 
         /**
