@@ -8,7 +8,7 @@ import java.util.Arrays;
 @Getter
 @RequiredArgsConstructor
 public enum GameState {
-    NONE("None"), IDLE("Idle"), LOBBY("Lobby"); //TODO: more?
+    NONE("None"), IDLE("Idle"), LOBBY("Lobby"), LAUNCHING("Launching"); //TODO: more?
 
     private final String name;
 

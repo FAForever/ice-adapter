@@ -124,6 +124,7 @@ public class IceAdapter {
         RPCService.close();
 
         Logger.close();
+        System.exit(0);
     }
 
 

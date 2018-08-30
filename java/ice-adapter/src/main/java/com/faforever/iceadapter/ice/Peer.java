@@ -72,7 +72,9 @@ public class Peer {
         Logger.debug("No longer listening for messages from FA");
     }
 
+    public volatile boolean closing = false;
     public void close() {
+        closing = true;
         faSocket.close();
 
         ice.close();

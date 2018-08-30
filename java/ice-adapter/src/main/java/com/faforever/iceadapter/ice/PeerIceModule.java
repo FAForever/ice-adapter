@@ -87,6 +87,10 @@ public class PeerIceModule {
         //TODO: is this a good fix for awaiting candidates loop????
         final int currentacei = ++awaitingCandidatesEventId;
         Executor.executeDelayed(6000, () -> {
+            if(peer.isClosing()) {
+                Logger.warning("Peer %d not connected anymore, aborting reinitiation of ICE", peer.getRemoteId());
+                return;
+            }
             if (iceState == AWAITING_CANDIDATES && currentacei == awaitingCandidatesEventId) {
                 onConnectionLost();
             }
@@ -98,6 +102,11 @@ public class PeerIceModule {
     //TODO: stuck on awaiting forever? Can candidates even get lost? What if other side discards them?
 
     public synchronized void onIceMessgageReceived(CandidatesMessage remoteCandidatesMessage) {
+        if(peer.isClosing()) {
+            Logger.warning("Peer %d not connected anymore, discarding ice message", peer.getRemoteId());
+            return;
+        }
+
         new Thread(() -> {
             Logger.debug("Got IceMsg for peer %d", peer.getRemoteId());
 
@@ -159,6 +168,11 @@ public class PeerIceModule {
     }
 
     public synchronized void onConnectionLost() {
+        if(peer.isClosing()) {
+            Logger.warning("Peer %d not connected anymore, aborting onConnectionLost of ICE", peer.getRemoteId());
+            return;
+        }
+
         if (iceState == DISCONNECTED) {
             return;//TODO: will this kill the life cycle?
         }
@@ -196,6 +210,10 @@ public class PeerIceModule {
     }
 
     private synchronized void reinitIce() {
+        if(peer.isClosing()) {
+          Logger.warning("Peer %d not connected anymore, aborting reinitiation of ICE", peer.getRemoteId());
+            return;
+        }
         initiateIce();
     }
 
