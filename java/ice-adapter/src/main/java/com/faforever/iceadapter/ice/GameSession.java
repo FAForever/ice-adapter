@@ -62,7 +62,7 @@ public class GameSession {
     }
 
 
-    private static final Pattern iceServerUrlPattern = Pattern.compile("(?<protocol>stun|turn):(?<host>(\\w|\\.)+)(\\?transport=(?<transport>(tcp|udp)))?");
+    private static final Pattern iceServerUrlPattern = Pattern.compile("(?<protocol>stun|turn):(?<host>(\\w|\\.)+)(:(?<port>\\d+))?(\\?transport=(?<transport>(tcp|udp)))?");
     @Getter
     private static List<TransportAddress> stunAddresses = new ArrayList<>();
     @Getter
@@ -90,7 +90,7 @@ public class GameSession {
                 .map(iceServerUrlPattern::matcher)
                 .filter(Matcher::matches)
                 .forEach(matcher -> {
-                    TransportAddress address = new TransportAddress(matcher.group("host"), 3478, matcher.group("protocol").equals("stun") ? Transport.UDP : Transport.parse(matcher.group("transport")));
+                    TransportAddress address = new TransportAddress(matcher.group("host"), matcher.group("port") != null ? Integer.parseInt(matcher.group("port")) : 3478, matcher.group("protocol").equals("stun") ? Transport.UDP : Transport.parse(matcher.group("transport")));
                     (matcher.group("protocol").equals("stun") ? stunAddresses : turnAddresses).add(address);
                 });
 
