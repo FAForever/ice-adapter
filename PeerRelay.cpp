@@ -149,50 +149,62 @@ void PeerRelay::_close()
   _closing = false;
 }
 
-void PeerRelay::_reinitPeerconnection()
+void PeerRelay::_reinitPeerconnection(int delayMs)
 {
-  _close();
-
-  webrtc::PeerConnectionInterface::RTCConfiguration configuration;
-  configuration.servers = _iceServerList;
-  _peerConnection = _pcfactory->CreatePeerConnection(configuration,
-                                                     nullptr,
-                                                     nullptr,
-                                                     _peerConnectionObserver.get());
-  if (!_peerConnection)
+  auto reinitFunction = [this]()
   {
-    FAF_LOG_ERROR << "_pcfactory->CreatePeerConnection() failed!";
-    std::exit(1);
-  }
+    _close();
 
-  if (_isOfferer)
-  {
-    RELAY_LOG_DEBUG << "creating offer";
-
-    webrtc::DataChannelInit dataChannelInit;
-    dataChannelInit.ordered = false;
-    dataChannelInit.maxRetransmits = 0;
-    _dataChannel = _peerConnection->CreateDataChannel("faf",
-                                                      &dataChannelInit);
-    _dataChannel->RegisterObserver(_dataChannelObserver.get());
-
-    webrtc::PeerConnectionInterface::RTCOfferAnswerOptions options;
-    options.offer_to_receive_audio = 0;
-    options.offer_to_receive_video = 0;
-    _peerConnection->CreateOffer(_createOfferObserver,
-                                 options);
-
-    /* offerers periodically check the connection and may reinitialise it.
-     * The answerer side will recreate the peerconnection on receiving the offer
-     * Using the _reinitTimer is a hack to not call the PeerConnectivityChecker destructor in its own callback */
-    _connectionChecker = std::make_unique<PeerConnectivityChecker>(_dataChannel,
-                                                                   [this]()
+    webrtc::PeerConnectionInterface::RTCConfiguration configuration;
+    configuration.servers = _iceServerList;
+    _peerConnection = _pcfactory->CreatePeerConnection(configuration,
+                                                       nullptr,
+                                                       nullptr,
+                                                       _peerConnectionObserver.get());
+    if (!_peerConnection)
     {
-      _reinitTimer.singleShot(1, [this]()
+      FAF_LOG_ERROR << "_pcfactory->CreatePeerConnection() failed!";
+      std::exit(1);
+    }
+
+    if (_isOfferer)
+    {
+      RELAY_LOG_DEBUG << "creating offer";
+
+      webrtc::DataChannelInit dataChannelInit;
+      dataChannelInit.ordered = false;
+      dataChannelInit.maxRetransmits = 0;
+      _dataChannel = _peerConnection->CreateDataChannel("faf",
+                                                        &dataChannelInit);
+      _dataChannel->RegisterObserver(_dataChannelObserver.get());
+
+      webrtc::PeerConnectionInterface::RTCOfferAnswerOptions options;
+      options.offer_to_receive_audio = 0;
+      options.offer_to_receive_video = 0;
+      _peerConnection->CreateOffer(_createOfferObserver,
+                                   options);
+
+      /* offerers periodically check the connection and may reinitialise it.
+       * The answerer side will recreate the peerconnection on receiving the offer
+       * delay the reinit to not call the PeerConnectivityChecker destructor in its own callback */
+      _connectionChecker = std::make_unique<PeerConnectivityChecker>(_dataChannel,
+                                                                     [this]()
       {
-        _reinitPeerconnection();
+          _reinitPeerconnection(10);
       });
-    });
+    }
+  };
+
+  if (delayMs > 0)
+  {
+    if (!_reinitTimer.started())
+    {
+      _reinitTimer.singleShot(delayMs, reinitFunction);
+    }
+  }
+  else
+  {
+    reinitFunction();
   }
 }
 
@@ -227,8 +239,8 @@ void PeerRelay::_setIceState(std::string const& state)
         _iceState == "closed")
 
     {
-      RELAY_LOG_WARN << "Connection lost, forcing reconnect immediately.";
-      _reinitPeerconnection();
+      RELAY_LOG_WARN << "Connection lost, forcing reconnect in 100 ms.";
+      _reinitPeerconnection(100);
     }
   }
 }

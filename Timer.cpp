@@ -62,6 +62,11 @@ void Timer::OnMessage(rtc::Message* msg)
     _callback();
     if (!_singleShot)
     {
+      /* reset _callback, to make started() return false after this callback */
+      _callback = std::function<void()>();
+    }
+    else
+    {
       rtc::Thread::Current()->PostDelayed(RTC_FROM_HERE, _interval, this);
     }
   }
