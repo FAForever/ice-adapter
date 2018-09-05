@@ -89,7 +89,7 @@ protected:
   rtc::SocketAddress _gameUdpAddress;
   std::unique_ptr<rtc::AsyncSocket> _localUdpSocket;
   int _localUdpSocketPort;
-  static constexpr const std::size_t sendBufferSize = 2048;
+  static constexpr const std::size_t sendBufferSize = 65507;
   rtc::CopyOnWriteBuffer _sendCowBuffer{sendBufferSize};
 
   /* ICE state data */
