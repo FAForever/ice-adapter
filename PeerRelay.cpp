@@ -42,7 +42,11 @@ PeerRelay::PeerRelay(Options options,
 
   _connectStartTime = std::chrono::steady_clock::now();
 
-  _reinitPeerconnection();
+  /* the answerer's peerconnection is reset on each received offer */
+  if (_isOfferer)
+  {
+    _reinitPeerconnection();
+  }
 }
 
 PeerRelay::~PeerRelay()
@@ -93,6 +97,12 @@ void PeerRelay::addIceMessage(Json::Value const& iceMsg)
   {
     webrtc::SdpParseError error;
     auto sdp = webrtc::CreateSessionDescription(iceMsg["type"].asString(), iceMsg["sdp"].asString(), &error);
+
+    /* reinit on each offer is necessary to trigger the creation of an answer */
+    if (!_isOfferer)
+    {
+      _reinitPeerconnection();
+    }
     if (sdp)
     {
       _peerConnection->SetRemoteDescription(_setRemoteDescriptionObserver, sdp);
