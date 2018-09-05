@@ -42,10 +42,7 @@ PeerRelay::PeerRelay(Options options,
 
   _connectStartTime = std::chrono::steady_clock::now();
 
-  if (_isOfferer)
-  {
-    _reinitPeerconnection();
-  }
+  _reinitPeerconnection();
 }
 
 PeerRelay::~PeerRelay()
@@ -98,10 +95,6 @@ void PeerRelay::addIceMessage(Json::Value const& iceMsg)
     auto sdp = webrtc::CreateSessionDescription(iceMsg["type"].asString(), iceMsg["sdp"].asString(), &error);
     if (sdp)
     {
-      if (!_isOfferer)
-      {
-        _reinitPeerconnection();
-      }
       _peerConnection->SetRemoteDescription(_setRemoteDescriptionObserver, sdp);
     }
     else
@@ -135,6 +128,10 @@ void PeerRelay::addIceMessage(Json::Value const& iceMsg)
 void PeerRelay::_close()
 {
   _closing = true;
+  if (_connectionChecker)
+  {
+    _connectionChecker = nullptr;
+  }
   if (_dataChannel)
   {
     _dataChannel->UnregisterObserver();
@@ -151,6 +148,10 @@ void PeerRelay::_close()
 
 void PeerRelay::_reinitPeerconnection(int delayMs)
 {
+  if (_closing)
+  {
+    return;
+  }
   auto reinitFunction = [this]()
   {
     _close();
@@ -190,7 +191,7 @@ void PeerRelay::_reinitPeerconnection(int delayMs)
       _connectionChecker = std::make_unique<PeerConnectivityChecker>(_dataChannel,
                                                                      [this]()
       {
-          _reinitPeerconnection(10);
+          _reinitPeerconnection(1);
       });
     }
   };
@@ -240,6 +241,7 @@ void PeerRelay::_setIceState(std::string const& state)
 
     {
       RELAY_LOG_WARN << "Connection lost, forcing reconnect in 100 ms.";
+      _connectionChecker = nullptr;
       _reinitPeerconnection(100);
     }
   }
