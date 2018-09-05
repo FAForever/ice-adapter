@@ -80,7 +80,7 @@ void PeerConnectionObserver::OnSignalingChange(webrtc::PeerConnectionInterface::
 
 void PeerConnectionObserver::OnIceConnectionChange(webrtc::PeerConnectionInterface::IceConnectionState new_state)
 {
-  OBSERVER_LOG_DEBUG << "PeerConnectionObserver::OnIceConnectionChange" << static_cast<int>(new_state);
+  OBSERVER_LOG_DEBUG << "PeerConnectionObserver::OnIceConnectionChange " << static_cast<int>(new_state);
   switch (new_state)
   {
     case webrtc::PeerConnectionInterface::kIceConnectionNew:
@@ -112,7 +112,7 @@ void PeerConnectionObserver::OnIceConnectionChange(webrtc::PeerConnectionInterfa
 
 void PeerConnectionObserver::OnIceGatheringChange(webrtc::PeerConnectionInterface::IceGatheringState new_state)
 {
-  OBSERVER_LOG_DEBUG << "PeerConnectionObserver::OnIceGatheringChange" << static_cast<int>(new_state);
+  OBSERVER_LOG_DEBUG << "PeerConnectionObserver::OnIceGatheringChange " << static_cast<int>(new_state);
   switch(new_state)
   {
     case webrtc::PeerConnectionInterface::kIceGatheringNew:

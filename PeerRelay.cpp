@@ -211,7 +211,7 @@ void PeerRelay::_reinitPeerconnection(int delayMs)
 
 void PeerRelay::_setIceState(std::string const& state)
 {
-  RELAY_LOG_DEBUG << "ice state changed to" << state;
+  RELAY_LOG_DEBUG << "ice state changed to " << state;
   _iceState = state;
   if (_closing)
   {
