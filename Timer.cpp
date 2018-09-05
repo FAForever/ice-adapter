@@ -60,7 +60,7 @@ void Timer::OnMessage(rtc::Message* msg)
   if (_callback)
   {
     _callback();
-    if (!_singleShot)
+    if (_singleShot)
     {
       /* reset _callback, to make started() return false after this callback */
       _callback = std::function<void()>();
