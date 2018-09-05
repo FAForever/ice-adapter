@@ -1,3 +1,8 @@
+v6.3.3
+======
+- attempt to fix crash on _reinitPeerconnection
+- logging and console output fixes
+
 v6.3.2
 ======
 
