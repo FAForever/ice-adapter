@@ -138,6 +138,7 @@ public class PeerIceModule {
         Logger.debug("Starting ICE for peer %d", peer.getRemoteId());
         agent.startConnectivityEstablishment();
 
+        long iceStartTime = System.currentTimeMillis();
         while (agent.getState() != IceProcessingState.COMPLETED) {//TODO include more?, maybe stop on COMPLETED, is that to early?
             try {
                 Thread.sleep(20);
@@ -145,11 +146,17 @@ public class PeerIceModule {
                 e.printStackTrace();
             }
 
-            if (agent.getState() == IceProcessingState.FAILED) {
+            if (agent.getState() == IceProcessingState.FAILED) {//TODO null pointer due to no agent?
                 onConnectionLost();
                 return;
             }
 
+
+            if(System.currentTimeMillis() - iceStartTime > 15_000) {
+                Logger.error("ABORTING ICE DUE TO TIMEOUT");
+                onConnectionLost();
+                return;
+            }
         }
 
         Logger.debug("ICE terminated for %d", peer.getRemoteId());
