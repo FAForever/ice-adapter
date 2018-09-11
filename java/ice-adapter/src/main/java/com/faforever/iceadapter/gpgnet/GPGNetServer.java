@@ -106,7 +106,7 @@ public class GPGNetServer {
                 }
             }
 
-            Logger.info("Received GPGNet message: %s %s", command, args.stream().map(o -> (String) o).collect(Collectors.joining(" ")));
+            Logger.info("Received GPGNet message: %s %s", command, args.stream().map(Object::toString).collect(Collectors.joining(" ")));
             RPCService.onGpgNetMessageReceived(command, args);
         }
 

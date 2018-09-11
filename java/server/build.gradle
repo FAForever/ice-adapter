@@ -20,6 +20,10 @@ dependencies {
     implementation "com.google.code.gson:gson:2.7"
 }
 
+configureRelocationShadowJar{
+    prefix=""
+}
+
 jar {
     manifest {
         attributes 'Main-Class': 'server.TestServer'

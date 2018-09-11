@@ -2,10 +2,12 @@ package common;
 
 
 public class ICEAdapterTest {
-	public static final int VERSION = 29;
+	public static final int VERSION = 32;
 	public static int TEST_SERVER_PORT = 39456;
 	public static int TEST_SERVER_WEB_INTERFACE_PORT = 39457;
-	public static final String TEST_SERVER_ADDRESS = "geosearchef.de";
+	public static final String TEST_SERVER_ADDRESS = "localhost";
+
+	public static final boolean TEST_DATA_RANDOM_SIZE = false;
 
 	public static final String GDPR = "By using this application you consent to it collecting your username and IP address(es) during the test." +
 			"This information is stored on the test server. It will be used to investigate problems currently present in this software." +

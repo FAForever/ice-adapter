@@ -209,13 +209,16 @@ public class ICEAdapter {
 		if(EXTERNAL_ADAPTER_PORT == -1) {
 			String command[] = new String[]{
 					(System.getProperty("os.name").contains("Windows") ? "faf-ice-adapter.exe" : "./faf-ice-adapter"),
+//					"java",
+//					"-jar",
+//					"faf-ice-adapter.jar",
 					"--id", String.valueOf(TestClient.playerID),
 					"--login", TestClient.username,
 					"--rpc-port", String.valueOf(ADAPTER_PORT),
 //				"--gpgnet-port", String.valueOf(GPG_PORT), retrieved afterwards
 //				"--lobby-port", String.valueOf(LOBBY_PORT),
 					"--log-level", LOG_LEVEL,
-					"--log-directory", "iceAdapterLogs/"
+//					"--log-directory", "iceAdapterLogs/"
 			};
 
 			ProcessBuilder processBuilder = new ProcessBuilder(command);

@@ -2,6 +2,7 @@ package client.forgedalliance;
 
 import client.GUI;
 import client.TestClient;
+import common.ICEAdapterTest;
 import data.ForgedAlliancePeer;
 import javafx.geometry.Insets;
 import javafx.scene.layout.Background;
@@ -19,6 +20,7 @@ import java.net.Socket;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Random;
+import java.util.concurrent.atomic.AtomicLong;
 
 import static util.Util.assertThat;
 
@@ -75,6 +77,11 @@ public class ForgedAlliance {
 
 	private void echoThread() {
 		while(running) {
+
+			if(System.currentTimeMillis() - lastMetricsUpdate >= 1000) {
+				updateMetrics();
+			}
+
 			synchronized (peers) {
 				peers.stream()
 						.filter(ForgedAlliancePeer::isConnected)
@@ -88,7 +95,12 @@ public class ForgedAlliance {
 								packetOut.writeInt(peer.remoteId);//target
 								packetOut.writeInt(peer.echoRequestsSent++);
 								packetOut.writeLong(System.currentTimeMillis());
-								int randomBytes = 25 + random.nextInt(50);
+								int randomBytes;
+								if(ICEAdapterTest.TEST_DATA_RANDOM_SIZE) {
+									randomBytes = 25 + random.nextInt(50);
+								} else {
+									randomBytes = 60;//FA sends 2 packets per tick, one ~15 bytes, one 30-70 bytes
+								}
 								byte[] randomData = new byte[randomBytes];
 								random.nextBytes(randomData);
 								packetOut.writeInt(randomBytes);
@@ -138,12 +150,26 @@ public class ForgedAlliance {
 		}
 	}
 
+	private long lastMetricsUpdate = System.currentTimeMillis();
+	public float bytesPerSecondIn = 0;
+	public float bytesPerSecondOut = 0;
+	private void updateMetrics() {
+		int d = (int)(System.currentTimeMillis() - lastMetricsUpdate);
+		lastMetricsUpdate += d;
+
+		bytesPerSecondIn = (float)bytesReceived.getAndSet(0) / ((float)d / 1000f);
+		bytesPerSecondOut = (float)bytesSent.getAndSet(0) / ((float)d / 1000f);
+	}
+
+	private volatile AtomicLong bytesReceived = new AtomicLong(0);
 	private void lobbyListener() {
 		try {
 			byte[] buffer = new byte[4096];
 			while(running) {
 				DatagramPacket packet = new DatagramPacket(buffer, buffer.length);
 				lobbySocket.receive(packet);
+
+				bytesReceived.addAndGet(packet.getLength());
 
 //				Logger.debug("<FA> Received: %s", new String(packet.getData()));
 
@@ -302,12 +328,16 @@ public class ForgedAlliance {
 		}
 	}
 
+
+	private volatile AtomicLong bytesSent = new AtomicLong(0);
 	private void sendLobby(String remoteAddress, int remotePort, byte[] data) {
 		try {
 			DatagramPacket datagramPacket = new DatagramPacket(data, data.length);
 			datagramPacket.setAddress(InetAddress.getByName(remoteAddress));
 			datagramPacket.setPort(remotePort);
 			lobbySocket.send(datagramPacket);
+
+			bytesSent.addAndGet(data.length);
 		} catch (IOException e) {
 			Logger.warning("Error while sending UDP Packet.", e);
 		}

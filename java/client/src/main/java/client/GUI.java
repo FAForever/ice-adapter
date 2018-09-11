@@ -184,6 +184,14 @@ public class GUI extends Application {
 		separator.setMinWidth(30);
 		FAstatus.getChildren().add(separator);
 		FAstatus.getChildren().add(quietCount);
+		separator = new Separator(Orientation.VERTICAL);
+		separator.setMinWidth(30);
+		FAstatus.getChildren().add(separator);
+		FAstatus.getChildren().add(outBandwidth);
+		separator = new Separator(Orientation.VERTICAL);
+		separator.setMinWidth(30);
+		FAstatus.getChildren().add(separator);
+		FAstatus.getChildren().add(inBandwidth);
 
 		root.getChildren().add(FAstatus);
 
@@ -338,9 +346,11 @@ public class GUI extends Application {
 		started.complete(instance);
 	}
 
-	private Label peerCount = new Label();
-	private Label connectedCount = new Label();
-	private Label quietCount = new Label();
+	private Label peerCount = new Label("");
+	private Label connectedCount = new Label("");
+	private Label quietCount = new Label("");
+	private Label outBandwidth = new Label("");
+	private Label inBandwidth = new Label("");
 
 	private void uiUpdateThread() {
 		while(true) {
@@ -351,6 +361,9 @@ public class GUI extends Application {
 						peerCount.setText("Peers: " + TestClient.forgedAlliance.peers.size());
 						connectedCount.setText("Connected: " + TestClient.forgedAlliance.peers.stream().filter(ForgedAlliancePeer::isConnected).count());
 						quietCount.setText("Quiet: " + TestClient.forgedAlliance.peers.stream().filter(ForgedAlliancePeer::isQuiet).count());
+
+						outBandwidth.setText(String.format("sent %.2f kB/s", TestClient.forgedAlliance.bytesPerSecondOut / 1000f));
+						inBandwidth.setText(String.format("received %.2f kB/s", TestClient.forgedAlliance.bytesPerSecondOut / 1000f));
 
 						this.peers.clear();
 						this.peers.addAll(TestClient.forgedAlliance.peers);

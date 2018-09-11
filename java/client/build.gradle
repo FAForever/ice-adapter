@@ -24,6 +24,11 @@ dependencies {
     implementation "com.google.guava:guava:18.0"
 }
 
+configureRelocationShadowJar{
+    prefix=""
+}
+
+
 jar {
     manifest {
         attributes 'Main-Class': 'client.TestClient'
