@@ -1,13 +1,14 @@
 package com.faforever.iceadapter.ice;
 
 import com.faforever.iceadapter.IceAdapter;
-import com.faforever.iceadapter.logging.Logger;
 import lombok.Getter;
+import lombok.extern.slf4j.Slf4j;
 
 import java.io.IOException;
 import java.net.*;
 
 @Getter
+@Slf4j
 public class Peer {
 
     private final GameSession gameSession;
@@ -25,7 +26,7 @@ public class Peer {
         this.remoteLogin = remoteLogin;
         this.localOffer = localOffer;
 
-        Logger.debug("Peer created: %d, %s, localOffer: %s", remoteId, remoteLogin, String.valueOf(localOffer));
+        log.debug("Peer created: {}, {}, localOffer: {}", remoteId, remoteLogin, String.valueOf(localOffer));
 
         initForwarding();
 
@@ -38,12 +39,12 @@ public class Peer {
         try {
             faSocket = new DatagramSocket(0);
         } catch (SocketException e) {
-            Logger.error("Could not create socket for peer: %d  %s", remoteId, remoteLogin);
+            log.error("Could not create socket for peer: {}, {}", remoteId, remoteLogin, e);
         }
 
         new Thread(this::faListener).start();
 
-        Logger.debug("Now forwarding data to peer %d, %s", remoteId, remoteLogin);
+        log.debug("Now forwarding data to peer {}, {}", remoteId, remoteLogin);
     }
 
     synchronized void onIceDataReceived(byte data[], int offset, int length) {
@@ -52,7 +53,7 @@ public class Peer {
             faSocket.send(packet);
         } catch (UnknownHostException e) {
         } catch (IOException e) {
-            Logger.error("Error while writing to local FA as peer (probably disconnecting from peer) " + remoteId, e);
+            log.error("Error while writing to local FA as peer (probably disconnecting from peer) " + remoteId, e);
             return;
         }
     }
@@ -65,11 +66,11 @@ public class Peer {
                 faSocket.receive(packet);
                 ice.onFaDataReceived(data, packet.getLength());
             } catch (IOException e) {
-                Logger.debug("Error while reading from local FA as peer (probably disconnecting from peer) " + remoteId, e);
+                log.debug("Error while reading from local FA as peer (probably disconnecting from peer) " + remoteId, e);
                 return;
             }
         }
-        Logger.debug("No longer listening for messages from FA");
+        log.debug("No longer listening for messages from FA");
     }
 
     public volatile boolean closing = false;

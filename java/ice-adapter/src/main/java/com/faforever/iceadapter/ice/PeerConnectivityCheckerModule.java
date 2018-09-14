@@ -1,10 +1,11 @@
 package com.faforever.iceadapter.ice;
 
-import com.faforever.iceadapter.logging.Logger;
 import com.google.common.primitives.Longs;
+import lombok.extern.slf4j.Slf4j;
 
 import java.util.Arrays;
 
+@Slf4j
 public class PeerConnectivityCheckerModule {
 
     private static final int ECHO_INTERVAL = 1000;
@@ -26,7 +27,7 @@ public class PeerConnectivityCheckerModule {
         }
 
         running = true;
-        Logger.debug("Starting connectivity checker for peer %d", ice.getPeer().getRemoteId());
+        log.debug("Starting connectivity checker for peer {}", ice.getPeer().getRemoteId());
 
         averageRTT = 0.0f;
         lastPacketReceived = System.currentTimeMillis();
@@ -50,7 +51,7 @@ public class PeerConnectivityCheckerModule {
 
     void echoReceived(byte[] data, int offset, int length) {
         if (length != 9) {
-            Logger.warning("Received echo of wrong length, length: %d", length);
+            log.warn("Received echo of wrong length, length: {}", length);
         }
 
         int rtt = (int) (System.currentTimeMillis() - Longs.fromByteArray(Arrays.copyOfRange(data, offset + 1, length)));
@@ -62,7 +63,7 @@ public class PeerConnectivityCheckerModule {
 
         lastPacketReceived = System.currentTimeMillis();
 
-        Logger.debug("Received echo from %d after %d ms, averageRTT: %d ms", ice.getPeer().getRemoteId(), rtt, (int) averageRTT);
+        log.debug("Received echo from {} after {} ms, averageRTT: {} ms", ice.getPeer().getRemoteId(), rtt, (int) averageRTT);
     }
 
     private void checkerThread() {
@@ -77,6 +78,7 @@ public class PeerConnectivityCheckerModule {
             try {
                 Thread.sleep(ECHO_INTERVAL);
             } catch (InterruptedException e) {
+                log.warn("Sleeping checkerThread was interrupted");
             }
 
             if (System.currentTimeMillis() - lastPacketReceived > 10000) {
