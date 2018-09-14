@@ -2,20 +2,19 @@ package com.faforever.iceadapter;
 
 import com.faforever.iceadapter.gpgnet.GPGNetServer;
 import com.faforever.iceadapter.ice.GameSession;
-import com.faforever.iceadapter.logging.Logger;
 import com.faforever.iceadapter.rpc.RPCService;
 import com.faforever.iceadapter.util.ArgumentParser;
 import com.faforever.iceadapter.util.Util;
+import lombok.extern.slf4j.Slf4j;
 
-import java.io.File;
 import java.nio.file.Paths;
 import java.util.Arrays;
 import java.util.Map;
 import java.util.stream.Collectors;
 
+@Slf4j
 public class IceAdapter {
-
-    public static volatile boolean running = true;
+  public static volatile boolean running = true;
 
     public static final String VERSION = "0.0.1";
     public static String COMMAND_LINE_ARGUMENTS;
@@ -35,21 +34,16 @@ public class IceAdapter {
 
         if (logDirectory != null) {
             Util.mkdir(Paths.get(logDirectory).toFile());
-            Logger.enableLogging();
-            Logger.init("FAF ICE Adapter", Paths.get(logDirectory).resolve("iceAdapter.log").toFile());
-        } else {
-            Logger.disableLogging();
-            Logger.init("FAF ICE Adapter", new File("iceAdapter.log"));
         }
 
-        Logger.info("Version: %s", VERSION);
+        log.info("Version: {}", VERSION);
 
         GPGNetServer.init();
         RPCService.init();
     }
 
     public static void onHostGame(String mapName) {
-        Logger.info("onHostGame");
+        log.info("onHostGame");
         createGameSession();
 
         GPGNetServer.clientFuture.thenAccept(gpgNetClient -> {
@@ -60,7 +54,7 @@ public class IceAdapter {
     }
 
     public static void onJoinGame(String remotePlayerLogin, int remotePlayerId) {
-        Logger.info("onJoinGame %d %s", remotePlayerId, remotePlayerLogin);
+        log.info("onJoinGame {} {}", remotePlayerId, remotePlayerLogin);
         createGameSession();
         int port = gameSession.connectToPeer(remotePlayerLogin, remotePlayerId, false);
 
@@ -72,7 +66,7 @@ public class IceAdapter {
     }
 
     public static void onConnectToPeer(String remotePlayerLogin, int remotePlayerId, boolean offer) {
-        Logger.info("onConnectToPeer %d %s, offer: %s", remotePlayerId, remotePlayerLogin, String.valueOf(offer));
+        log.info("onConnectToPeer {} {}, offer: {}", remotePlayerId, remotePlayerLogin, String.valueOf(offer));
         int port = gameSession.connectToPeer(remotePlayerLogin, remotePlayerId, offer);
 
         GPGNetServer.clientFuture.thenAccept(gpgNetClient -> {
@@ -83,7 +77,7 @@ public class IceAdapter {
     }
 
     public static void onDisconnectFromPeer(int remotePlayerId) {
-        Logger.info("onDisconnectFromPeer %d", remotePlayerId);
+        log.info("onDisconnectFromPeer {}", remotePlayerId);
         gameSession.disconnectFromPeer(remotePlayerId);
 
         GPGNetServer.clientFuture.thenAccept(gpgNetClient -> {
@@ -108,7 +102,7 @@ public class IceAdapter {
      */
     public synchronized static void onFAShutdown() {
         if(gameSession != null) {
-            Logger.info("FA SHUTDOWN, closing everything");
+            log.info("FA SHUTDOWN, closing everything");
             gameSession.close();
             gameSession = null;
             //Do not put code outside of this if clause, else it will be executed multiple times
@@ -123,7 +117,6 @@ public class IceAdapter {
         GPGNetServer.close();
         RPCService.close();
 
-        Logger.close();
         System.exit(0);
     }
 
@@ -146,7 +139,8 @@ public class IceAdapter {
         }
 
         if(! Arrays.asList("id", "login").stream().allMatch(arguments::containsKey)) {
-            Logger.crash("Missing necessary argument.");
+            log.error("Missing necessary argument.");
+            System.exit(-1);
         }
 
         id = Integer.parseInt(arguments.get("id"));

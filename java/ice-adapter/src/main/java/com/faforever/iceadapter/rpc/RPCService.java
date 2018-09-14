@@ -2,10 +2,10 @@ package com.faforever.iceadapter.rpc;
 
 import com.faforever.iceadapter.IceAdapter;
 import com.faforever.iceadapter.ice.CandidatesMessage;
-import com.faforever.iceadapter.logging.Logger;
 import com.google.gson.Gson;
 import com.nbarraille.jjsonrpc.JJsonPeer;
 import com.nbarraille.jjsonrpc.TcpServer;
+import lombok.extern.slf4j.Slf4j;
 
 import java.util.Arrays;
 import java.util.List;
@@ -13,6 +13,7 @@ import java.util.List;
 /**
  * Handles communication between client and adapter, opens a server for the client to connect to
  */
+@Slf4j
 public class RPCService {
 
     private static Gson gson = new Gson();
@@ -21,7 +22,7 @@ public class RPCService {
     private static RPCHandler rpcHandler;
 
     public static void init() {
-        Logger.info("Creating RPC server on port %s", IceAdapter.RPC_PORT);
+        log.info("Creating RPC server on port {}", IceAdapter.RPC_PORT);
 
         rpcHandler = new RPCHandler();
         tcpServer = new TcpServer(IceAdapter.RPC_PORT, rpcHandler);
@@ -53,7 +54,7 @@ public class RPCService {
         try {
             return tcpServer.getFirstPeer().get();
         } catch (Exception e) {
-            Logger.error(e);
+            log.error("Error on fetching first peer", e);
         }
         return null;
     }

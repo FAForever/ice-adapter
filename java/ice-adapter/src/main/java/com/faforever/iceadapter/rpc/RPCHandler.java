@@ -7,8 +7,8 @@ import com.faforever.iceadapter.gpgnet.LobbyInitMode;
 import com.faforever.iceadapter.ice.CandidatesMessage;
 import com.faforever.iceadapter.ice.GameSession;
 import com.faforever.iceadapter.ice.Peer;
-import com.faforever.iceadapter.logging.Logger;
 import com.google.gson.Gson;
+import lombok.extern.slf4j.Slf4j;
 import org.ice4j.TransportAddress;
 import org.ice4j.ice.Candidate;
 import org.ice4j.ice.CandidatePair;
@@ -20,6 +20,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 
+@Slf4j
 public class RPCHandler {
 
     private Gson gson = new Gson();
@@ -46,7 +47,7 @@ public class RPCHandler {
 
     public void setLobbyInitMode(String lobbyInitMode) {
         GPGNetServer.lobbyInitMode = LobbyInitMode.getByName(lobbyInitMode);
-        Logger.debug("LobbyInitMode set to %s", lobbyInitMode);
+        log.debug("LobbyInitMode set to {}", lobbyInitMode);
     }
 
     public void iceMsg(long remotePlayerId, Object msg) {
@@ -62,10 +63,10 @@ public class RPCHandler {
         }
 
         if (err) {
-            Logger.error("ICE MESSAGE IGNORED for id: %d", remotePlayerId);
+            log.error("ICE MESSAGE IGNORED for id: {}", remotePlayerId);
         }
 
-        Logger.info("IceMsg received %s", msg);
+        log.info("IceMsg received %s", msg);
     }
 
     public void sendToGpgNet(String header, String... chunks) {
@@ -122,7 +123,7 @@ public class RPCHandler {
     }
 
     public void quit() {
-        Logger.warning("Close requested, stopping...");
+        log.warn("Close requested, stopping...");
         IceAdapter.close();
     }
 

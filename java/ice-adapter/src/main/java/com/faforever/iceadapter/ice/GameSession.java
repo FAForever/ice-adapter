@@ -1,7 +1,7 @@
 package com.faforever.iceadapter.ice;
 
-import com.faforever.iceadapter.logging.Logger;
 import lombok.Getter;
+import lombok.extern.slf4j.Slf4j;
 import org.ice4j.Transport;
 import org.ice4j.TransportAddress;
 
@@ -16,6 +16,7 @@ import java.util.regex.Pattern;
  * Represents a game session and the current ICE status/communication with all peers
  * Is created by a JoinGame or HostGame event (via RPC), is destroyed by a gpgnet connection breakdown
  */
+@Slf4j
 public class GameSession {
 
     @Getter
@@ -94,6 +95,6 @@ public class GameSession {
                     (matcher.group("protocol").equals("stun") ? stunAddresses : turnAddresses).add(address);
                 });
 
-        Logger.info("Ice Servers set: %d", stunAddresses.size() + turnAddresses.size());
+        log.info("Ice Servers set: {}", stunAddresses.size() + turnAddresses.size());
     }
 }

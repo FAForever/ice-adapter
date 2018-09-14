@@ -1,10 +1,10 @@
 package com.faforever.iceadapter.gpgnet;
 
 import com.faforever.iceadapter.IceAdapter;
-import com.faforever.iceadapter.logging.Logger;
 import com.faforever.iceadapter.rpc.RPCService;
 import com.faforever.iceadapter.util.NetworkToolbox;
 import lombok.Getter;
+import lombok.extern.slf4j.Slf4j;
 
 import java.io.IOException;
 import java.net.ServerSocket;
@@ -15,6 +15,7 @@ import java.util.Optional;
 import java.util.concurrent.CompletableFuture;
 import java.util.stream.Collectors;
 
+@Slf4j
 public class GPGNetServer {
 
     private static ServerSocket serverSocket;
@@ -29,26 +30,27 @@ public class GPGNetServer {
     public static void init() {
         if (IceAdapter.GPGNET_PORT == 0) {
             IceAdapter.GPGNET_PORT = NetworkToolbox.findFreeTCPPort(20000, 65536);
-            Logger.info("Generated GPGNET_PORT: %s", IceAdapter.GPGNET_PORT);
+            log.info("Generated GPGNET_PORT: {}", IceAdapter.GPGNET_PORT);
         } else {
-            Logger.info("Using GPGNET_PORT: %s", IceAdapter.GPGNET_PORT);
+            log.info("Using GPGNET_PORT: {}", IceAdapter.GPGNET_PORT);
         }
 
         if (IceAdapter.LOBBY_PORT == 0) {
             IceAdapter.LOBBY_PORT = NetworkToolbox.findFreeUDPPort(20000, 65536);
-            Logger.info("Generated LOBBY_PORT: %s", IceAdapter.LOBBY_PORT);
+            log.info("Generated LOBBY_PORT: {}", IceAdapter.LOBBY_PORT);
         } else {
-            Logger.info("Using LOBBY_PORT: %s", IceAdapter.LOBBY_PORT);
+            log.info("Using LOBBY_PORT: {}", IceAdapter.LOBBY_PORT);
         }
 
         try {
             serverSocket = new ServerSocket(IceAdapter.GPGNET_PORT);
         } catch (IOException e) {
-            Logger.crash("Couldn't start GPGNetServer", e);
+            log.error("Couldn't start GPGNetServer", e);
+            System.exit(-1);
         }
 
         new Thread(GPGNetServer::acceptThread).start();
-        Logger.info("GPGNetServer started");
+        log.info("GPGNetServer started");
     }
 
     /**
@@ -70,16 +72,15 @@ public class GPGNetServer {
             try {
                 gpgnetOut = new FaDataOutputStream(socket.getOutputStream());
             } catch (IOException e) {
-                Logger.error("Could not create GPGNet output steam to FA", e);
+                log.error("Could not create GPGNet output steam to FA", e);
             }
 
             listenerThread = new Thread(this::listenerThread);
             listenerThread.start();
 
             RPCService.onConnectionStateChanged("Connected");
-            Logger.info("GPGNetClient has connected");
+            log.info("GPGNetClient has connected");
         }
-
 
 
         /**
@@ -89,11 +90,11 @@ public class GPGNetServer {
             switch (command) {
                 case "GameState": {
                     gameState = GameState.getByName((String) args.get(0));
-                    Logger.debug("New GameState: %s", gameState.getName());
+                    log.debug("New GameState: {}", gameState.getName());
 
-                    if(gameState == GameState.IDLE) {
+                    if (gameState == GameState.IDLE) {
                         sendGpgnetMessage("CreateLobby", lobbyInitMode.getId(), IceAdapter.LOBBY_PORT, IceAdapter.login, IceAdapter.id, 1);
-                    } else if(gameState == GameState.LOBBY) {
+                    } else if (gameState == GameState.LOBBY) {
                         lobbyFuture.complete(this);
                     }
 
@@ -106,7 +107,7 @@ public class GPGNetServer {
                 }
             }
 
-            Logger.info("Received GPGNet message: %s %s", command, args.stream().map(Object::toString).collect(Collectors.joining(" ")));
+            log.info("Received GPGNet message: {} {}", command, args.stream().map(Object::toString).collect(Collectors.joining(" ")));
             RPCService.onGpgNetMessageReceived(command, args);
         }
 
@@ -116,9 +117,8 @@ public class GPGNetServer {
         public synchronized void sendGpgnetMessage(String command, Object... args) {
             try {
                 gpgnetOut.writeMessage(command, args);
-            } catch(IOException e) {
-                Logger.error("Error while communicating with FA (output), assuming shutdown");
-                Logger.debug(e.getMessage());
+            } catch (IOException e) {
+                log.error("Error while communicating with FA (output), assuming shutdown", e);
                 GPGNetServer.onGpgnetConnectionLost();
             }
         }
@@ -127,7 +127,7 @@ public class GPGNetServer {
          * Listens for incoming messages from FA
          */
         private void listenerThread() {
-            Logger.debug("Listening for GPG messages");
+            log.debug("Listening for GPG messages");
             boolean triggerActive = false;//Prevents a race condition between this thread and the thread that has created this object and is now going to set GPGNetServer.currentClient
             try {
                 FaDataInputStream gpgnetIn = new FaDataInputStream(socket.getInputStream());
@@ -143,22 +143,21 @@ public class GPGNetServer {
                     }
                 }
             } catch (IOException e) {
-                Logger.error("Error while communicating with FA (input), assuming shutdown");
-                Logger.debug(e.getMessage());
+                log.error("Error while communicating with FA (input), assuming shutdown", e);
                 GPGNetServer.onGpgnetConnectionLost();
             }
-            Logger.debug("No longer listening for GPGPNET from FA");
+            log.debug("No longer listening for GPGPNET from FA");
         }
 
         public void close() {
             stopping = true;
             this.listenerThread.interrupt();
-            Logger.debug("Closing GPGNetClient");
+            log.debug("Closing GPGNetClient");
 
             try {
                 socket.close();
             } catch (IOException e) {
-                Logger.error("Error while closing GPGNetClient socket", e);
+                log.error("Error while closing GPGNetClient socket", e);
             }
         }
     }
@@ -170,13 +169,13 @@ public class GPGNetServer {
      * THIS TRIGGERS A DISCONNECT FROM ALL PEERS AND AN ICE SHUTDOWN.
      */
     private static void onGpgnetConnectionLost() {
-        Logger.info("GPGNet connection lost");
+        log.info("GPGNet connection lost");
         synchronized (serverSocket) {
             if (currentClient != null) {
                 currentClient.close();
                 currentClient = null;
 
-                if(clientFuture.isDone()) {
+                if (clientFuture.isDone()) {
                     clientFuture = new CompletableFuture<>();
                 }
 
@@ -205,7 +204,7 @@ public class GPGNetServer {
             } catch (SocketException e) {
                 return;
             } catch (IOException e) {
-                Logger.error(e);
+                log.error("Could not listen on socket", e);
             }
         }
     }
@@ -232,9 +231,9 @@ public class GPGNetServer {
             try {
                 serverSocket.close();
             } catch (IOException e) {
-                Logger.error("Could not close gpgnet server socket", e);
+                log.error("Could not close gpgnet server socket", e);
             }
         }
-        Logger.info("GPGNetServer stopped");
+        log.info("GPGNetServer stopped");
     }
 }

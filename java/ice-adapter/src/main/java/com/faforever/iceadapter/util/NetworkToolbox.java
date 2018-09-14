@@ -1,6 +1,6 @@
 package com.faforever.iceadapter.util;
 
-import com.faforever.iceadapter.logging.Logger;
+import lombok.extern.slf4j.Slf4j;
 
 import java.io.IOException;
 import java.net.DatagramSocket;
@@ -8,6 +8,7 @@ import java.net.ServerSocket;
 import java.net.SocketException;
 import java.util.Random;
 
+@Slf4j
 public class NetworkToolbox {
 
     private static Random random = new Random();
@@ -25,7 +26,7 @@ public class NetworkToolbox {
             }
         }
 
-        Logger.error("Could not find a free tcp port");
+        log.error("Could not find a free tcp port");
         System.exit(-1);
         return -1;
     }
@@ -43,7 +44,7 @@ public class NetworkToolbox {
             }
         }
 
-        Logger.error("Could not find a free tcp port");
+        log.error("Could not find a free tcp port");
         System.exit(-1);
         return -1;
     }

@@ -1,7 +1,7 @@
 import com.faforever.iceadapter.ice.CandidatePacket;
 import com.faforever.iceadapter.ice.CandidatesMessage;
-import com.faforever.iceadapter.logging.Logger;
 import com.google.gson.Gson;
+import lombok.extern.slf4j.Slf4j;
 import org.ice4j.Transport;
 import org.ice4j.TransportAddress;
 import org.ice4j.ice.*;
@@ -22,6 +22,7 @@ import java.security.InvalidKeyException;
 import java.security.NoSuchAlgorithmException;
 import java.util.*;
 
+@Slf4j
 public class IceTest {
 
     private static final String COTURN_HOST = "geosearchef.de";
@@ -47,7 +48,8 @@ public class IceTest {
             secret = mac.doFinal(Charset.forName("cp1252").encode(tokenName).array());
 
         } catch (NoSuchAlgorithmException | InvalidKeyException e) {
-            Logger.crash(e);
+            log.error("Could not build secret key", e);
+            System.exit(-1);
         }
         String authToken = Base64.getEncoder().encodeToString(secret);
 
