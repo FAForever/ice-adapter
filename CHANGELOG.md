@@ -1,3 +1,7 @@
+v6.3.4
+======
+- include "ice_servers" in `status()` struct
+
 v6.3.3
 ======
 - attempt to fix crash on _reinitPeerconnection

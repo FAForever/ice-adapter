@@ -169,9 +169,32 @@ Json::Value IceAdapter::status() const
 {
   Json::Value result;
   result["version"] = FAF_VERSION_STRING;
-  result["ice_servers_size"] = static_cast<int>(_iceServers.size());
   result["lobby_port"] = _lobbyPort;
   result["init_mode"] = _lobbyInitMode;
+  /* ice servers */
+  {
+    Json::Value iceServers(Json::arrayValue);
+    for (auto it = _iceServers.begin(), end = _iceServers.end(); it != end; ++it)
+    {
+      Json::Value iceServer;
+      if (!it->uri.empty())
+      {
+        iceServer["url"] = it->uri;
+      }
+      if (!it->urls.empty())
+      {
+        iceServer["urls"] = Json::Value(Json::arrayValue);
+        for (auto urlIt = it->urls.begin(), end = it->urls.end(); urlIt != end; ++urlIt)
+        {
+          iceServer["urls"].append(*urlIt);
+        }
+      }
+      iceServer["credential"] = it->password;
+      iceServer["username"] = it->username;
+      iceServers.append(iceServer);
+    }
+    result["ice_servers"] = iceServers;
+  }
   /* Options */
   {
     Json::Value options;

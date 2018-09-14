@@ -33,7 +33,7 @@ The `faf-ice-adapter` is controlled using a bi-directional [JSON-RPC](http://www
 ```
 {
 "version" : /* string: faf-ice-adapter version */
-"ice_servers_size" : /* the number of ICE server URLs set using `setIceServers` */
+"ice_servers" : /* the ICE servers set using `setIceServers` */
 "lobby_port" : /* the actual game lobby UDP port. Should match --lobby-port option if non-zero port is specified. */
 "init_mode" : /* the current init mode. See setLobbyInitMode */
 "options" : /* The specified commandline options */
