@@ -6,6 +6,10 @@ import lombok.extern.slf4j.Slf4j;
 import java.util.Arrays;
 
 @Slf4j
+/**
+ * Periodically sends echo requests via the ICE data channel and initiates a reconnect after timeout
+ * ONLY THE OFFERING ADAPTER of a connection will send echos and reoffer.
+ */
 public class PeerConnectivityCheckerModule {
 
     private static final int ECHO_INTERVAL = 1000;
@@ -49,6 +53,12 @@ public class PeerConnectivityCheckerModule {
         }
     }
 
+    /**
+     * an echo has been received, RTT and last_received will be updated
+     * @param data
+     * @param offset
+     * @param length
+     */
     void echoReceived(byte[] data, int offset, int length) {
         if (length != 9) {
             log.warn("Received echo of wrong length, length: {}", length);
@@ -71,6 +81,7 @@ public class PeerConnectivityCheckerModule {
             byte[] data = new byte[9];
             data[0] = 'e';
 
+            //Copy current time (long, 8 bytes) into array after leading prefix indicating echo
             System.arraycopy(Longs.toByteArray(System.currentTimeMillis()), 0, data, 1, 8);
 
             ice.sendViaIce(data, 0, data.length);

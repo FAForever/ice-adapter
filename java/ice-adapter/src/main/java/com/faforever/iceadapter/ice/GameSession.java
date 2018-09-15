@@ -62,7 +62,9 @@ public class GameSession {
         }
     }
 
-
+    /*
+     * All ice server addresses and credentials to be used for harvesting candidates
+     */
     private static final Pattern iceServerUrlPattern = Pattern.compile("(?<protocol>stun|turn):(?<host>(\\w|\\.)+)(:(?<port>\\d+))?(\\?transport=(?<transport>(tcp|udp)))?");
     @Getter
     private static List<TransportAddress> stunAddresses = new ArrayList<>();
@@ -73,6 +75,11 @@ public class GameSession {
     @Getter
     private static String turnCredential;
 
+    /**
+     * Set ice server (to be used for harvesting candidates)
+     * Called by the client via jsonRPC
+     * @param iceServers
+     */
     public static void setIceServers(List<Map<String, Object>> iceServers) {
         stunAddresses.clear();
         turnAddresses.clear();

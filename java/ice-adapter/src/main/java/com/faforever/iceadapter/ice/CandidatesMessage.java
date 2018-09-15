@@ -6,6 +6,9 @@ import java.util.ArrayList;
 import java.util.List;
 
 @Data
+/**
+ * Represents and IceMessage, consists out of candidates and ufrag aswell as password
+ */
 public class CandidatesMessage {
     private final int srcId;
     private final int destId;

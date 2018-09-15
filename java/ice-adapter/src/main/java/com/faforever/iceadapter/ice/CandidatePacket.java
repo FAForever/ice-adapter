@@ -4,6 +4,9 @@ import lombok.Data;
 import org.ice4j.ice.CandidateType;
 
 @Data
+/**
+ * Represents a candidate to be sent/received via IceMessage
+ */
 public class CandidatePacket implements Comparable {
     private final String foundation;
     private final String protocol;

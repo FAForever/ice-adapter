@@ -49,7 +49,10 @@ public class RPCService {
         getPeerOrWait().sendAsyncRequest("onConnected", Arrays.asList(localPlayerId, remotePlayerId, connected), null, false);
     }
 
-
+    /**
+     * Blocks until a peer is connected (the client)
+     * @return the currently connected peer (the client)
+     */
     public static JJsonPeer getPeerOrWait() {
         try {
             return tcpServer.getFirstPeer().get();

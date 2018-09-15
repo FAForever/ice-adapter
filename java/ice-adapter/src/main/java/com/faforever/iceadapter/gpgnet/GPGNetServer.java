@@ -103,7 +103,7 @@ public class GPGNetServer {
 
 
                 default: {
-
+                    //No need to log, as we are not processing all messages but just forward them via RPC
                 }
             }
 
@@ -209,6 +209,10 @@ public class GPGNetServer {
         }
     }
 
+    /**
+     *
+     * @return whether the game is connected via GPGNET
+     */
     public static boolean isConnected() {
         return currentClient != null;
     }

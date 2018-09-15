@@ -13,6 +13,12 @@ public class NetworkToolbox {
 
     private static Random random = new Random();
 
+    /**
+     * Returns a free TCP port by generating random ports within the specified range and opening/closing a socket on them
+     * @param min Minimum port, inclusive
+     * @param max Maximum port, exclusive
+     * @return the discovered port, -1 if no port could be found
+     */
     public static int findFreeTCPPort(int min, int max) {
 
         for(int i = 0;i < 10000;i++) {
@@ -31,6 +37,12 @@ public class NetworkToolbox {
         return -1;
     }
 
+    /**
+     * Returns a free TCP port by generating random ports within the specified range and opening/closing a socket on them
+     * @param min Minimum port, inclusive
+     * @param max Maximum port, exclusive
+     * @return the discovered port, -1 if no port could be found
+     */
     public static int findFreeUDPPort(int min, int max) {
 
         for(int i = 0;i < 10000;i++) {
