@@ -213,12 +213,16 @@ public class GPGNetServer {
         return currentClient != null;
     }
 
-    public static String getGameState() {
-        return Optional.ofNullable(currentClient).map(GPGNetClient::getGameState).map(GameState::getName).orElse("");
+    public static String getGameStateString() {
+        return getGameState().map(GameState::getName).orElse("");
+    }
+
+    public static Optional<GameState> getGameState() {
+        return Optional.ofNullable(currentClient).map(GPGNetClient::getGameState);
     }
 
     /**
-     * Stops the GPGNetServer and thereby the conenction to a currently connected client
+     * Stops the GPGNetServer and thereby the connection to a currently connected client
      */
     public static void close() {
         if (currentClient != null) {

@@ -1,6 +1,7 @@
 package com.faforever.iceadapter;
 
 import com.faforever.iceadapter.gpgnet.GPGNetServer;
+import com.faforever.iceadapter.gpgnet.GameState;
 import com.faforever.iceadapter.ice.GameSession;
 import com.faforever.iceadapter.rpc.RPCService;
 import com.faforever.iceadapter.util.ArgumentParser;
@@ -66,6 +67,11 @@ public class IceAdapter {
     }
 
     public static void onConnectToPeer(String remotePlayerLogin, int remotePlayerId, boolean offer) {
+        if(GPGNetServer.isConnected() && GPGNetServer.getGameState().isPresent() && (GPGNetServer.getGameState().get() == GameState.LAUNCHING || GPGNetServer.getGameState().get() == GameState.ENDED)) {
+            log.warn("Game ended or in progress, ABORTING connectToPeer");
+            return;
+        }
+      
         log.info("onConnectToPeer {} {}, offer: {}", remotePlayerId, remotePlayerLogin, String.valueOf(offer));
         int port = gameSession.connectToPeer(remotePlayerLogin, remotePlayerId, offer);
 

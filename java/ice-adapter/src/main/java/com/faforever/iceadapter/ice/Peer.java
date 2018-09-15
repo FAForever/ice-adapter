@@ -7,6 +7,9 @@ import lombok.extern.slf4j.Slf4j;
 import java.io.IOException;
 import java.net.*;
 
+/**
+ * Represents a peer in the current game session which we are connected to
+ */
 @Getter
 @Slf4j
 public class Peer {
@@ -15,10 +18,10 @@ public class Peer {
 
     private final int remoteId;
     private final String remoteLogin;
-    private final boolean localOffer;
+    private final boolean localOffer;//Do we offer are are we waiting for a remote offer
 
     private PeerIceModule ice = new PeerIceModule(this);
-    private DatagramSocket faSocket;
+    private DatagramSocket faSocket;//Socket on which we are listening for FA / sending data to FA
 
     public Peer(GameSession gameSession, int remoteId, String remoteLogin, boolean localOffer) {
         this.gameSession = gameSession;
@@ -35,6 +38,9 @@ public class Peer {
         }
     }
 
+    /**
+     * Starts waiting for data from FA
+     */
     private void initForwarding() {
         try {
             faSocket = new DatagramSocket(0);
@@ -47,6 +53,12 @@ public class Peer {
         log.debug("Now forwarding data to peer {}, {}", remoteId, remoteLogin);
     }
 
+    /**
+     * Forwards data received on ICE to FA
+     * @param data
+     * @param offset
+     * @param length
+     */
     synchronized void onIceDataReceived(byte data[], int offset, int length) {
         try {
             DatagramPacket packet = new DatagramPacket(data, offset, length, InetAddress.getByName("127.0.0.1"), IceAdapter.LOBBY_PORT);
@@ -58,6 +70,9 @@ public class Peer {
         }
     }
 
+    /**
+     * This method get's invoked by the thread listening for data from FA
+     */
     private void faListener() {
         byte data[] = new byte[65536];//64KiB = UDP MTU, in practice due to ethernet frames being <= 1500 B, this is often not used
         while (IceAdapter.running && IceAdapter.gameSession == gameSession) {

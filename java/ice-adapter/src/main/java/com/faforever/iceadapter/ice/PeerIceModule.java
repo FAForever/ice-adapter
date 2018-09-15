@@ -23,7 +23,7 @@ import static com.faforever.iceadapter.ice.IceState.*;
 @Getter
 @Slf4j
 public class PeerIceModule {
-    private static final int PREFERRED_PORT = 6112;//PORT (range) to be used by ICE for communicating
+    private static final int MINIMUM_PORT = 6112;//PORT (range +1000) to be used by ICE for communicating, each peer needs a seperate port
 
     private Peer peer;
 
@@ -35,17 +35,25 @@ public class PeerIceModule {
     private volatile boolean connected = false;
     private volatile Thread listenerThread;
 
+    //Checks the connection by sending echo requests and initiates a reconnect if needed
     private final PeerConnectivityCheckerModule connectivityChecker = new PeerConnectivityCheckerModule(this);
 
     public PeerIceModule(Peer peer) {
         this.peer = peer;
     }
 
+    /**
+     * Updates the current iceState and informs the client via RPC
+     * @param newState the new State
+     */
     private void setState(IceState newState) {
         this.iceState = newState;
         RPCService.onIceConnectionStateChanged(IceAdapter.id, peer.getRemoteId(), iceState.getMessage());
     }
 
+    /**
+     * Will start the ICE Process
+     */
     synchronized void initiateIce() {
         if (iceState != NEW && iceState != DISCONNECTED) {
             log.warn("ICE already in progress, aborting re initiation. current state: {}", iceState.getMessage());
@@ -59,6 +67,9 @@ public class PeerIceModule {
         gatherCandidates();
     }
 
+    /**
+     * Creates an agent and media stream for handling the ICE
+     */
     private void createAgent() {
         agent = new Agent();
         agent.setControlling(peer.isLocalOffer());
@@ -66,13 +77,16 @@ public class PeerIceModule {
         mediaStream = agent.createMediaStream("faData");
     }
 
+    /**
+     * Gathers all local candidates, packs them into a message and sends them to the other peer via RPC
+     */
     private void gatherCandidates() {
         log.info("Gathering ice candidates");
         GameSession.getStunAddresses().stream().map(StunCandidateHarvester::new).forEach(agent::addCandidateHarvester);
         GameSession.getTurnAddresses().stream().map(a -> new TurnCandidateHarvester(a, new LongTermCredential(GameSession.getTurnUsername(), GameSession.getTurnCredential()))).forEach(agent::addCandidateHarvester);
 
         try {
-            component = agent.createComponent(mediaStream, Transport.UDP, PREFERRED_PORT + (int) (Math.random() * 999.0), PREFERRED_PORT, PREFERRED_PORT + 1000);
+            component = agent.createComponent(mediaStream, Transport.UDP, MINIMUM_PORT + (int) (Math.random() * 999.0), MINIMUM_PORT, MINIMUM_PORT + 1000);
         } catch (IOException e) {
             log.error("Error while creating stream component", e);
             new Thread(this::reinitIce).start();
@@ -85,6 +99,7 @@ public class PeerIceModule {
         RPCService.onIceMsg(localCandidatesMessage);
 
         //TODO: is this a good fix for awaiting candidates loop????
+        //Make sure to abort the connection process and reinitiate when we haven't received an answer to our offer in 6 seconds, candidate packet was probably lost
         final int currentacei = ++awaitingCandidatesEventId;
         Executor.executeDelayed(6000, () -> {
             if(peer.isClosing()) {
@@ -97,16 +112,20 @@ public class PeerIceModule {
         });
     }
 
+    //How often have we been waiting for a response to local candidates/offer
     private volatile int awaitingCandidatesEventId = 0;
 
-    //TODO: stuck on awaiting forever? Can candidates even get lost? What if other side discards them?
-
+    /**
+     * Starts harvesting local candidates if in answer mode, then initiates the actual ICE process
+     * @param remoteCandidatesMessage
+     */
     public synchronized void onIceMessgageReceived(CandidatesMessage remoteCandidatesMessage) {
         if(peer.isClosing()) {
             log.warn("Peer {} not connected anymore, discarding ice message", peer.getRemoteId());
             return;
         }
 
+        //Start ICE async as it's blocking and this is the RPC thread
         new Thread(() -> {
             log.debug("Got IceMsg for peer {}", peer.getRemoteId());
 
@@ -116,13 +135,14 @@ public class PeerIceModule {
                     return;
                 }
 
-
             } else {
+                //Check if we are already processing an ICE offer and if so stop it
                 if (iceState != NEW && iceState != DISCONNECTED) {
                     log.info("Received new candidates/offer, stopping...");
                     onConnectionLost();
                 }
 
+                //Answer mode, initialize agent and gather candidates
                 initiateIce();
             }
 
@@ -134,16 +154,20 @@ public class PeerIceModule {
         }).start();
     }
 
+    /**
+     * Runs the actual connectivity establishment, candidates have been exchanged and need to be checked
+     */
     private void startIce() {
         log.debug("Starting ICE for peer {}", peer.getRemoteId());
         agent.startConnectivityEstablishment();
 
+        //Wait for termination/completion of the agent
         long iceStartTime = System.currentTimeMillis();
         while (agent.getState() != IceProcessingState.COMPLETED) {//TODO include more?, maybe stop on COMPLETED, is that to early?
             try {
                 Thread.sleep(20);
             } catch (InterruptedException e) {
-                e.printStackTrace();
+                log.error("Interrupted while waiting for ICE", e);
             }
 
             if (agent.getState() == IceProcessingState.FAILED) {//TODO null pointer due to no agent?
@@ -174,6 +198,11 @@ public class PeerIceModule {
         listenerThread.start();
     }
 
+    /**
+     * Connection has been lost, ice failed or we received a new offer
+     * Will close agent, stop listener and connectivity checker thread and change state to disconnected
+     * Will then reinitiate ICE
+     */
     public synchronized void onConnectionLost() {
         if(peer.isClosing()) {
             log.warn("Peer {} not connected anymore, aborting onConnectionLost of ICE", peer.getRemoteId());
@@ -210,8 +239,10 @@ public class PeerIceModule {
         }
 
         if (previousState == CONNECTED && peer.isLocalOffer()) {
+            //We were connected before, retry immediately
             Executor.executeDelayed(0, this::reinitIce);
         } else if (peer.isLocalOffer()) {
+            //Last ice attempt didn't succeed, so wait a bit
             Executor.executeDelayed(5000, this::reinitIce);
         }
     }
@@ -224,6 +255,11 @@ public class PeerIceModule {
         initiateIce();
     }
 
+    /**
+     * Data received from FA, prepends prefix and sends it via ICE to the other peer
+     * @param faData
+     * @param length
+     */
     void onFaDataReceived(byte faData[], int length) {
         byte[] data = new byte[length + 1];
         data[0] = 'd';
@@ -231,6 +267,13 @@ public class PeerIceModule {
         sendViaIce(data, 0, data.length);
     }
 
+
+    /**
+     * Send date via ice to the other peer
+     * @param data
+     * @param offset
+     * @param length
+     */
     void sendViaIce(byte[] data, int offset, int length) {
         if (connected) {
             try {
