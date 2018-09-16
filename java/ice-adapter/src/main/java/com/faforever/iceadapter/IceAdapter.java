@@ -5,6 +5,7 @@ import com.faforever.iceadapter.gpgnet.GameState;
 import com.faforever.iceadapter.ice.GameSession;
 import com.faforever.iceadapter.rpc.RPCService;
 import com.faforever.iceadapter.util.ArgumentParser;
+import com.faforever.iceadapter.util.Executor;
 import com.faforever.iceadapter.util.Util;
 import lombok.extern.slf4j.Slf4j;
 
@@ -119,6 +120,8 @@ public class IceAdapter {
      * Stop the ICE adapter
      */
     public static void close() {
+        Executor.executeDelayed(500, () -> System.exit(0));
+
         onFAShutdown();//will close gameSession aswell
         GPGNetServer.close();
         RPCService.close();
