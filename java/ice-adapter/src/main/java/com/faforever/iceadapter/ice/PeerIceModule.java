@@ -82,8 +82,10 @@ public class PeerIceModule {
      */
     private void gatherCandidates() {
         log.info("Gathering ice candidates");
-        GameSession.getStunAddresses().stream().map(StunCandidateHarvester::new).forEach(agent::addCandidateHarvester);
-        GameSession.getTurnAddresses().stream().map(a -> new TurnCandidateHarvester(a, new LongTermCredential(GameSession.getTurnUsername(), GameSession.getTurnCredential()))).forEach(agent::addCandidateHarvester);
+        GameSession.getIceServers().stream().flatMap(s -> s.getStunAddresses().stream()).map(StunCandidateHarvester::new).forEach(agent::addCandidateHarvester);
+        GameSession.getIceServers().forEach(iceServer ->
+                iceServer.getTurnAddresses().stream().map(a -> new TurnCandidateHarvester(a, new LongTermCredential(iceServer.getTurnUsername(), iceServer.getTurnCredential()))).forEach(agent::addCandidateHarvester)
+        );
 
         try {
             component = agent.createComponent(mediaStream, Transport.UDP, MINIMUM_PORT + (int) (Math.random() * 999.0), MINIMUM_PORT, MINIMUM_PORT + 1000);

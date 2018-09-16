@@ -73,7 +73,7 @@ public class PeerConnectivityCheckerModule {
 
         lastPacketReceived = System.currentTimeMillis();
 
-        log.debug("Received echo from {} after {} ms, averageRTT: {} ms", ice.getPeer().getRemoteId(), rtt, (int) averageRTT);
+      System.out.printf("Received echo from {} after {} ms, averageRTT: {} ms", ice.getPeer().getRemoteId(), rtt, (int) averageRTT);
     }
 
     private void checkerThread() {

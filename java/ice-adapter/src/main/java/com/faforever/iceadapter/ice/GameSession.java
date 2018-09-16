@@ -62,46 +62,55 @@ public class GameSession {
         }
     }
 
-    /*
-     * All ice server addresses and credentials to be used for harvesting candidates
-     */
     private static final Pattern iceServerUrlPattern = Pattern.compile("(?<protocol>stun|turn):(?<host>(\\w|\\.)+)(:(?<port>\\d+))?(\\?transport=(?<transport>(tcp|udp)))?");
+
     @Getter
-    private static List<TransportAddress> stunAddresses = new ArrayList<>();
-    @Getter
-    private static List<TransportAddress> turnAddresses = new ArrayList<>();
-    @Getter
-    private static String turnUsername;
-    @Getter
-    private static String turnCredential;
+    private static final List<IceServer> iceServers = new ArrayList();
 
     /**
      * Set ice server (to be used for harvesting candidates)
      * Called by the client via jsonRPC
-     * @param iceServers
+     * @param iceServersData
      */
-    public static void setIceServers(List<Map<String, Object>> iceServers) {
-        stunAddresses.clear();
-        turnAddresses.clear();
+    public static void setIceServers(List<Map<String, Object>> iceServersData) {
+        GameSession.iceServers.clear();
 
-        if (iceServers.isEmpty()) {
+        if (iceServersData.isEmpty()) {
             return;
         }
 
         //TODO: support multiple ice servers
-        Map<String, Object> iceServer = iceServers.get(0);
 
-        turnUsername = (String) iceServer.get("username");
-        turnCredential = (String) iceServer.get("credential");
+        for(Map<String, Object> iceServerData : iceServersData) {
+            IceServer iceServer = new IceServer();
 
-        ((List<String>) iceServer.get("urls")).stream()
-                .map(iceServerUrlPattern::matcher)
-                .filter(Matcher::matches)
-                .forEach(matcher -> {
+            if(iceServerData.containsKey("username")) {
+                iceServer.setTurnUsername((String) iceServerData.get("username"));
+            }
+            if(iceServerData.containsKey("credential")) {
+                iceServer.setTurnCredential((String) iceServerData.get("credential"));
+            }
+
+            if(iceServerData.containsKey("urls") && iceServerData.get("urls") instanceof List) {
+                ((List<String>) iceServerData.get("urls")).stream()
+                        .map(iceServerUrlPattern::matcher)
+                        .filter(Matcher::matches)
+                        .forEach(matcher -> {
+                            TransportAddress address = new TransportAddress(matcher.group("host"), matcher.group("port") != null ? Integer.parseInt(matcher.group("port")) : 3478, matcher.group("protocol").equals("stun") ? Transport.UDP : Transport.parse(matcher.group("transport")));
+                            (matcher.group("protocol").equals("stun") ? iceServer.getStunAddresses() : iceServer.getTurnAddresses()).add(address);
+                        });
+            }
+
+            if(iceServerData.containsKey("url")) {
+                Matcher matcher = iceServerUrlPattern.matcher((CharSequence) iceServerData.get("url"));
+                if(matcher.matches()) {
                     TransportAddress address = new TransportAddress(matcher.group("host"), matcher.group("port") != null ? Integer.parseInt(matcher.group("port")) : 3478, matcher.group("protocol").equals("stun") ? Transport.UDP : Transport.parse(matcher.group("transport")));
-                    (matcher.group("protocol").equals("stun") ? stunAddresses : turnAddresses).add(address);
-                });
+                    (matcher.group("protocol").equals("stun") ? iceServer.getStunAddresses() : iceServer.getTurnAddresses()).add(address);
+                }
+            }
+        }
 
-        log.info("Ice Servers set: {}", stunAddresses.size() + turnAddresses.size());
+        log.info("Ice Servers set, total addresses: {}",
+                iceServers.stream().mapToInt(s -> s.getStunAddresses().size() + s.getTurnAddresses().size()).sum());
     }
 }
