@@ -30,23 +30,23 @@ public class RPCService {
     }
 
     public static void onConnectionStateChanged(String newState) {
-        getPeerOrWait().sendAsyncRequest("onConnectionStateChanged", Arrays.asList(newState), null, false);
+        getPeerOrWait().sendAsyncRequest("onConnectionStateChanged", Arrays.asList(newState), null, true);
     }
 
     public static void onGpgNetMessageReceived(String header, List<Object> chunks) {
-        getPeerOrWait().sendAsyncRequest("onGpgNetMessageReceived", Arrays.asList(header, chunks), null, false);
+        getPeerOrWait().sendAsyncRequest("onGpgNetMessageReceived", Arrays.asList(header, chunks), null, true);
     }
 
     public static void onIceMsg(CandidatesMessage candidatesMessage) {
-        getPeerOrWait().sendAsyncRequest("onIceMsg", Arrays.asList(candidatesMessage.getSrcId(), candidatesMessage.getDestId(), gson.toJson(candidatesMessage)), null, false);
+        getPeerOrWait().sendAsyncRequest("onIceMsg", Arrays.asList(candidatesMessage.getSrcId(), candidatesMessage.getDestId(), gson.toJson(candidatesMessage)), null, true);
     }
 
     public static void onIceConnectionStateChanged(long localPlayerId, long remotePlayerId, String state) {
-        getPeerOrWait().sendAsyncRequest("onIceConnectionStateChanged", Arrays.asList(localPlayerId, remotePlayerId, state), null, false);
+        getPeerOrWait().sendAsyncRequest("onIceConnectionStateChanged", Arrays.asList(localPlayerId, remotePlayerId, state), null, true);
     }
 
     public static void onConnected(long localPlayerId, long remotePlayerId, boolean connected) {
-        getPeerOrWait().sendAsyncRequest("onConnected", Arrays.asList(localPlayerId, remotePlayerId, connected), null, false);
+        getPeerOrWait().sendAsyncRequest("onConnected", Arrays.asList(localPlayerId, remotePlayerId, connected), null, true);
     }
 
     /**
