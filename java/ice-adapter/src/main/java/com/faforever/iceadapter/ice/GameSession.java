@@ -108,6 +108,8 @@ public class GameSession {
                     (matcher.group("protocol").equals("stun") ? iceServer.getStunAddresses() : iceServer.getTurnAddresses()).add(address);
                 }
             }
+
+            iceServers.add(iceServer);
         }
 
         log.info("Ice Servers set, total addresses: {}",
