@@ -26,7 +26,7 @@ import java.util.*;
 public class IceTest {
 
     private static final String COTURN_HOST = "geosearchef.de";
-    private static final String COTURN_KEY = "8T2o1yfSu29vf9cJ3WjHS9Ak6zJCB6qECL2Uxlza";
+    private static final String COTURN_KEY = "--------------";
 //    private static final String COTURN_HOST = "vmrbg145.informatik.tu-muenchen.de";
 //    private static final String COTURN_KEY = "banana";
 
@@ -55,7 +55,7 @@ public class IceTest {
 
         Map<String, Object> map = new HashMap<>();
         map.put("credential", authToken);
-        map.put("credentialType", "authToken");
+        map.put("credentialType", "token");
         map.put("username", tokenName);
 
 
@@ -161,6 +161,7 @@ public class IceTest {
                         relatedCandidate
                 );
 
+//                if(remoteCandidate.getType().equals(CandidateType.RELAYED_CANDIDATE))
                 component.addRemoteCandidate(remoteCandidate);
             }
         }

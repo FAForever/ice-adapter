@@ -1,5 +1,6 @@
 package com.faforever.iceadapter.util;
 
+import com.faforever.iceadapter.IceAdapter;
 import com.faforever.iceadapter.ice.CandidatePacket;
 import com.faforever.iceadapter.ice.CandidatesMessage;
 import org.ice4j.Transport;
@@ -61,14 +62,23 @@ public class CandidateUtil {
                 RemoteCandidate remoteCandidate = new RemoteCandidate(
                         mainAddress,
                         component,
-                        CandidateType.parse(remoteCandidatePacket.getType().toString()),
+                        CandidateType.parse(remoteCandidatePacket.getType().toString()),//Expected to not return LOCAL or STUN (old names for host and srflx)
                         remoteCandidatePacket.getFoundation(),
                         remoteCandidatePacket.getPriority(),
                         relatedCandidate
                 );
 
-//                if (remoteCandidate.getType().equals(CandidateType.RELAYED_CANDIDATE))
+                //Candidate type LOCAL and STUN can never occur as they are deprecated and not
+                if (IceAdapter.DEBUG_ALLOW_HOST && remoteCandidate.getType().equals(CandidateType.HOST_CANDIDATE)) {
                     component.addRemoteCandidate(remoteCandidate);
+                }
+                if (IceAdapter.DEBUG_ALLOW_REFLEXIVE &&
+                        (remoteCandidate.getType().equals(CandidateType.SERVER_REFLEXIVE_CANDIDATE) || remoteCandidate.getType().equals(CandidateType.PEER_REFLEXIVE_CANDIDATE))) {
+                    component.addRemoteCandidate(remoteCandidate);
+                }
+                if (IceAdapter.DEBUG_ALLOW_RELAY && remoteCandidate.getType().equals(CandidateType.RELAYED_CANDIDATE)) {
+                    component.addRemoteCandidate(remoteCandidate);
+                }
             }
         }
     }

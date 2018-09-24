@@ -1,5 +1,6 @@
 package com.faforever.iceadapter;
 
+import ch.qos.logback.core.rolling.RollingFileAppender;
 import com.faforever.iceadapter.gpgnet.GPGNetServer;
 import com.faforever.iceadapter.gpgnet.GameState;
 import com.faforever.iceadapter.ice.GameSession;
@@ -16,9 +17,13 @@ import java.util.stream.Collectors;
 
 @Slf4j
 public class IceAdapter {
-  public static volatile boolean running = true;
+    public static boolean DEBUG_ALLOW_HOST = true;
+    public static boolean DEBUG_ALLOW_REFLEXIVE = true;
+    public static boolean DEBUG_ALLOW_RELAY = true;
 
-    public static final String VERSION = "0.0.1";
+    public static volatile boolean running = true;
+
+    public static final String VERSION = "j0.1.0-beta";
     public static String COMMAND_LINE_ARGUMENTS;
 
     public static int id = -1;
@@ -34,9 +39,14 @@ public class IceAdapter {
         COMMAND_LINE_ARGUMENTS = Arrays.stream(args).collect(Collectors.joining(" "));
         interpretArguments(ArgumentParser.parse(args));
 
+        //Configure file appender
+		RollingFileAppender fileAppender = (ch.qos.logback.core.rolling.RollingFileAppender)((ch.qos.logback.classic.Logger)log).getAppender("FILE");
         if (logDirectory != null) {
             Util.mkdir(Paths.get(logDirectory).toFile());
-        }
+			//TODO: set log dir
+        } else {
+//			fileAppender.stop();
+		}
 
         log.info("Version: {}", VERSION);
 

@@ -18,7 +18,7 @@ public class Peer {
 
     private final int remoteId;
     private final String remoteLogin;
-    private final boolean localOffer;//Do we offer are are we waiting for a remote offer
+    private final boolean localOffer;//Do we offer or are we waiting for a remote offer
 
     private PeerIceModule ice = new PeerIceModule(this);
     private DatagramSocket faSocket;//Socket on which we are listening for FA / sending data to FA
@@ -45,12 +45,12 @@ public class Peer {
         try {
             faSocket = new DatagramSocket(0);
         } catch (SocketException e) {
-            log.error("Could not create socket for peer: {}, {}", remoteId, remoteLogin, e);
+            log.error("Could not create socket for peer: {}", getPeerIdentifier(), e);
         }
 
         new Thread(this::faListener).start();
 
-        log.debug("Now forwarding data to peer {}, {}", remoteId, remoteLogin);
+        log.debug("Now forwarding data to peer {}", getPeerIdentifier());
     }
 
     /**
@@ -65,7 +65,7 @@ public class Peer {
             faSocket.send(packet);
         } catch (UnknownHostException e) {
         } catch (IOException e) {
-            log.error("Error while writing to local FA as peer (probably disconnecting from peer) " + remoteId, e);
+            log.error("Error while writing to local FA as peer (probably disconnecting from peer) " + getPeerIdentifier(), e);
             return;
         }
     }
@@ -81,7 +81,7 @@ public class Peer {
                 faSocket.receive(packet);
                 ice.onFaDataReceived(data, packet.getLength());
             } catch (IOException e) {
-                log.debug("Error while reading from local FA as peer (probably disconnecting from peer) " + remoteId, e);
+                log.debug("Error while reading from local FA as peer (probably disconnecting from peer) " + getPeerIdentifier(), e);
                 return;
             }
         }
@@ -94,5 +94,12 @@ public class Peer {
         faSocket.close();
 
         ice.close();
+    }
+
+    /**
+     * @return %username%(%id%)
+     */
+    public String getPeerIdentifier() {
+        return String.format("%s(%d)", this.remoteLogin, this.remoteId);
     }
 }
