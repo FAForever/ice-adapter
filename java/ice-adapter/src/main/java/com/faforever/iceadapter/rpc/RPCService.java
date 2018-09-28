@@ -9,6 +9,9 @@ import lombok.extern.slf4j.Slf4j;
 
 import java.util.Arrays;
 import java.util.List;
+import java.util.concurrent.CompletableFuture;
+
+import static com.faforever.iceadapter.debug.Debug.debug;
 
 /**
  * Handles communication between client and adapter, opens a server for the client to connect to
@@ -27,6 +30,8 @@ public class RPCService {
         rpcHandler = new RPCHandler();
         tcpServer = new TcpServer(IceAdapter.RPC_PORT, rpcHandler);
         tcpServer.start();
+
+        debug().rpcStarted(tcpServer.getFirstPeer());
     }
 
     public static void onConnectionStateChanged(String newState) {
@@ -60,6 +65,10 @@ public class RPCService {
             log.error("Error on fetching first peer", e);
         }
         return null;
+    }
+
+    public static CompletableFuture<JJsonPeer> getPeerFuture() {
+        return tcpServer.getFirstPeer();
     }
 
     public static void close() {

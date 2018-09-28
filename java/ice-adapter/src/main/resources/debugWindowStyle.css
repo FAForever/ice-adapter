@@ -1,0 +1,13 @@
+.root {
+    -fx-base: rgba(60, 63, 65, 255);
+
+}
+
+.text-area .content{
+    /*-fx-background-color:  linear-gradient(from 0px 0px to 0px 4px, derive(rgba(36, 36, 36), -8%), rgba(36, 36, 36));*/
+    -fx-background-color: rgba(36, 36, 36, 36);
+}
+
+.text-area {
+    -fx-text-fill: rgb(154, 154, 154)
+}

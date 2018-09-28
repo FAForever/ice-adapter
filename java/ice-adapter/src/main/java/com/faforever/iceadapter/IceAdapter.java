@@ -15,6 +15,8 @@ import java.util.Arrays;
 import java.util.Map;
 import java.util.stream.Collectors;
 
+import static com.faforever.iceadapter.debug.Debug.debug;
+
 @Slf4j
 public class IceAdapter {
     public static boolean DEBUG_ALLOW_HOST = true;
@@ -52,6 +54,8 @@ public class IceAdapter {
 
         GPGNetServer.init();
         RPCService.init();
+
+        debug().startupComplete();
     }
 
     public static void onHostGame(String mapName) {

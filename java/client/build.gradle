@@ -15,7 +15,7 @@ repositories {
 
 dependencies {
     implementation project(":shared")
-    implementation project(":ice-adapter")
+//    implementation project(":ice-adapter")
     implementation "com.sun.jna:jna:3.0.9"
     implementation "net.java.dev.jna:jna-platform:4.5.2"
     implementation "commons-io:commons-io:2.6"

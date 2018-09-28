@@ -18,6 +18,7 @@ import org.ice4j.security.LongTermCredential;
 import java.io.IOException;
 import java.net.DatagramPacket;
 
+import static com.faforever.iceadapter.debug.Debug.debug;
 import static com.faforever.iceadapter.ice.IceState.*;
 
 @Getter
@@ -49,6 +50,7 @@ public class PeerIceModule {
     private void setState(IceState newState) {
         this.iceState = newState;
         RPCService.onIceConnectionStateChanged(IceAdapter.id, peer.getRemoteId(), iceState.getMessage());
+        debug().peerStateChanged(this.peer);
     }
 
     /**
@@ -239,6 +241,8 @@ public class PeerIceModule {
             log.warn(getLogPrefix() + "ICE connection has been lost for peer");
             RPCService.onConnected(IceAdapter.id, peer.getRemoteId(), false);
         }
+
+        debug().peerStateChanged(this.peer);
 
         if (previousState == CONNECTED && peer.isLocalOffer()) {
             //We were connected before, retry immediately

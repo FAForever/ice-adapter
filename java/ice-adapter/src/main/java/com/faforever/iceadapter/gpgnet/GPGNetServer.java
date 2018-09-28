@@ -15,6 +15,8 @@ import java.util.Optional;
 import java.util.concurrent.CompletableFuture;
 import java.util.stream.Collectors;
 
+import static com.faforever.iceadapter.debug.Debug.debug;
+
 @Slf4j
 public class GPGNetServer {
 
@@ -97,6 +99,8 @@ public class GPGNetServer {
                     } else if (gameState == GameState.LOBBY) {
                         lobbyFuture.complete(this);
                     }
+
+                    debug().gameStateChanged();
 
                     break;
                 }
@@ -184,6 +188,7 @@ public class GPGNetServer {
                 IceAdapter.onFAShutdown();
             }
         }
+        debug().gpgnetConnectedDisconnected();
     }
 
     /**
@@ -200,6 +205,8 @@ public class GPGNetServer {
 
                     currentClient = new GPGNetClient(socket);
                     clientFuture.complete(currentClient);
+
+                    debug().gpgnetConnectedDisconnected();
                 }
             } catch (SocketException e) {
                 return;

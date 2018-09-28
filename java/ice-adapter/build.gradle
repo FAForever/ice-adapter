@@ -1,10 +1,20 @@
-plugins {
-    id 'idea'
-    id 'java'
-    id 'java-library'
-    id 'io.franzbecker.gradle-lombok'
-    id 'com.github.johnrengelman.plugin-shadow'
+buildscript {
+    dependencies {
+        classpath group: 'de.dynamicfiles.projects.gradle.plugins', name: 'javafx-gradle-plugin', version: '8.8.2'
+    }
+
+    repositories {
+        mavenLocal()
+        mavenCentral()
+    }
 }
+
+apply plugin: 'idea'
+apply plugin: 'java'
+apply plugin: 'java-library'
+apply plugin: 'io.franzbecker.gradle-lombok'
+apply plugin: 'javafx-gradle-plugin'
+apply plugin: 'com.github.johnrengelman.plugin-shadow'
 
 group 'Geosearchef'
 version '1.0-SNAPSHOT'
@@ -22,6 +32,7 @@ dependencies {
     implementation "com.google.code.gson:gson:2.7"
     implementation "com.google.guava:guava:18.0"
     implementation "org.slf4j:slf4j-api:1.7.25"
+//    implementation "org.slf4j:slf4j-simple:1.7.25"
     implementation "ch.qos.logback:logback-classic:1.2.3"
     implementation "ch.qos.logback:logback-core:1.2.3"
 }
