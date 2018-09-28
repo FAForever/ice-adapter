@@ -1,0 +1,68 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<?import javafx.geometry.Insets?>
+<?import javafx.scene.control.*?>
+<?import javafx.scene.layout.*?>
+<AnchorPane prefHeight="700.0" prefWidth="1200.0" xmlns="http://javafx.com/javafx/8.0.121" xmlns:fx="http://javafx.com/fxml/1" fx:controller="com.faforever.iceadapter.debug.DebugWindowController">
+    <children>
+
+        <VBox prefHeight="700.0" prefWidth="1200.0">
+
+            <HBox fx:id="genericInfo" spacing="25">
+                <padding>
+                    <Insets bottom="5" left="5" right="5" top="5" />
+                </padding>
+                <Label fx:id="versionLabel" text="Version: version" />
+                <Label fx:id="userLabel" text="User: login(id)" />
+                <Label fx:id="rpcPortLabel" text="RPC_PORT: port" />
+                <Label fx:id="gpgnetPortLabel" text="GPGNET_PORT: port" />
+                <Label fx:id="lobbyPortLabel" text="LOBBY_PORT: port" />
+            </HBox>
+
+            <Separator />
+
+            <HBox fx:id="rpcGpgInfo" spacing="25">
+                <padding>
+                    <Insets bottom="5" left="5" right="5" top="5" />
+                </padding>
+
+                <HBox fx:id="rpcInfo" spacing="25">
+                    <Label fx:id="rpcServerStatus" text="RPCServer: new" />
+                    <Label fx:id="rpcClientStatus" text="RPCClient: -" />
+                </HBox>
+
+                <Separator orientation="VERTICAL" />
+
+                <HBox fx:id="gpgnetInfo" spacing="25">
+                    <Label fx:id="gpgnetServerStatus" text="GPGNetServer: new" />
+                    <Label fx:id="gpgnetClientStatus" text="GPGNetClient: -" />
+                    <Label fx:id="gameState" text="GameState: -" />
+                </HBox>
+            </HBox>
+
+            <Separator />
+            <Separator visible="false" prefHeight="20"/>
+
+            <TableView fx:id="peerTable" prefHeight="425.0">
+                <columns>
+                    <TableColumn fx:id="idColumn" prefWidth="40.0" text="id" />
+                    <TableColumn fx:id="loginColumn" prefWidth="75.0" text="login" />
+                    <TableColumn fx:id="offerColumn" prefWidth="100.0" text="localOffer" />
+                    <TableColumn fx:id="connectedColumn" prefWidth="90.0" text="connected" />
+                    <TableColumn fx:id="stateColumn" prefWidth="100.0" text="state" />
+                    <TableColumn fx:id="rttColumn" prefWidth="100.0" text="average rtt" />
+                    <TableColumn fx:id="lastColumn" prefWidth="100.0" text="last recv" />
+                </columns>
+            </TableView>
+
+
+        </VBox>
+
+        <TextArea fx:id="logTextArea" editable="false" prefHeight="200.0" prefWidth="1200" text="" wrapText="false" AnchorPane.bottomAnchor="0.0" />
+
+    </children>
+
+    <!--<stylesheets>-->
+        <!--<URL value="@debugWindowStyle.css" />-->
+    <!--</stylesheets>-->
+</AnchorPane>

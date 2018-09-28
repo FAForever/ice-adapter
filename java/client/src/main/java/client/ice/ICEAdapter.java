@@ -3,7 +3,6 @@ package client.ice;
 import client.GUI;
 import client.TestClient;
 import client.nativeAccess.NativeAccess;
-import com.faforever.iceadapter.IceAdapter;
 import com.google.gson.GsonBuilder;
 import com.nbarraille.jjsonrpc.CallbackMethod;
 import com.nbarraille.jjsonrpc.InvalidMethodException;
@@ -14,11 +13,16 @@ import javafx.beans.property.BooleanProperty;
 import javafx.beans.property.SimpleBooleanProperty;
 import javafx.scene.control.Alert;
 import logging.Logger;
+import util.OsUtil;
 import util.Util;
 
 import javax.crypto.Mac;
 import javax.crypto.spec.SecretKeySpec;
+import java.io.BufferedWriter;
+import java.io.File;
+import java.io.FileWriter;
 import java.io.IOException;
+import java.lang.reflect.Field;
 import java.net.ConnectException;
 import java.nio.charset.Charset;
 import java.security.InvalidKeyException;
@@ -208,10 +212,10 @@ public class ICEAdapter {
 
 		if(EXTERNAL_ADAPTER_PORT == -1) {
 			String command[] = new String[]{
-					(System.getProperty("os.name").contains("Windows") ? "faf-ice-adapter.exe" : "./faf-ice-adapter"),
-//					"java",
-//					"-jar",
-//					"faf-ice-adapter.jar",
+//					(System.getProperty("os.name").contains("Windows") ? "faf-ice-adapter.exe" : "./faf-ice-adapter"),
+					"java",
+					"-jar",
+					"faf-ice-adapter.jar",
 					"--id", String.valueOf(TestClient.playerID),
 					"--login", TestClient.username,
 					"--rpc-port", String.valueOf(ADAPTER_PORT),
@@ -225,58 +229,58 @@ public class ICEAdapter {
 //			processBuilder.inheritIO();
 
 
-//            Logger.debug("Command: %s", Arrays.stream(command).reduce("", (l, r) -> l + " " + r));
-//			try {
-//				process = processBuilder.start();
-//			} catch (IOException e) {
-//				Logger.error("Could not start ICE adapter", e);
-//				System.exit(10);
-//			}
-//
-//            try {
-//                BufferedWriter iceAdapterLogWriter = new BufferedWriter(new FileWriter(new File(String.format("faf-ice-adapter_%s.log", TestClient.username))));
-//                OsUtil.gobbleLines(process.getInputStream(), s -> noCatch(() -> iceAdapterLogWriter.write(s + "\n")));
-//                OsUtil.gobbleLines(process.getErrorStream(), s -> noCatch(() -> iceAdapterLogWriter.write(s + "\n")));
-//
-//                Thread t = new Thread(() -> {
-//                    while(true) {
-//                        noCatch(() -> Thread.sleep(5000));
-//                        noCatch(() -> iceAdapterLogWriter.flush());
-//                    }
-//                });
-//                t.setDaemon(true);
-//                t.start();
-//            } catch (IOException e) {
-//                Logger.warning("Could not open output writer for ice adapter log.");
-//            }
-//
-//			if (!process.isAlive()) {
-//				Logger.error("ICE Adapter not running");
-//				System.exit(11);
-//			}
-//
-//			//Read pid
-//			if (process.getClass().getName().equals("java.lang.Win32Process") || process.getClass().getName().equals("java.lang.ProcessImpl")) {
-//				try {
-//					Field f = process.getClass().getDeclaredField("handle");
-//					f.setAccessible(true);
-//					processHandle = f.getLong(process);
-//				} catch (Throwable e) {
-//					e.printStackTrace();
-//				}
-//			} else if(process.getClass().getName().equals("java.lang.UNIXProcess")) {
-//				/* get the PID on unix/linux systems */
-//				try {
-//					Field f = process.getClass().getDeclaredField("pid");
-//					f.setAccessible(true);
-//					processID = f.getInt(process);
-//					Logger.debug("ICEAdapter PID: %d", processID);
-//				} catch (Throwable e) {
-//					e.printStackTrace();
-//				}
-//			}
+            Logger.debug("Command: %s", Arrays.stream(command).reduce("", (l, r) -> l + " " + r));
+			try {
+				process = processBuilder.start();
+			} catch (IOException e) {
+				Logger.error("Could not start ICE adapter", e);
+				System.exit(10);
+			}
 
-			IceAdapter.main(Arrays.copyOfRange(command, 1, command.length));
+            try {
+                BufferedWriter iceAdapterLogWriter = new BufferedWriter(new FileWriter(new File(String.format("faf-ice-adapter_%s.log", TestClient.username))));
+                OsUtil.gobbleLines(process.getInputStream(), s -> noCatch(() -> iceAdapterLogWriter.write(s + "\n")));
+                OsUtil.gobbleLines(process.getErrorStream(), s -> noCatch(() -> iceAdapterLogWriter.write(s + "\n")));
+
+                Thread t = new Thread(() -> {
+                    while(true) {
+                        noCatch(() -> Thread.sleep(5000));
+                        noCatch(() -> iceAdapterLogWriter.flush());
+                    }
+                });
+                t.setDaemon(true);
+                t.start();
+            } catch (IOException e) {
+                Logger.warning("Could not open output writer for ice adapter log.");
+            }
+
+			if (!process.isAlive()) {
+				Logger.error("ICE Adapter not running");
+				System.exit(11);
+			}
+
+			//Read pid
+			if (process.getClass().getName().equals("java.lang.Win32Process") || process.getClass().getName().equals("java.lang.ProcessImpl")) {
+				try {
+					Field f = process.getClass().getDeclaredField("handle");
+					f.setAccessible(true);
+					processHandle = f.getLong(process);
+				} catch (Throwable e) {
+					e.printStackTrace();
+				}
+			} else if(process.getClass().getName().equals("java.lang.UNIXProcess")) {
+				/* get the PID on unix/linux systems */
+				try {
+					Field f = process.getClass().getDeclaredField("pid");
+					f.setAccessible(true);
+					processID = f.getInt(process);
+					Logger.debug("ICEAdapter PID: %d", processID);
+				} catch (Throwable e) {
+					e.printStackTrace();
+				}
+			}
+
+//			IceAdapter.main(Arrays.copyOfRange(command, 1, command.length));
 		}
 
 		Logger.info("Launched ICE adapter.");

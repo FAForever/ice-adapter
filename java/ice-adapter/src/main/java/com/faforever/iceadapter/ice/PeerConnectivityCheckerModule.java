@@ -1,9 +1,12 @@
 package com.faforever.iceadapter.ice;
 
 import com.google.common.primitives.Longs;
+import lombok.Getter;
 import lombok.extern.slf4j.Slf4j;
 
 import java.util.Arrays;
+
+import static com.faforever.iceadapter.debug.Debug.debug;
 
 @Slf4j
 /**
@@ -18,8 +21,8 @@ public class PeerConnectivityCheckerModule {
     private volatile boolean running = false;
     private volatile Thread checkerThread;
 
-    private float averageRTT = 0.0f;
-    private long lastPacketReceived;
+    @Getter private float averageRTT = 0.0f;
+    @Getter private long lastPacketReceived;
 
     public PeerConnectivityCheckerModule(PeerIceModule ice) {
         this.ice = ice;
@@ -73,6 +76,7 @@ public class PeerConnectivityCheckerModule {
 
         lastPacketReceived = System.currentTimeMillis();
 
+        debug().peerConnectivityUpdate(ice.getPeer());
 //      System.out.printf("Received echo from %d after %d ms, averageRTT: %d ms", ice.getPeer().getRemoteId(), rtt, (int) averageRTT);
     }
 
@@ -85,6 +89,8 @@ public class PeerConnectivityCheckerModule {
             System.arraycopy(Longs.toByteArray(System.currentTimeMillis()), 0, data, 1, 8);
 
             ice.sendViaIce(data, 0, data.length);
+
+            debug().peerConnectivityUpdate(ice.getPeer());
 
             try {
                 Thread.sleep(ECHO_INTERVAL);

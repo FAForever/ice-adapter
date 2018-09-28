@@ -12,6 +12,8 @@ import java.util.Map;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
+import static com.faforever.iceadapter.debug.Debug.debug;
+
 /**
  * Represents a game session and the current ICE status/communication with all peers
  * Is created by a JoinGame or HostGame event (via RPC), is destroyed by a gpgnet connection breakdown
@@ -35,6 +37,7 @@ public class GameSession {
         synchronized (peers) {
             Peer peer = new Peer(this, remotePlayerId, remotePlayerLogin, offer);
             peers.put(remotePlayerId, peer);
+            debug().connectToPeer(remotePlayerId, remotePlayerLogin, offer);
             return peer.getFaSocket().getLocalPort();
         }
     }
@@ -47,6 +50,7 @@ public class GameSession {
             if (peers.containsKey(remotePlayerId)) {
                 peers.get(remotePlayerId).close();
                 peers.remove(remotePlayerId);
+                debug().disconnectFromPeer(remotePlayerId);
             }
         }
         //TODO: still testing connectivity and reporting disconnect via rpc, why???
