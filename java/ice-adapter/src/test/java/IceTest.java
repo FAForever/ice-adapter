@@ -26,7 +26,7 @@ import java.util.*;
 public class IceTest {
 
     private static final String COTURN_HOST = "geosearchef.de";
-    private static final String COTURN_KEY = "--------------";
+    private static final String COTURN_KEY = "B9UohFSnFeX1YQ7nQJsBe3MwWS4kx4FJ8TUBUDzYG23rLBCIeJMvgYfbRkeK";
 //    private static final String COTURN_HOST = "vmrbg145.informatik.tu-muenchen.de";
 //    private static final String COTURN_KEY = "banana";
 
@@ -161,7 +161,7 @@ public class IceTest {
                         relatedCandidate
                 );
 
-//                if(remoteCandidate.getType().equals(CandidateType.RELAYED_CANDIDATE))
+                if(remoteCandidate.getType().equals(CandidateType.RELAYED_CANDIDATE)) //DEBUGGING: turn only
                 component.addRemoteCandidate(remoteCandidate);
             }
         }

@@ -27,7 +27,9 @@ repositories {
 }
 
 dependencies {
-    implementation "org.jitsi:ice4j:1.0"
+//    implementation "org.jitsi:ice4j:1.0"
+//    implementation 'com.github.jitsi:ice4j:59693a4894'
+    implementation 'com.github.Geosearchef:ice4j:52c8e4bcef'
     implementation 'com.github.Geosearchef:JJsonRpc:master'
     implementation "com.google.code.gson:gson:2.7"
     implementation "com.google.guava:guava:18.0"

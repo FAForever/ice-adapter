@@ -7,10 +7,7 @@ import com.faforever.iceadapter.util.Executor;
 import lombok.Getter;
 import lombok.extern.slf4j.Slf4j;
 import org.ice4j.Transport;
-import org.ice4j.ice.Agent;
-import org.ice4j.ice.Component;
-import org.ice4j.ice.IceMediaStream;
-import org.ice4j.ice.IceProcessingState;
+import org.ice4j.ice.*;
 import org.ice4j.ice.harvest.StunCandidateHarvester;
 import org.ice4j.ice.harvest.TurnCandidateHarvester;
 import org.ice4j.security.LongTermCredential;
@@ -35,6 +32,8 @@ public class PeerIceModule {
     private volatile IceState iceState = NEW;
     private volatile boolean connected = false;
     private volatile Thread listenerThread;
+
+    private PeerTurnRefreshModule turnRefreshModule;
 
     //Checks the connection by sending echo requests and initiates a reconnect if needed
     private final PeerConnectivityCheckerModule connectivityChecker = new PeerConnectivityCheckerModule(this);
@@ -194,6 +193,10 @@ public class PeerIceModule {
         RPCService.onConnected(IceAdapter.id, peer.getRemoteId(), true);
         setState(CONNECTED);
 
+        if (component.getSelectedPair().getLocalCandidate().getType() == CandidateType.RELAYED_CANDIDATE) {
+            turnRefreshModule = new PeerTurnRefreshModule(this, (RelayedCandidate) component.getSelectedPair().getLocalCandidate());
+        }
+
         if (peer.isLocalOffer()) {
             connectivityChecker.start();
         }
@@ -223,6 +226,11 @@ public class PeerIceModule {
 //            listenerThread.stop();//TODO what if cancelled during sending TO FA???
             listenerThread.interrupt();
             listenerThread = null;
+        }
+
+        if(turnRefreshModule != null) {
+            turnRefreshModule.close();
+            turnRefreshModule = null;
         }
 
         connectivityChecker.stop();
@@ -335,6 +343,8 @@ public class PeerIceModule {
     }
 
     void close() {
+        turnRefreshModule.close();
+        connectivityChecker.stop();
         agent.free();
     }
 
